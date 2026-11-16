@@ -364,13 +364,15 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
     <div class="card">
       <p class="small muted">Save a copy of all your data as a file, or restore one. Good to do now and then.</p>
       <div class="grid2" style="margin-top:10px"><button class="btn" style="margin:0" data-act="export">Download backup</button><button class="ghost" data-act="pick-import">Restore backup</button></div>
+      <button class="ghost" style="width:100%;margin-top:8px" data-act="cloud-bk">Restore a daily cloud backup</button>
+      <ul class="list" id="bkList" hidden></ul>
       <input type="file" id="impFile" accept=".json,application/json" hidden>
       <div id="impConfirm" hidden style="margin-top:12px">
         <p class="small"><b>Replace everything with this backup?</b> <span id="impInfo" class="muted"></span></p>
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v0.7.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v0.8 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -407,7 +409,7 @@ const FEELS=[['easier','Easier'],['same','Same'],['harder','Harder']];
 const EXS=['Pull-ups','Chin-ups','Push-ups','Dips','Muscle-ups','Australian rows','Pike push-ups','Handstand push-ups','Pistol squats','Squats','Lunges','Hanging leg raises','Front lever hold','Back lever hold','Planche lean','Handstand hold','L-sit','Plank'];
 const LV=['Principiante','Apprendista','Costante','Determinato','Forte','Inarrestabile','Campione','Leggenda'];
 
-const defaults=()=>({v:1,updated:0,budget:900,weekGoal:4,workouts:[],expenses:[],plans:[],debts:[],cards:[],revLog:{},langDir:'f',skin:'azzurro',name:'Rasul'});
+const defaults=()=>({v:1,updated:0,budget:900,weekGoal:4,workouts:[],expenses:[],plans:[],debts:[],cards:[],revLog:{},del:{},langDir:'f',skin:'azzurro',name:'Rasul'});
 function applySkin(k){
   const r=document.documentElement;
   r.dataset.skin=k==='azzurro'?'azzurro':'mono';
@@ -423,15 +425,31 @@ const setSync=t=>{$('#sync').textContent=t};
 const hasData=s=>s.workouts.length||s.expenses.length||s.plans.length||s.debts.length||s.cards.length;
 function commit(){
   S.updated=Date.now();
+  if(S.del){const cut=Date.now()-1.5e10;for(const k in S.del)if(S.del[k]<cut)delete S.del[k]}
   try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}
   renderAll();
   if(uid){clearTimeout(timer);timer=setTimeout(flush,700)}
 }
+/* Merge two copies so nothing is ever lost: keep every item either side has, unless it was deleted on purpose. */
+const LISTS=['workouts','expenses','plans','debts','cards'];
+function mergeState(o,n){
+  const s=JSON.parse(JSON.stringify(n));let changed=0;
+  s.del=Object.assign({},o.del||{},n.del||{});
+  LISTS.forEach(k=>{
+    s[k]=s[k]||[];const have=new Set(s[k].map(x=>x.id));
+    (o[k]||[]).forEach(x=>{if(x&&!have.has(x.id)&&!s.del[x.id]){s[k].push(x);changed++}});
+    const before=s[k].length;s[k]=s[k].filter(x=>!s.del[x.id]);changed+=before-s[k].length;
+  });
+  s.revLog=s.revLog||{};
+  Object.entries(o.revLog||{}).forEach(([k,v])=>{if(!(s.revLog[k]>=v)){s.revLog[k]=v;changed++}});
+  return {s,changed};
+}
+let lastBk='';try{lastBk=localStorage.getItem('excelsior-lastbk')||''}catch(e){}
 async function flush(){
   if(!uid||!cloud)return;
   if(writing){again=true;return}
   writing=true;setSync('Saving…');
-  try{await cloud.save(uid,JSON.parse(JSON.stringify(S)));setSync('Synced');const el=$('#syncErr');if(el)el.hidden=true}
+  try{await cloud.save(uid,JSON.parse(JSON.stringify(S)));setSync('Synced');if(hasData(S)&&lastBk!==today()&&cloud.backup){lastBk=today();try{localStorage.setItem('excelsior-lastbk',lastBk)}catch(e){}cloud.backup(uid,lastBk,JSON.parse(JSON.stringify(S))).catch(()=>{})}const el=$('#syncErr');if(el)el.hidden=true}
   catch(e){syncFail(e)}
   writing=false;
   if(again){again=false;flush()}
@@ -468,12 +486,13 @@ function onUser(u){
     if(snap.pending)return;
     if(!snap.fromCache)clearTimeout(t);
     if(snap.exists){
-      const d=snap.data||{};
-      if((d.updated||0)>=(S.updated||0)){
-        S=Object.assign(defaults(),JSON.parse(JSON.stringify(d)));
-        try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}
-        renderAll();setSync('Synced');
-      }else flush();
+      const d=Object.assign(defaults(),JSON.parse(JSON.stringify(snap.data||{})));
+      const cloudNewer=(d.updated||0)>=(S.updated||0);
+      const r=cloudNewer?mergeState(S,d):mergeState(d,S);
+      S=r.s;
+      try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}
+      renderAll();
+      if(!cloudNewer||r.changed){S.updated=Date.now();flush()}else setSync('Synced');
     }else if(hasData(S))flush();
     else setSync('Synced');
   },e=>{clearTimeout(t);syncFail(e)});
@@ -519,8 +538,8 @@ function toast(text,undo){
 $('#toastU').addEventListener('click',()=>{if(undoFn)undoFn();undoFn=null;$('#toast').classList.remove('on')});
 function removeWith(list,id,label){
   const arr=S[list],i=arr.findIndex(x=>x.id===id);if(i<0)return;
-  const it=arr.splice(i,1)[0];commit();
-  toast(label+' deleted',()=>{S[list].splice(Math.min(i,S[list].length),0,it);commit()});
+  const it=arr.splice(i,1)[0];S.del=S.del||{};S.del[id]=Date.now();commit();
+  toast(label+' deleted',()=>{delete S.del[id];S[list].splice(Math.min(i,S[list].length),0,it);commit()});
 }
 
 /* ---------- derived numbers ---------- */
@@ -800,6 +819,13 @@ document.addEventListener('click',e=>{
     l.href=u;l.download='excelsior-backup-'+today()+'.json';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);
     toast('Backup downloaded');
   }
+  else if(a==='cloud-bk'){
+    if(!uid||!cloud||!cloud.listBackups){toast('Sign in first');return}
+    cloud.listBackups(uid).then(bs=>{bkCache=bs;$('#bkList').hidden=false;
+      $('#bkList').innerHTML=bs.length?bs.slice(0,30).map(b=>`<li class="li"><span><b>${short(b.id)}</b><br><span class="small muted">${(b.data.workouts||[]).length} workouts · ${(b.data.expenses||[]).length} expenses · ${(b.data.cards||[]).length} words</span></span><button class="ghost" data-act="use-bk" data-id="${b.id}">Restore</button></li>`).join(''):'<li class="muted small" style="padding:10px 0">No cloud backups yet. One is saved automatically each day you use the app.</li>';
+    }).catch(()=>toast('Couldn\'t load backups'));
+  }
+  else if(a==='use-bk'){const b=bkCache.find(x=>x.id===id);if(!b)return;pending=b.data;$('#impInfo').textContent=(b.data.workouts||[]).length+' workouts, '+(b.data.expenses||[]).length+' expenses, '+((b.data.cards||[]).length)+' words (from '+short(b.id)+').';$('#impConfirm').hidden=false}
   else if(a==='pick-import'){$('#impFile').value='';$('#impFile').click()}
   else if(a==='cancel-import'){pending=null;$('#impConfirm').hidden=true}
   else if(a==='do-import'){if(!pending)return;const old=S;S=Object.assign(defaults(),pending);pending=null;$('#impConfirm').hidden=true;commit();toast('Backup restored',()=>{S=old;commit()})}
@@ -811,7 +837,7 @@ document.addEventListener('click',e=>{
   else if(a==='del-card'){if(cur&&cur.id===id){cur=null}queue=queue.filter(q=>q!==id);removeWith('cards',id,'Word')}
 });
 $('#wSearch').addEventListener('input',renderWords);
-let pending=null;
+let pending=null,bkCache=[];
 $('#impFile').addEventListener('change',e=>{
   const f=e.target.files&&e.target.files[0];if(!f)return;
   f.text().then(t=>{
@@ -888,7 +914,7 @@ resetForm();renderAll();show();
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import {initializeFirestore,persistentLocalCache,doc,onSnapshot,setDoc,collection,deleteDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import {initializeFirestore,persistentLocalCache,doc,onSnapshot,setDoc,collection,deleteDoc,getDocs} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 const app=initializeApp({
   apiKey:"AIzaSyCRKIUDzNOP29jfY1k4ymVTyw3nk2ZXI-w",
   authDomain:"me-vs-me-50eee.firebaseapp.com",
@@ -908,6 +934,8 @@ window.saroCloud={
   signOut:()=>signOut(auth),
   save:(uid,data)=>setDoc(ref(uid),data),
   watchInbox:(uid,next)=>onSnapshot(collection(db,'users',uid,'inbox'),q=>next(q.docs.map(d=>({id:d.id,data:d.data()}))),()=>{}),
+  backup:(uid,day,data)=>setDoc(doc(db,'users',uid,'backups',day),data),
+  listBackups:async uid=>(await getDocs(collection(db,'users',uid,'backups'))).docs.map(d=>({id:d.id,data:d.data()})).sort((a,b)=>b.id.localeCompare(a.id)),
   delInbox:(uid,id)=>deleteDoc(doc(db,'users',uid,'inbox',id)),
   watch:(uid,next,err)=>onSnapshot(ref(uid),{includeMetadataChanges:true},s=>next({exists:s.exists(),data:s.data(),pending:s.metadata.hasPendingWrites,fromCache:s.metadata.fromCache}),err)
 };
