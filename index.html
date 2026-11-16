@@ -55,6 +55,10 @@ main{max-width:600px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom) 
 .day.done b{background:#fff;border-color:#fff}
 .day.now{color:#fff;font-weight:600}
 .lvl{margin-top:18px}
+.big.pos{color:var(--good)}.big.neg,.hero2 .side b.neg{color:var(--bad)}
+:root{--good:light-dark(#0a8f4a,#3ddc84);--bad:light-dark(#d92d20,#ff6b6b)}
+.band{--good:#8dffbf;--bad:#ffb1a6}
+[data-skin=mono] .band{--good:light-dark(#0a8f4a,#3ddc84);--bad:light-dark(#d92d20,#ff6b6b)}
 .hero2{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 .hero2 .side{display:flex;flex-direction:column;align-items:flex-end;text-align:right;padding-bottom:10px;padding-left:14px;border-left:1px solid color-mix(in srgb,currentColor 25%,transparent)}
 .hero2 .side b{font:700 clamp(20px,6vw,30px)/1.1 Sora,sans-serif;letter-spacing:-.02em;margin:2px 0}
@@ -468,7 +472,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v1.2 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v1.2.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -703,8 +707,8 @@ function renderToday(){
   const h=new Date().getHours();
   $('#hello').textContent=(h<12?'Buongiorno':h<18?'Ciao':'Buonasera')+', '+(S.name||'Rasul')+' · '+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
   $('#safeLbl').textContent=di.left>=0?'Left to spend today':'Over today\'s budget';
-  $('#safe').textContent=money(Math.abs(di.left));
-  {const rem=di.B-di.spent;$('#monRem').textContent=(rem<0?'−':'')+money(Math.abs(rem));$('#monOf').textContent=rem<0?'over £'+(+di.B.toFixed(2)):'of '+money(di.B);}
+  $('#safe').textContent=money(Math.abs(di.left));$('#safe').className='big '+(di.left<-0.004?'neg':'pos');
+  {const rem=di.B-di.spent;$('#monRem').textContent=(rem<0?'−':'')+money(Math.abs(rem));$('#monRem').className='amt'+(rem<0?' neg':'');$('#monOf').textContent=rem<0?'over £'+(+di.B.toFixed(2)):'of '+money(di.B);}
   $('#safeSub').textContent='of '+money(di.allow)+' today'+(di.reduced?' (reduced: over budget this month)':'')+' · '+money(di.saved)+' saved this month';
   $('#potToday').textContent=money(pi.pot+di.saved);
   $('#potTodaySub').textContent=money(pi.pot)+' in the pot + '+money(di.saved)+' saved so far this month';
