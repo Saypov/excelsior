@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Excelsior">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#ffffff">
-<link rel="apple-touch-icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png" id="touchIcon">
 <link rel="icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -455,6 +455,12 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <button class="skin ghost" data-act="skin" data-v="mono-dark"><div class="sw-d">£840</div>Mono Black<div class="small muted" style="font-weight:400">Black, always</div></button>
     </div>
     <p class="small muted" style="margin-top:8px">Azzurro follows your phone's light or dark mode. The Mono themes stay the same whatever your phone is set to.</p>
+    <h2>App icon</h2>
+    <div class="skins" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      <button class="skin ghost" data-act="icon" data-v="light"><img src="icon.png" alt="" style="width:64px;height:64px;border-radius:15px;display:block;margin-bottom:6px;border:1px solid #0002">Light</button>
+      <button class="skin ghost" data-act="icon" data-v="dark"><img src="icon-dark.png" alt="" style="width:64px;height:64px;border-radius:15px;display:block;margin-bottom:6px">Dark</button>
+    </div>
+    <p class="small muted" style="margin-top:8px">To apply it: remove Excelsior from your Home Screen, then open the link in Safari and tap Share → Add to Home Screen again. Your data stays safe.</p>
     <h2>You</h2>
     <label for="setName">Name for greetings</label>
     <input id="setName" autocomplete="off">
@@ -506,7 +512,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v1.3.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v1.4 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -545,6 +551,8 @@ const EXS=['Pull-ups','Chin-ups','Push-ups','Dips','Muscle-ups','Australian rows
 const LV=['Principiante','Apprendista','Costante','Determinato','Forte','Inarrestabile','Campione','Leggenda'];
 
 const defaults=()=>({v:1,updated:0,budget:900,weekGoal:4,workouts:[],expenses:[],plans:[],debts:[],cards:[],revLog:{},del:{},langDir:'f',skin:'azzurro',name:'Rasul'});
+function applyIcon(v){const f=v==='dark'?'icon-dark.png':'icon.png';const l=document.getElementById('touchIcon');if(l&&l.getAttribute('href')!==f)l.setAttribute('href',f)}
+try{applyIcon(localStorage.getItem('excelsior-icon'))}catch(e){}
 function applySkin(k){
   const r=document.documentElement;
   r.dataset.skin=k==='azzurro'?'azzurro':'mono';
@@ -1178,6 +1186,8 @@ function renderSettings(){
   try{localStorage.setItem('saro-skin',S.skin)}catch(e){}
   document.querySelectorAll('[data-act=skin]').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.skin);b.setAttribute('aria-pressed',b.dataset.v===S.skin)});
   if(document.activeElement!==$('#setName'))$('#setName').value=S.name;
+  const ic=S.icon||'light';applyIcon(ic);try{localStorage.setItem('excelsior-icon',ic)}catch(e){}
+  document.querySelectorAll('[data-act=icon]').forEach(b=>{b.classList.toggle('on',b.dataset.v===ic);b.setAttribute('aria-pressed',b.dataset.v===ic)});
 }
 function show(){if(location.hash==='#invest'){sub='invest';renderMoney();setTimeout(()=>refreshInv(false),50);location.replace('#money');return}
   const v=VIEWS.includes(location.hash.slice(1))?location.hash.slice(1):'today';
@@ -1204,6 +1214,7 @@ document.addEventListener('click',e=>{
   else if(a==='del-exp'){removeWith('expenses',id,'Expense')}
   else if(a==='del-plan'){removeWith('plans',id,'Planned payment')}
   else if(a==='del-debt'){removeWith('debts',id,'Repayment')}
+  else if(a==='icon'){S.icon=b.dataset.v;commit();toast('Icon chosen · re-add to Home Screen to apply')}
   else if(a==='skin'){S.skin=b.dataset.v;commit()}
   else if(a==='auth'){authDo(b.dataset.v)}
   else if(a==='sync-now'){if(uid){flush();toast('Syncing…')}}
