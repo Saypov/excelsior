@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Excelsior</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Excelsior">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a personal coach in your pocket — direct, encouraging, no fluff
+   IDEA: a passbook crossed with a training notebook: every entry stamped, totals up front
+   PICTURE: the Today band — safe-to-spend as one big figure, this week's training dots, level bar
+   COLOUR and TYPE: azzurro blue fields, tomato accent only for alerts; Sora titles, Inter body
+   LAYOUT: one phone column, fixed bottom tabs, stacked cards, forms in one calm column */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#0c111d);--ink:light-dark(#11141b,#eef1f7);--muted:light-dark(#596275,#9ba4b6);
+--line:light-dark(#e2e5ed,#232b3e);--soft:light-dark(#f3f5fa,#141b2c);
+--blue:light-dark(#1d4ed8,#7096ff);--band:light-dark(#1d4ed8,#1a3a9c);--on:#ffffff;
+--hot:light-dark(#d9411f,#ff7a5c)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip;-webkit-tap-highlight-color:transparent}
+h1,h2,.big{font-family:Sora,Inter,sans-serif;letter-spacing:-.02em}
+h1{font-size:32px;line-height:1.05;margin:0 0 4px;text-wrap:balance}
+h2{font-size:20px;margin:28px 0 10px}
+p{margin:0}
+.top{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top) + 10px) 18px 10px;background:var(--bg);border-bottom:1px solid var(--line)}
+.brand{font:700 17px Sora,sans-serif;letter-spacing:-.01em}
+.sync{font-size:13px;color:var(--muted);white-space:nowrap}
+main{max-width:600px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom) + 96px)}
+.view{display:none}.view.on{display:block}
+.pad{padding:0 18px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.band{background:var(--band);color:var(--on);padding:26px 18px 22px}
+.band .muted{color:#ffffffc4}
+.big{font-size:clamp(44px,13vw,64px);font-weight:700;line-height:1;margin:6px 0 8px;white-space:nowrap}
+.bar{height:8px;border-radius:8px;background:var(--soft);overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--blue);border-radius:8px}
+.band .bar{background:#ffffff33}.band .bar>i{background:#fff}
+.bar.hot>i{background:var(--hot)}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:8px}
+.day{text-align:center;font-size:13px;color:#ffffffc4}
+.day b{display:block;margin:4px auto 0;width:30px;height:30px;border-radius:50%;border:2px solid #ffffff66}
+.day.done b{background:#fff;border-color:#fff}
+.day.now{color:#fff;font-weight:600}
+.lvl{margin-top:18px}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 18px 0}
+.card{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;background:var(--bg)}
+.card.done{opacity:.55}
+.list{list-style:none;margin:0;padding:0}
+.li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.li:last-child{border-bottom:0}
+.amt{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;font-weight:600}
+.tag{display:inline-block;font-size:13px;padding:2px 8px;border-radius:20px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.tag.hot{background:color-mix(in srgb,var(--hot) 16%,transparent);color:var(--hot);font-weight:600}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}
+input,select,textarea{width:100%;font:16px Inter,sans-serif;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:11px 12px;min-height:44px}
+textarea{min-height:70px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:0 14px;cursor:pointer}
+.btn{background:var(--blue);border-color:var(--blue);color:#fff;width:100%;margin-top:14px}
+.ghost{background:var(--soft)}
+.link{border:0;background:none;color:var(--blue);padding:0 4px;min-height:36px}
+.x{flex:none;width:44px;padding:0;font-size:22px;line-height:1;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.seg{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.seg button{flex:1 1 auto;background:var(--soft);font-weight:500;font-size:14px}
+.seg button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{min-height:40px;font-weight:500;font-size:14px;background:var(--soft);border-radius:20px}
+.chips button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.ex{border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:10px}
+.exhead,.exrow{display:flex;gap:8px}
+.exrow{margin-top:8px}.exrow select{width:92px;flex:none}
+.hint{font-size:13px;color:var(--muted);margin-top:8px}
+.hint b{color:var(--ink)}
+.inline{display:flex;gap:8px;margin-top:10px}.inline input{flex:1}
+.subtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:16px 0 4px}
+.subtabs button{background:var(--soft);font-weight:500;font-size:14px;padding:0 6px}
+.subtabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.cat{margin:8px 0}.cat .row{font-size:14px}
+.empty{padding:18px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);text-align:center;font-size:15px}
+.fig{position:relative;min-height:200px;margin-top:8px}.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+.wo h3{font-size:15px;margin:0}
+.wo p{font-size:14px;margin-top:4px}
+.acts{display:flex;gap:4px;justify-content:flex-end;margin-top:6px}
+.flash{border:1px solid var(--line);border-radius:18px;padding:26px 18px;text-align:center;background:var(--soft);margin-top:12px}
+.flash .w{font:700 clamp(28px,8vw,38px)/1.15 Sora,sans-serif;letter-spacing:-.02em;margin:8px 0;overflow-wrap:anywhere}
+.flash .a{font-size:20px;font-weight:600;color:var(--blue);margin-top:14px;overflow-wrap:anywhere}
+.rate{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:16px}
+.rate button{padding:4px 2px;font-size:14px;line-height:1.2}
+.rate button span{display:block;font-size:12px;font-weight:400;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.stats div{background:var(--soft);border-radius:12px;padding:10px;text-align:center}
+.stats b{display:block;font:700 22px Sora,sans-serif}
+.stats span{font-size:13px;color:var(--muted)}
+details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;display:grid;grid-template-columns:repeat(4,1fr);background:var(--bg);border-top:1px solid var(--line);padding:6px 8px calc(env(safe-area-inset-bottom) + 6px)}
+.tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;min-height:48px;border-radius:10px}
+.tabs a.on{color:var(--blue)}
+.tabs svg{width:24px;height:24px}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 84px);transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--ink);color:var(--bg);border-radius:12px;padding:8px 8px 8px 16px;display:flex;align-items:center;gap:10px;font-size:15px;max-width:92vw;transition:.2s;z-index:9}
+#toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#toast button{background:none;border:0;color:var(--bg);text-decoration:underline;min-height:36px}
+.msg{color:var(--hot);font-size:14px;margin-top:8px;min-height:1em}
+@media(prefers-reduced-motion:reduce){#toast{transition:none}}
+.hdr{display:flex;align-items:center;gap:6px}
+.gear{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;color:var(--ink)}
+.gear svg{width:22px;height:22px}
+.skins{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+:root[data-skin][data-scheme=light]{color-scheme:light}:root[data-skin][data-scheme=dark]{color-scheme:dark}
+.sw-d{height:70px;border-radius:10px;padding:8px;background:#000;color:#f5f5f5;border:1px solid #262626;box-shadow:inset 0 -14px 0 #161616;font:900 18px Archivo,sans-serif;font-stretch:125%}
+.skin{display:block;text-align:left;padding:10px;border-radius:16px;min-height:0;height:auto;font-weight:600}
+.skin.on{outline:3px solid var(--acc,var(--blue));outline-offset:1px}
+.sw{display:flex;gap:4px;margin:8px 0 6px}.sw i{width:22px;height:22px;border-radius:50%;border:1px solid #0002}
+.sw-a{height:70px;border-radius:10px;padding:8px;color:#fff;font:700 18px Sora,sans-serif}
+.sw-m{height:70px;border-radius:10px;padding:8px;background:#fff;border:1px solid #e5e7eb;box-shadow:inset 0 -14px 0 #f3f4f6;color:#0a0a0a;font:900 18px Archivo,sans-serif;font-stretch:125%}
+
+/* ---------- Mono skin: black on white, wide black display type, soft grey cards, green accents ---------- */
+:root[data-skin=mono]{--bg:light-dark(#ffffff,#000000);--ink:light-dark(#0a0a0a,#f5f5f5);--muted:light-dark(#6b7280,#9ca3af);
+--line:light-dark(#e5e7eb,#262626);--soft:light-dark(#f3f4f6,#161616);--blue:var(--ink);--band:var(--soft);--on:var(--ink);
+--hot:light-dark(#e11d48,#fb7185);--acc:#00d26a}
+[data-skin=mono] body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,sans-serif}
+[data-skin=mono] h1,[data-skin=mono] .big,[data-skin=mono] .brand,[data-skin=mono] .flash .w,[data-skin=mono] .stats b{font-family:Archivo,sans-serif;font-weight:900;font-stretch:125%;letter-spacing:-.01em}
+[data-skin=mono] h1{font-size:38px}
+[data-skin=mono] h2{font-family:-apple-system,BlinkMacSystemFont,Inter,sans-serif;font-weight:700;font-size:22px;letter-spacing:-.01em}
+[data-skin=mono] .top{border-bottom:0}
+[data-skin=mono] .band{margin:12px 18px 0;border-radius:26px;padding:22px 18px}
+[data-skin=mono] .band .muted,[data-skin=mono] .day{color:var(--muted)}
+[data-skin=mono] .day.now{color:var(--ink)}
+[data-skin=mono] .day b{border-color:var(--line);background:var(--bg)}
+[data-skin=mono] .day.done b{background:var(--acc);border-color:var(--acc)}
+[data-skin=mono] .band .bar{background:var(--line)}[data-skin=mono] .band .bar>i{background:var(--ink)}
+[data-skin=mono] .card{border:0;background:var(--soft);border-radius:22px;padding:16px}
+[data-skin=mono] .card input,[data-skin=mono] .card select,[data-skin=mono] .card textarea{background:var(--bg)}
+[data-skin=mono] .ex{background:var(--bg);border-color:var(--line)}
+[data-skin=mono] .btn{background:var(--ink);border-color:var(--ink);color:var(--bg);border-radius:14px}
+[data-skin=mono] .seg button.on,[data-skin=mono] .subtabs button.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+[data-skin=mono] .tag.ok{background:color-mix(in srgb,var(--acc) 20%,transparent);color:light-dark(#047a3c,#5dffa8)}
+[data-skin=mono] .flash{border:0;border-radius:26px}
+[data-skin=mono] .flash .a{color:var(--ink)}
+[data-skin=mono] .tabs{border-top:1px solid var(--line);padding-left:6px;padding-right:6px}
+[data-skin=mono] .tabs a{font-size:13px;font-weight:500}
+[data-skin=mono] .tabs a.on{background:var(--soft);color:var(--ink);font-weight:600}
+[data-skin=mono] .empty{border:0;background:var(--soft);border-radius:20px}
+</style>
+</head>
+<body>
+<header class="top"><span class="brand">Excelsior</span><span class="hdr"><span class="sync" id="sync">Saved on this device</span><a href="#settings" class="gear" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a></span></header>
+<main>
+
+<section class="view" id="v-today">
+  <div class="band">
+    <p class="small" style="font-weight:600;letter-spacing:.02em;opacity:.85;margin-bottom:2px">Sarò il migliore</p>
+    <p id="hello" class="muted">Ciao, Rasul</p>
+    <p class="muted small" id="safeLbl">Safe to spend this month</p>
+    <div class="big" id="safe">£0</div>
+    <p class="small muted" id="safeSub"></p>
+    <div class="row" style="margin-top:20px"><span class="small" style="font-weight:600">Training this week</span><span class="small" id="weekCount"></span></div>
+    <div class="week" id="week"></div>
+    <div class="lvl">
+      <div class="row small"><span><b id="lvlName"></b></span><span id="lvlXp"></span></div>
+      <div class="bar" style="margin-top:6px"><i id="lvlBar"></i></div>
+    </div>
+  </div>
+  <div class="pad" id="syncBanner" hidden><div class="card" style="margin:12px 0 0;display:flex;justify-content:space-between;align-items:center;gap:12px">
+    <span class="small"><b>Sync is off</b><br><span class="muted">Sign in to keep data on all your devices.</span></span>
+    <button class="ghost" data-act="go" data-to="settings">Sign in</button></div></div>
+  <div class="quick">
+    <button class="ghost" data-act="go" data-to="money">+ Expense</button>
+    <button class="ghost" data-act="go" data-to="fitness">+ Workout</button>
+  </div>
+  <div class="pad"><div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+    <span><b>Lingue</b><br><span class="small muted" id="langToday"></span></span>
+    <button class="ghost" data-act="go" data-to="lingue">Practise</button>
+  </div></div>
+  <div class="pad">
+    <h2>Coming up</h2>
+    <ul class="list" id="upcoming"></ul>
+    <h2>Last workout</h2>
+    <div id="lastWo"></div>
+  </div>
+</section>
+
+<section class="view" id="v-fitness">
+  <div class="pad">
+    <h1 style="margin-top:22px" id="woTitle">Log a workout</h1>
+    <form data-form="wo">
+      <label for="woDate">Date</label>
+      <input type="date" id="woDate">
+      <div id="exRows"></div>
+      <button type="button" class="ghost" style="width:100%;margin-top:10px" data-act="add-ex">+ Add exercise</button>
+      <label for="woNote">Notes</label>
+      <textarea id="woNote" placeholder="How did the session go overall?"></textarea>
+      <p class="msg" id="woMsg"></p>
+      <button class="btn" type="submit" id="woSave">Save workout</button>
+      <button type="button" class="link" id="woCancel" data-act="cancel-edit" hidden>Cancel editing</button>
+    </form>
+    <datalist id="exlist"></datalist>
+
+    <h2>Progress</h2>
+    <div id="progWrap"></div>
+
+    <div class="row"><h2>History</h2>
+      <label class="small muted" style="margin:28px 0 10px;display:flex;align-items:center;gap:8px;font-weight:500">Weekly goal
+        <select id="weekGoal" style="width:76px;min-height:40px;padding:6px 8px"></select></label>
+    </div>
+    <div id="woList"></div>
+  </div>
+</section>
+
+<section class="view" id="v-money">
+  <div class="pad">
+    <div class="subtabs" role="tablist">
+      <button data-act="sub" data-v="spend" role="tab">Spending</button>
+      <button data-act="sub" data-v="plans" role="tab">Planned</button>
+      <button data-act="sub" data-v="debts" role="tab">Repayments</button>
+    </div>
+
+    <div id="s-spend">
+      <div class="card" style="margin-top:12px">
+        <div class="row"><span class="muted small" id="monLbl">Spent this month</span><span class="muted small" id="monLeft"></span></div>
+        <div class="big" style="font-size:44px" id="monSpent">£0</div>
+        <div class="bar" id="monBarW"><i id="monBar"></i></div>
+        <label for="budget">Monthly budget (£)</label>
+        <input id="budget" inputmode="decimal" placeholder="900">
+      </div>
+      <form data-form="exp" class="card">
+        <div class="grid2">
+          <div><label for="expAmt">Amount (£)</label><input id="expAmt" inputmode="decimal" placeholder="0.00" autocomplete="off"></div>
+          <div><label for="expDate">Date</label><input type="date" id="expDate"></div>
+        </div>
+        <label>Category</label>
+        <div class="chips" id="cats"></div>
+        <label for="expNote">Note</label>
+        <input id="expNote" placeholder="e.g. Tesco, Uber, Pret" autocomplete="off">
+        <p class="msg" id="expMsg"></p>
+        <button class="btn" type="submit">Add expense</button>
+      </form>
+      <h2>By category</h2>
+      <div id="catBars"></div>
+      <h2>This month</h2>
+      <ul class="list" id="expList"></ul>
+    </div>
+
+    <div id="s-plans" hidden>
+      <p class="muted small" style="margin-top:12px">Events you'll definitely pay for. The monthly set-aside is taken out of your safe-to-spend, so you're never caught short.</p>
+      <div id="planList" style="margin-top:12px"></div>
+      <form data-form="plan" class="card">
+        <h2 style="margin-top:0">New planned payment</h2>
+        <label for="plName">What</label><input id="plName" placeholder="e.g. May Ball ticket" autocomplete="off">
+        <div class="grid2">
+          <div><label for="plDate">When</label><input type="date" id="plDate"></div>
+          <div><label for="plAmt">Cost (£)</label><input id="plAmt" inputmode="decimal" placeholder="0"></div>
+        </div>
+        <label for="plSaved">Already saved (£, optional)</label><input id="plSaved" inputmode="decimal" placeholder="0">
+        <p class="msg" id="plMsg"></p>
+        <button class="btn" type="submit">Add planned payment</button>
+      </form>
+    </div>
+
+    <div id="s-debts" hidden>
+      <div class="card" style="margin-top:12px">
+        <div class="grid2">
+          <div><p class="muted small">You owe</p><p class="amt" style="text-align:left;font-size:22px" id="dOwe">£0</p></div>
+          <div><p class="muted small">Owed to you</p><p class="amt" style="text-align:left;font-size:22px" id="dOwed">£0</p></div>
+        </div>
+      </div>
+      <div id="debtList"></div>
+      <form data-form="debt" class="card">
+        <h2 style="margin-top:0">New repayment</h2>
+        <label for="dDir">Direction</label>
+        <select id="dDir"><option value="owe">I borrowed — I owe them</option><option value="owed">I lent — they owe me</option></select>
+        <div class="grid2">
+          <div><label for="dWho">Person</label><input id="dWho" placeholder="Name" autocomplete="off"></div>
+          <div><label for="dAmt">Amount (£)</label><input id="dAmt" inputmode="decimal" placeholder="0"></div>
+        </div>
+        <label for="dDue">Pay back by (optional)</label><input type="date" id="dDue">
+        <label for="dNote">Note</label><input id="dNote" placeholder="What it was for" autocomplete="off">
+        <p class="msg" id="dMsg"></p>
+        <button class="btn" type="submit">Add repayment</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="v-lingue">
+  <div class="pad">
+    <h1 style="margin-top:22px">Lingue</h1>
+    <div class="subtabs" style="grid-template-columns:1fr 1fr" role="tablist">
+      <button data-act="lang" data-v="it" role="tab">Italiano</button>
+      <button data-act="lang" data-v="fr" role="tab">Français</button>
+    </div>
+    <div class="stats">
+      <div><b id="lDue">0</b><span>due today</span></div>
+      <div><b id="lTotal">0</b><span>words</span></div>
+      <div><b id="lStreak">0</b><span>day streak</span></div>
+    </div>
+    <div id="review"></div>
+    <label for="lDir">Practice direction</label>
+    <select id="lDir"><option value="f">Foreign word → English</option><option value="b">English → foreign word</option></select>
+
+    <form data-form="card" class="card" style="margin-top:20px">
+      <h2 style="margin-top:0" id="addTitle">Add a word</h2>
+      <div class="grid2">
+        <div><label for="cF" id="cFl">Italian</label><input id="cF" autocomplete="off" autocapitalize="off" placeholder="e.g. comunque"></div>
+        <div><label for="cB">English</label><input id="cB" autocomplete="off" placeholder="e.g. anyway"></div>
+      </div>
+      <label for="cEx">Example sentence (optional)</label><input id="cEx" autocomplete="off">
+      <p class="msg" id="cMsg"></p>
+      <button class="btn" type="submit">Add word</button>
+    </form>
+    <div id="packBox"></div>
+    <details class="card"><summary id="wlSum">Your words</summary>
+      <input id="wSearch" placeholder="Search" aria-label="Search words" style="margin:6px 0 4px">
+      <ul class="list" id="wList"></ul>
+    </details>
+  </div>
+</section>
+
+<section class="view" id="v-settings">
+  <div class="pad">
+    <h1 style="margin-top:22px">Settings</h1>
+    <h2>Theme</h2>
+    <div class="skins">
+      <button class="skin ghost" data-act="skin" data-v="azzurro"><div class="sw-a" style="background:#1d4ed8">£840</div>Azzurro<div class="small muted" style="font-weight:400">Blue, bold, colourful</div></button>
+      <button class="skin ghost" data-act="skin" data-v="mono"><div class="sw-m">£840</div>Mono White<div class="small muted" style="font-weight:400">White, always</div></button>
+      <button class="skin ghost" data-act="skin" data-v="mono-dark"><div class="sw-d">£840</div>Mono Black<div class="small muted" style="font-weight:400">Black, always</div></button>
+    </div>
+    <p class="small muted" style="margin-top:8px">Azzurro follows your phone's light or dark mode. The Mono themes stay the same whatever your phone is set to.</p>
+    <h2>You</h2>
+    <label for="setName">Name for greetings</label>
+    <input id="setName" autocomplete="off">
+    <h2>Account &amp; sync</h2>
+    <div class="card">
+      <div id="acOut">
+        <p class="small muted">Sign in once on each device to keep your data synced between them. Without signing in, everything still saves on this device.</p>
+        <label for="acEmail">Email</label><input id="acEmail" type="email" autocomplete="username" inputmode="email">
+        <label for="acPass">Password</label><input id="acPass" type="password" autocomplete="current-password">
+        <p class="msg" id="authMsg"></p>
+        <button class="btn" data-act="auth" data-v="in">Sign in</button>
+        <div class="grid2" style="margin-top:8px"><button class="ghost" data-act="auth" data-v="up">Create account</button><button class="ghost" data-act="auth" data-v="reset">Forgot password</button></div>
+      </div>
+      <div id="acIn" hidden>
+        <p>Signed in as <b id="acWho"></b></p>
+        <p class="small muted" style="margin-top:4px">Your data syncs automatically to every device where you're signed in.</p>
+        <button class="ghost" style="width:100%;margin-top:12px" data-act="signout">Sign out</button>
+      </div>
+    </div>
+    <h2>Backup</h2>
+    <div class="card">
+      <p class="small muted">Save a copy of all your data as a file, or restore one. Good to do now and then.</p>
+      <div class="grid2" style="margin-top:10px"><button class="btn" style="margin:0" data-act="export">Download backup</button><button class="ghost" data-act="pick-import">Restore backup</button></div>
+      <input type="file" id="impFile" accept=".json,application/json" hidden>
+      <div id="impConfirm" hidden style="margin-top:12px">
+        <p class="small"><b>Replace everything with this backup?</b> <span id="impInfo" class="muted"></span></p>
+        <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
+      </div>
+    </div>
+    <p class="small muted" style="margin:16px 0">Excelsior · v0.5 · Sarò il migliore</p>
+  </div>
+</section>
+</main>
+
+<nav class="tabs" aria-label="Sections">
+  <a href="#today" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Today</a>
+  <a href="#fitness" data-tab="fitness"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg>Training</a>
+  <a href="#money" data-tab="money"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M15 8.5a3 3 0 0 0-5 1.5c0 3 5 1.5 5 4.5a3 3 0 0 1-5 1M12 6v1.5M12 16.5V18"/></svg>Money</a>
+  <a href="#lingue" data-tab="lingue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>Lingue</a>
+</nav>
+<div id="toast" role="status"><span id="toastT"></span><button id="toastU" hidden>Undo</button></div>
+
+<script>
+{
+const K='saro-state-v1';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const today=()=>iso(new Date());
+const pd=s=>new Date(s+'T00:00:00');
+const days=(a,b)=>Math.round((pd(b)-pd(a))/864e5);
+const ym=s=>String(s).slice(0,7);
+const gbp=new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'});
+const money=n=>gbp.format(Math.round((n||0)*100)/100).replace(/\.00$/,'');
+const short=s=>pd(s).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const num=v=>{const n=parseFloat(String(v).replace(/[£,\s]/g,''));return isFinite(n)?n:NaN};
+const when=dl=>dl<0?(-dl)+' days overdue':dl===0?'today':dl===1?'tomorrow':'in '+dl+' days';
+
+const CATS=[['food','Food'],['groc','Groceries'],['trans','Transport'],['out','Going out'],['shop','Shopping'],['subs','Subscriptions'],['bills','Bills'],['other','Other']];
+const CATN=Object.fromEntries(CATS);
+const FEELS=[['easier','Easier'],['same','Same'],['harder','Harder']];
+const EXS=['Pull-ups','Chin-ups','Push-ups','Dips','Muscle-ups','Australian rows','Pike push-ups','Handstand push-ups','Pistol squats','Squats','Lunges','Hanging leg raises','Front lever hold','Back lever hold','Planche lean','Handstand hold','L-sit','Plank'];
+const LV=['Principiante','Apprendista','Costante','Determinato','Forte','Inarrestabile','Campione','Leggenda'];
+
+const defaults=()=>({v:1,updated:0,budget:900,weekGoal:4,workouts:[],expenses:[],plans:[],debts:[],cards:[],revLog:{},langDir:'f',skin:'azzurro',name:'Rasul'});
+function applySkin(k){
+  const r=document.documentElement;
+  r.dataset.skin=k==='azzurro'?'azzurro':'mono';
+  if(k==='mono')r.dataset.scheme='light';else if(k==='mono-dark')r.dataset.scheme='dark';else delete r.dataset.scheme;
+}
+try{const k=localStorage.getItem('saro-skin');if(k)applySkin(k)}catch(e){}
+let S=defaults();
+try{const j=localStorage.getItem(K);if(j)S=Object.assign(defaults(),JSON.parse(j))}catch(e){}
+
+/* ---------- storage: this device first, then your Firebase copy ---------- */
+let cloud=null,uid=null,unsub=null,writing=false,again=false,timer=null,user=null;
+const setSync=t=>{$('#sync').textContent=t};
+const hasData=s=>s.workouts.length||s.expenses.length||s.plans.length||s.debts.length||s.cards.length;
+function commit(){
+  S.updated=Date.now();
+  try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}
+  renderAll();
+  if(uid){clearTimeout(timer);timer=setTimeout(flush,700)}
+}
+async function flush(){
+  if(!uid||!cloud)return;
+  if(writing){again=true;return}
+  writing=true;setSync('Saving…');
+  try{await cloud.save(uid,JSON.parse(JSON.stringify(S)));setSync('Synced')}
+  catch(e){setSync('Saved on this device')}
+  writing=false;
+  if(again){again=false;flush()}
+}
+function onUser(u){
+  user=u;if(unsub){unsub();unsub=null}
+  uid=u?u.uid:null;renderAccount();
+  if(!uid){setSync('Saved on this device');return}
+  setSync('Connecting…');
+  const t=setTimeout(()=>setSync('Offline · saved on this device'),10000);
+  unsub=cloud.watch(uid,snap=>{
+    if(snap.pending)return;
+    if(!snap.fromCache)clearTimeout(t);
+    if(snap.exists){
+      const d=snap.data||{};
+      if((d.updated||0)>=(S.updated||0)){
+        S=Object.assign(defaults(),JSON.parse(JSON.stringify(d)));
+        try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}
+        renderAll();setSync('Synced');
+      }else flush();
+    }else if(hasData(S))flush();
+    else setSync('Synced');
+  },()=>{clearTimeout(t);setSync('Sync error · saved on this device')});
+}
+function startCloud(){
+  if(cloud||!window.saroCloud)return;
+  cloud=window.saroCloud;cloud.onUser(onUser);
+}
+window.addEventListener('saro-cloud',startCloud);
+setTimeout(()=>{if(!cloud)setSync('Offline · saved on this device')},12000);
+
+/* ---------- account ---------- */
+const authMsg=t=>{$('#authMsg').textContent=t||''};
+const AUTH_ERR={'auth/invalid-credential':'Wrong email or password.','auth/wrong-password':'Wrong email or password.','auth/user-not-found':'No account with that email yet. Tap Create account.','auth/email-already-in-use':'That email already has an account. Tap Sign in.','auth/weak-password':'Use at least 6 characters.','auth/invalid-email':'That email doesn\'t look right.','auth/too-many-requests':'Too many tries. Wait a minute and try again.','auth/network-request-failed':'No connection. Try again when you\'re online.','auth/operation-not-allowed':'Email sign-in isn\'t switched on in Firebase yet.','auth/admin-restricted-operation':'New accounts are switched off for this app.'};
+function renderAccount(){
+  const on=!!user;
+  $('#acOut').hidden=on;$('#acIn').hidden=!on;
+  if(on)$('#acWho').textContent=user.email||'your account';
+  $('#syncBanner').hidden=on||!cloud;
+}
+async function authDo(kind){
+  if(!cloud){authMsg('Can\'t reach the sync service right now. Check your connection.');return}
+  const em=$('#acEmail').value.trim(),pw=$('#acPass').value;
+  if(!em){authMsg('Enter your email.');return}
+  if(kind!=='reset'&&!pw){authMsg('Enter your password.');return}
+  authMsg('One moment…');
+  try{
+    if(kind==='in')await cloud.signIn(em,pw);
+    else if(kind==='up')await cloud.signUp(em,pw);
+    else{await cloud.reset(em);authMsg('Reset email sent. Check your inbox.');return}
+    authMsg('');$('#acPass').value='';toast('Signed in · syncing on');
+  }catch(e){authMsg(AUTH_ERR[e&&e.code]||'Something went wrong. Try again.')}
+}
+
+/* ---------- toast with undo ---------- */
+let undoFn=null,tTimer=null;
+function toast(text,undo){
+  $('#toastT').textContent=text;undoFn=undo||null;$('#toastU').hidden=!undo;
+  $('#toast').classList.add('on');clearTimeout(tTimer);
+  tTimer=setTimeout(()=>{$('#toast').classList.remove('on');undoFn=null},5000);
+}
+$('#toastU').addEventListener('click',()=>{if(undoFn)undoFn();undoFn=null;$('#toast').classList.remove('on')});
+function removeWith(list,id,label){
+  const arr=S[list],i=arr.findIndex(x=>x.id===id);if(i<0)return;
+  const it=arr.splice(i,1)[0];commit();
+  toast(label+' deleted',()=>{S[list].splice(Math.min(i,S[list].length),0,it);commit()});
+}
+
+/* ---------- derived numbers ---------- */
+const sum=(a,f)=>a.reduce((t,x)=>t+(f?f(x):x),0);
+const monthSpent=m=>sum(S.expenses.filter(e=>ym(e.d)===m),e=>e.amt);
+function planInfo(p){
+  const m=ym(today()),saved=sum(p.contribs,c=>c.amt),before=sum(p.contribs.filter(c=>ym(c.d)<m),c=>c.amt);
+  const left=Math.max(0,p.amt-saved),dl=days(today(),p.d),months=Math.max(1,Math.ceil(dl/30.44));
+  const need=left<=0.004||dl<0?0:Math.max(0,p.amt-before)/months;
+  return {saved,left,dl,need};
+}
+function debtInfo(x){
+  const paid=sum(x.pays,c=>c.amt),left=Math.max(0,x.amt-paid);
+  return {paid,left,done:left<=0.004,dl:x.due?days(today(),x.due):null};
+}
+function xpInfo(){
+  const xp=S.workouts.length*25+S.expenses.length*2+sum(Object.values(S.revLog))+sum(S.plans,p=>p.contribs.length*10)+sum(S.debts,d=>d.pays.length*10+(debtInfo(d).done?30:0));
+  const lvl=Math.floor(Math.sqrt(xp/40))+1,lo=40*(lvl-1)**2,hi=40*lvl**2;
+  return {xp,lvl,name:LV[Math.min(lvl-1,LV.length-1)],pct:(xp-lo)/(hi-lo)*100,toNext:hi-xp};
+}
+const sortedWo=()=>S.workouts.slice().sort((a,b)=>b.d.localeCompare(a.d)||(b.t||0)-(a.t||0));
+function weekDays(){
+  const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));
+  return Array.from({length:7},(_,i)=>{const x=new Date(d);x.setDate(d.getDate()+i);return iso(x)});
+}
+
+/* ---------- Today ---------- */
+function renderToday(){
+  const t=today(),m=ym(t),spent=monthSpent(m);
+  const reserve=sum(S.plans,p=>planInfo(p).need);
+  const owe=sum(S.debts.filter(d=>d.dir==='owe'&&d.due&&ym(d.due)<=m),d=>debtInfo(d).left);
+  const safe=S.budget-spent-reserve-owe;
+  const h=new Date().getHours();
+  $('#hello').textContent=(h<12?'Buongiorno':h<18?'Ciao':'Buonasera')+', '+(S.name||'Rasul')+' · '+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  $('#safeLbl').textContent='Safe to spend in '+new Date().toLocaleDateString('en-GB',{month:'long'});
+  $('#safe').textContent=money(safe);
+  const parts=[money(spent)+' spent of '+money(S.budget)];
+  if(reserve>0)parts.push(money(reserve)+' set aside for plans');
+  if(owe>0)parts.push(money(owe)+' repayments due');
+  $('#safeSub').textContent=parts.join(' · ');
+  const wd=weekDays(),done=new Set(S.workouts.map(w=>w.d));
+  const n=wd.filter(d=>done.has(d)).length;
+  $('#weekCount').textContent=n+' / '+S.weekGoal+(n>=S.weekGoal?' · goal hit':'');
+  $('#week').innerHTML=wd.map((d,i)=>`<div class="day${done.has(d)?' done':''}${d===t?' now':''}">${'MTWTFSS'[i]}<b></b></div>`).join('');
+  const x=xpInfo();
+  $('#lvlName').textContent='Level '+x.lvl+' · '+x.name;
+  $('#lvlXp').textContent=x.xp+' XP · '+x.toNext+' to next';
+  $('#lvlBar').style.width=Math.max(3,x.pct)+'%';
+  const up=[];
+  S.plans.forEach(p=>{const i=planInfo(p);if(i.dl<=60&&i.left>0)up.push({dl:i.dl,h:`<span><b>${esc(p.name)}</b><br><span class="small muted">${short(p.d)} · ${money(i.left)} still to save</span></span><span class="tag${i.dl<0?' hot':''}">${when(i.dl)}</span>`})});
+  S.debts.forEach(d=>{const i=debtInfo(d);if(!i.done&&i.dl!=null&&i.dl<=30)up.push({dl:i.dl,h:`<span><b>${d.dir==='owe'?'Pay back '+esc(d.who):esc(d.who)+' pays you'}</b><br><span class="small muted">${money(i.left)} left · by ${short(d.due)}</span></span><span class="tag${i.dl<0?' hot':''}">${when(i.dl)}</span>`})});
+  up.sort((a,b)=>a.dl-b.dl);
+  $('#upcoming').innerHTML=up.length?up.slice(0,6).map(u=>`<li class="li">${u.h}</li>`).join(''):'<li class="empty">Nothing due soon. Add events in Money → Planned.</li>';
+  const w=sortedWo()[0];
+  $('#lastWo').innerHTML=w?woCard(w,false):'<div class="empty">No workouts yet. Log your first one in Training.</div>';
+}
+
+/* ---------- Training ---------- */
+let draft=[],editingId=null,woShown=15;
+const blank=()=>({name:'',sets:'',unit:'reps',feel:null});
+const parseSets=s=>String(s).split(/[^0-9.]+/).map(Number).filter(n=>n>0);
+const isHold=n=>/hold|l-sit|plank|lean/i.test(n);
+function hint(name){
+  const n=name.trim().toLowerCase();if(!n)return '';
+  for(const w of sortedWo()){
+    if(w.id===editingId)continue;
+    const e=w.ex.find(x=>x.name.toLowerCase()===n);
+    if(e)return `Last time (${short(w.d)}): <b>${e.sets.join(' · ')}</b> ${e.unit}${e.feel?' · felt '+e.feel:''}`;
+  }
+  return 'First time logging this one.';
+}
+function renderDraft(){
+  $('#exRows').innerHTML=draft.map((r,i)=>`<div class="ex">
+    <div class="exhead"><input list="exlist" data-f="name" data-i="${i}" placeholder="Exercise, e.g. Pull-ups" value="${esc(r.name)}" aria-label="Exercise" autocomplete="off">
+    <button type="button" class="x" data-act="rm-ex" data-i="${i}" aria-label="Remove exercise">×</button></div>
+    <div class="exrow"><input data-f="sets" data-i="${i}" placeholder="Each set, e.g. 8 8 6" value="${esc(r.sets)}" aria-label="Reps or seconds per set" autocomplete="off">
+    <select data-f="unit" data-i="${i}" aria-label="Unit"><option value="reps"${r.unit==='reps'?' selected':''}>reps</option><option value="sec"${r.unit==='sec'?' selected':''}>sec</option></select></div>
+    <div class="seg" role="group" aria-label="Compared with usual">${FEELS.map(f=>`<button type="button" data-act="feel" data-i="${i}" data-v="${f[0]}" class="${r.feel===f[0]?'on':''}">${f[1]}</button>`).join('')}</div>
+    <p class="hint" id="hint${i}">${hint(r.name)}</p></div>`).join('');
+  $('#woTitle').textContent=editingId?'Edit workout':'Log a workout';
+  $('#woSave').textContent=editingId?'Save changes':'Save workout';
+  $('#woCancel').hidden=!editingId;
+}
+function resetForm(){draft=[blank()];editingId=null;$('#woDate').value=today();$('#woNote').value='';$('#woMsg').textContent='';renderDraft()}
+function woCard(w,actions){
+  return `<div class="card wo"><div class="row"><h3>${pd(w.d).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</h3><span class="small muted">${w.ex.length} exercise${w.ex.length>1?'s':''}</span></div>
+  ${w.ex.map(e=>`<p><b>${esc(e.name)}</b> <span class="muted">${e.sets.join(' · ')} ${e.unit}</span>${e.feel?` <span class="tag${e.feel==='harder'?' hot':''}">${e.feel}</span>`:''}</p>`).join('')}
+  ${w.note?`<p class="muted">${esc(w.note)}</p>`:''}
+  ${actions?`<div class="acts"><button class="link" data-act="edit-wo" data-id="${w.id}">Edit</button><button class="link" data-act="del-wo" data-id="${w.id}">Delete</button></div>`:''}</div>`;
+}
+let progEx='',pts=[];
+function renderFit(){
+  const names=[];const seen=new Set();
+  sortedWo().forEach(w=>w.ex.forEach(e=>{const k=e.name.toLowerCase();if(!seen.has(k)){seen.add(k);names.push(e.name)}}));
+  $('#exlist').innerHTML=[...new Set(names.concat(EXS))].map(n=>`<option value="${esc(n)}">`).join('');
+  $('#weekGoal').innerHTML=[1,2,3,4,5,6,7].map(n=>`<option${n===S.weekGoal?' selected':''}>${n}</option>`).join('');
+  if(!names.length){$('#progWrap').innerHTML='<div class="empty">Your progress charts appear after your first workouts.</div>'}
+  else{
+    if(!names.some(n=>n.toLowerCase()===progEx.toLowerCase()))progEx=names[0];
+    const k=progEx.toLowerCase();
+    pts=S.workouts.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(w=>{const e=w.ex.find(x=>x.name.toLowerCase()===k);return e?{d:w.d,v:sum(e.sets),u:e.unit}:null}).filter(Boolean);
+    const best=Math.max(...pts.map(p=>p.v)),last=pts[pts.length-1];
+    $('#progWrap').innerHTML=`<select id="progSel" aria-label="Exercise to chart">${names.map(n=>`<option${n===progEx?' selected':''}>${esc(n)}</option>`).join('')}</select>
+      <p class="small muted" style="margin-top:8px">Total per session · best <b style="color:var(--ink)">${best} ${last.u}</b> · last <b style="color:var(--ink)">${last.v} ${last.u}</b> on ${short(last.d)}</p>
+      ${pts.length>1?'<div class="fig"><svg id="chart" role="img" aria-label="Progress chart"></svg></div>':'<p class="hint">Log it once more to see a trend line.</p>'}`;
+    const s=$('#chart');if(s)new ResizeObserver(()=>drawChart(s)).observe(s);
+  }
+  const ws=sortedWo();
+  $('#woList').innerHTML=ws.length?ws.slice(0,woShown).map(w=>woCard(w,true)).join('')+(ws.length>woShown?'<button class="ghost" style="width:100%" data-act="more-wo">Show older workouts</button>':''):'<div class="empty">Saved workouts show up here.</div>';
+}
+function drawChart(s){
+  const W=s.clientWidth,H=s.clientHeight;if(!W||!H)return;
+  const L=34,R=12,T=14,B=24,max=Math.max(...pts.map(p=>p.v))*1.15||1;
+  const x=i=>L+(W-L-R)*(pts.length===1?.5:i/(pts.length-1)),y=v=>T+(H-T-B)*(1-v/max);
+  const grid=[0,.5,1].map(f=>{const v=Math.round(max*f);return `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`}).join('');
+  const line=pts.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+','+y(p.v).toFixed(1)).join('');
+  const dots=pts.map((p,i)=>`<circle cx="${x(i)}" cy="${y(p.v)}" r="4" fill="var(--blue)"/>`).join('');
+  s.innerHTML=grid+`<path d="${line}" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round"/>`+dots+
+   `<text x="${L}" y="${H-6}" font-size="11" fill="var(--muted)">${short(pts[0].d)}</text><text x="${W-R}" y="${H-6}" text-anchor="end" font-size="11" fill="var(--muted)">${short(pts[pts.length-1].d)}</text>`;
+}
+function saveWo(){
+  const ex=draft.map(r=>({name:r.name.trim(),sets:parseSets(r.sets),unit:r.unit||'reps',feel:r.feel||null})).filter(e=>e.name&&e.sets.length);
+  if(!ex.length){$('#woMsg').textContent='Add at least one exercise with its sets, e.g. 8 8 6.';return}
+  const w={id:editingId||newId(),d:$('#woDate').value||today(),ex,note:$('#woNote').value.trim(),t:Date.now()};
+  const was=editingId;
+  if(was){const i=S.workouts.findIndex(x=>x.id===was);if(i>=0)S.workouts[i]=w;else S.workouts.push(w)}else S.workouts.push(w);
+  resetForm();commit();toast(was?'Workout updated':'Workout saved · +25 XP');
+}
+
+/* ---------- Money ---------- */
+let sub='spend',expCat='food';
+function renderMoney(){
+  document.querySelectorAll('.subtabs button').forEach(b=>{b.classList.toggle('on',b.dataset.v===sub);b.setAttribute('aria-selected',b.dataset.v===sub)});
+  ['spend','plans','debts'].forEach(k=>$('#s-'+k).hidden=k!==sub);
+  const m=ym(today()),spent=monthSpent(m);
+  $('#monLbl').textContent='Spent in '+new Date().toLocaleDateString('en-GB',{month:'long'});
+  $('#monSpent').textContent=money(spent);
+  const left=S.budget-spent;
+  $('#monLeft').textContent=left>=0?money(left)+' of budget left':money(-left)+' over budget';
+  $('#monBar').style.width=Math.min(100,S.budget?spent/S.budget*100:0)+'%';
+  $('#monBarW').classList.toggle('hot',left<0);
+  if(document.activeElement!==$('#budget'))$('#budget').value=S.budget;
+  $('#cats').innerHTML=CATS.map(c=>`<button type="button" data-act="cat" data-v="${c[0]}" class="${expCat===c[0]?'on':''}">${c[1]}</button>`).join('');
+  const mon=S.expenses.filter(e=>ym(e.d)===m).sort((a,b)=>b.d.localeCompare(a.d)||(b.t||0)-(a.t||0));
+  const by={};mon.forEach(e=>by[e.cat]=(by[e.cat]||0)+e.amt);
+  const ks=Object.keys(by).sort((a,b)=>by[b]-by[a]);
+  $('#catBars').innerHTML=ks.length?ks.map(k=>`<div class="cat"><div class="row"><span>${CATN[k]||'Other'}</span><span class="amt">${money(by[k])}</span></div><div class="bar"><i style="width:${by[k]/spent*100}%"></i></div></div>`).join(''):'<div class="empty">Add an expense to see where your money goes.</div>';
+  $('#expList').innerHTML=mon.length?mon.map(e=>`<li class="li"><span><b>${esc(e.note||CATN[e.cat])}</b><br><span class="small muted">${CATN[e.cat]||'Other'} · ${short(e.d)}</span></span><span style="display:flex;align-items:center;gap:4px"><span class="amt">${money(e.amt)}</span><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
+  const ps=S.plans.slice().sort((a,b)=>a.d.localeCompare(b.d));
+  $('#planList').innerHTML=ps.length?ps.map(p=>{const i=planInfo(p);const full=i.left<=0.004;return `<div class="card${full&&i.dl<0?' done':''}">
+    <div class="row"><b>${esc(p.name)}</b><span class="amt">${money(p.amt)}</span></div>
+    <div class="row small muted" style="margin:2px 0 10px"><span>${short(p.d)} · ${when(i.dl)}</span><span>${money(i.saved)} saved</span></div>
+    <div class="bar"><i style="width:${Math.min(100,i.saved/p.amt*100)}%"></i></div>
+    <p class="small" style="margin-top:8px">${full?'Fully saved — you\'re covered.':i.dl<0?`<span class="tag hot">Date passed</span> ${money(i.left)} was still unsaved`:`Set aside <b>${money(i.need)}</b> this month · ${money(i.left)} to go`}</p>
+    ${full?'':`<form class="inline" data-form="contrib" data-id="${p.id}"><input inputmode="decimal" placeholder="£ amount" aria-label="Amount to add to savings"><button class="ghost" type="submit">Add saved</button></form>`}
+    <div class="acts"><button class="link" data-act="del-plan" data-id="${p.id}">Delete</button></div></div>`}).join(''):'<div class="empty" style="margin-bottom:10px">No planned payments yet. New Year\'s, the May Ball, flights home — add them below.</div>';
+  const ds=S.debts.slice().sort((a,b)=>debtInfo(a).done-debtInfo(b).done||(a.due||'9').localeCompare(b.due||'9'));
+  $('#dOwe').textContent=money(sum(S.debts.filter(d=>d.dir==='owe'),d=>debtInfo(d).left));
+  $('#dOwed').textContent=money(sum(S.debts.filter(d=>d.dir==='owed'),d=>debtInfo(d).left));
+  $('#debtList').innerHTML=ds.map(d=>{const i=debtInfo(d);return `<div class="card${i.done?' done':''}">
+    <div class="row"><b>${d.dir==='owe'?'You owe '+esc(d.who):esc(d.who)+' owes you'}</b><span class="amt">${money(i.left)}</span></div>
+    <div class="row small muted" style="margin:2px 0 10px"><span>${esc(d.note||'')}${d.note?' · ':''}of ${money(d.amt)}</span>${i.done?'<span class="tag">Settled</span>':d.due?`<span class="tag${i.dl<0?' hot':''}">${i.dl<0?when(i.dl):'by '+short(d.due)}</span>`:''}</div>
+    <div class="bar"><i style="width:${Math.min(100,i.paid/d.amt*100)}%"></i></div>
+    ${d.pays.length?`<p class="small muted" style="margin-top:8px">Paid: ${d.pays.map(p=>money(p.amt)+' on '+short(p.d)).join(', ')}</p>`:''}
+    ${i.done?'':`<form class="inline" data-form="pay" data-id="${d.id}"><input inputmode="decimal" placeholder="£ amount" aria-label="Payment amount"><button class="ghost" type="submit">Record payment</button></form>`}
+    <div class="acts"><button class="link" data-act="del-debt" data-id="${d.id}">Delete</button></div></div>`}).join('');
+}
+
+/* ---------- Lingue: flashcards with spaced repetition ---------- */
+const LN={it:'Italian',fr:'French'};
+const PACKS={
+it:[['comunque','anyway'],['infatti','in fact, indeed'],['eppure','and yet'],['magari','maybe; I wish'],['allora','so, then'],['ormai','by now'],['appena','just; as soon as'],['addirittura','even (surprisingly)'],['invece','instead; on the other hand'],['sembrare','to seem'],['riuscire a','to manage to'],['accorgersi','to realise, to notice'],['dimenticare','to forget'],['fare la spesa','to do the food shopping'],['in anticipo','in advance'],['il colloquio','the (job) interview'],['la scadenza','the deadline'],['lo stipendio','the salary'],['il conto','the bill; the account'],['risparmiare','to save (money)'],['spendere','to spend'],['prestare','to lend'],['restituire','to give back'],['allenarsi','to train, to work out'],['la fatica','effort; tiredness'],['stanco morto','dead tired'],['in bocca al lupo','good luck'],['non vedo l\'ora','I can\'t wait'],['avere voglia di','to feel like'],['dare una mano','to give a hand']],
+fr:[['bonjour','hello'],['merci beaucoup','thank you very much'],['s\'il vous plaît','please (formal)'],['je m\'appelle…','my name is…'],['je suis étudiant','I am a student'],['je ne comprends pas','I don\'t understand'],['pouvez-vous répéter ?','can you repeat?'],['où est… ?','where is…?'],['combien ça coûte ?','how much is it?'],['l\'addition','the bill (restaurant)'],['aujourd\'hui','today'],['demain','tomorrow'],['hier','yesterday'],['maintenant','now'],['toujours','always; still'],['souvent','often'],['parfois','sometimes'],['beaucoup','a lot'],['un peu','a little'],['avoir','to have'],['être','to be'],['aller','to go'],['faire','to do, to make'],['vouloir','to want'],['pouvoir','to be able to, can'],['manger','to eat'],['boire','to drink'],['le travail','work, job'],['l\'argent','money'],['la salle de sport','the gym']]};
+let lang='it',queue=[],cur=null,shown=false,sessionDone=0;
+const addDays=(s,n)=>{const d=pd(s);d.setDate(d.getDate()+Math.round(n));return iso(d)};
+const dueCards=l=>S.cards.filter(c=>c.lang===l&&c.due<=today());
+function streak(){let n=0;const d=new Date();if(!S.revLog[iso(d)])d.setDate(d.getDate()-1);while(S.revLog[iso(d)]){n++;d.setDate(d.getDate()-1)}return n}
+function nextInt(c,r){
+  if(r==='again')return 0;
+  if(r==='hard')return Math.max(1,(c.int||0)*1.2);
+  if(r==='good')return c.int?c.int*c.ease:1;
+  return c.int?c.int*c.ease*1.3:4;
+}
+const ivl=n=>n<1?'<1d':n<30?Math.round(n)+'d':Math.round(n/30)+'mo';
+function startReview(extra){
+  let pool=dueCards(lang);
+  if(extra||!pool.length)pool=S.cards.filter(c=>c.lang===lang).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,10);
+  queue=pool.slice(0,20).map(c=>c.id).sort(()=>Math.random()-.5);
+  sessionDone=0;nextCard();
+}
+function nextCard(){const id=queue.shift();cur=id?S.cards.find(c=>c.id===id)||null:null;shown=false;renderLang()}
+function rate(r){
+  if(!cur)return;
+  const c=cur,n=nextInt(c,r);
+  c.ease=Math.max(1.3,(c.ease||2.5)+({again:-.2,hard:-.15,good:0,easy:.15})[r]);
+  c.int=n;c.reps=(c.reps||0)+1;c.due=addDays(today(),n<1?0:n);
+  if(r==='again')queue.push(c.id);
+  const t=today();S.revLog[t]=(S.revLog[t]||0)+1;
+  const keys=Object.keys(S.revLog).sort();while(keys.length>120)delete S.revLog[keys.shift()];
+  sessionDone++;commit();nextCard();
+}
+function renderReview(){
+  const box=$('#review'),dir=S.langDir;
+  if(!cur){
+    const due=dueCards(lang).length,total=S.cards.filter(c=>c.lang===lang).length;
+    box.innerHTML=!total?`<div class="empty" style="margin-top:12px">No ${LN[lang]} words yet. Add your own below, or load the starter pack.</div>`
+      :due?`<button class="btn" data-act="start-rev">Start review · ${due} card${due>1?'s':''}</button>`
+      :`<div class="flash"><p class="small muted">${sessionDone?'Session complete · +'+sessionDone+' XP':'All caught up for today'}</p><div class="w" style="font-size:24px">Bravo. Come back tomorrow.</div><button class="ghost" data-act="start-rev" data-x="1" style="margin-top:8px">Practise 10 more anyway</button></div>`;
+    return;
+  }
+  const q=dir==='f'?cur.f:cur.b,a=dir==='f'?cur.b:cur.f;
+  box.innerHTML=`<div class="flash"><p class="small muted">${LN[lang]} · ${queue.length+1} left</p><div class="w">${esc(q)}</div>
+    ${shown?`<div class="a">${esc(a)}</div>${cur.ex?`<p class="small muted" style="margin-top:8px">${esc(cur.ex)}</p>`:''}
+    <div class="rate">${[['again','Again'],['hard','Hard'],['good','Good'],['easy','Easy']].map(r=>`<button data-act="rate" data-v="${r[0]}">${r[1]}<span>${ivl(nextInt(cur,r[0]))}</span></button>`).join('')}</div>`
+    :`<button class="btn" data-act="show-ans">Show answer</button>`}</div>`;
+}
+function renderWords(){
+  const q=$('#wSearch').value.trim().toLowerCase();
+  const ws=S.cards.filter(c=>c.lang===lang&&(!q||(c.f+' '+c.b).toLowerCase().includes(q))).sort((a,b)=>a.f.localeCompare(b.f));
+  $('#wList').innerHTML=ws.length?ws.map(c=>`<li class="li"><span><b>${esc(c.f)}</b><br><span class="small muted">${esc(c.b)} · next ${c.due<=today()?'today':short(c.due)}</span></span><button class="x" data-act="del-card" data-id="${c.id}" aria-label="Delete word">×</button></li>`).join(''):'<li class="muted small" style="padding:10px 0">No words match.</li>';
+}
+function renderLang(){
+  document.querySelectorAll('[data-act=lang]').forEach(b=>{b.classList.toggle('on',b.dataset.v===lang);b.setAttribute('aria-selected',b.dataset.v===lang)});
+  const mine=S.cards.filter(c=>c.lang===lang);
+  $('#lDue').textContent=dueCards(lang).length;$('#lTotal').textContent=mine.length;$('#lStreak').textContent=streak();
+  $('#lDir').innerHTML=`<option value="f">${LN[lang]} → English</option><option value="b">English → ${LN[lang]}</option>`;$('#lDir').value=S.langDir;
+  $('#cFl').textContent=LN[lang];$('#cF').placeholder=lang==='it'?'e.g. comunque':'e.g. souvent';$('#cB').placeholder=lang==='it'?'e.g. anyway':'e.g. often';
+  const have=new Set(mine.map(c=>c.f.toLowerCase())),missing=PACKS[lang].filter(p=>!have.has(p[0].toLowerCase())).length;
+  $('#packBox').innerHTML=missing?`<button class="ghost" style="width:100%;margin-bottom:10px" data-act="add-pack">Add ${LN[lang]} starter pack · ${missing} words</button>`:'';
+  $('#wlSum').textContent='Your '+LN[lang]+' words ('+mine.length+')';
+  renderReview();renderWords();
+  const all=dueCards('it').length+dueCards('fr').length,st=streak();
+  $('#langToday').textContent=(S.cards.length?(all?all+' card'+(all>1?'s':'')+' due today':'All caught up today'):'Italian & French flashcards')+(st?' · '+st+'-day streak':'');
+}
+const newCard=(f,b,ex)=>({id:newId(),lang,f,b,ex:ex||'',due:today(),int:0,ease:2.5,reps:0});
+
+/* ---------- routing ---------- */
+const VIEWS=['today','fitness','money','lingue','settings'];
+function renderSettings(){
+  applySkin(S.skin);
+  try{localStorage.setItem('saro-skin',S.skin)}catch(e){}
+  document.querySelectorAll('[data-act=skin]').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.skin);b.setAttribute('aria-pressed',b.dataset.v===S.skin)});
+  if(document.activeElement!==$('#setName'))$('#setName').value=S.name;
+}
+function show(){
+  const v=VIEWS.includes(location.hash.slice(1))?location.hash.slice(1):'today';
+  VIEWS.forEach(k=>$('#v-'+k).classList.toggle('on',k===v));
+  document.querySelectorAll('.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab===v));
+  window.scrollTo(0,0);
+}
+function renderAll(){renderSettings();renderToday();renderFit();renderMoney();renderLang()}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const a=b.dataset.act,id=b.dataset.id,i=+b.dataset.i;
+  if(a==='go'){location.hash=b.dataset.to}
+  else if(a==='add-ex'){draft.push(blank());renderDraft();const ins=document.querySelectorAll('#exRows input[data-f=name]');ins[ins.length-1].focus()}
+  else if(a==='rm-ex'){draft.splice(i,1);if(!draft.length)draft.push(blank());renderDraft()}
+  else if(a==='feel'){draft[i].feel=draft[i].feel===b.dataset.v?null:b.dataset.v;renderDraft()}
+  else if(a==='cancel-edit'){resetForm()}
+  else if(a==='edit-wo'){const w=S.workouts.find(x=>x.id===id);if(!w)return;editingId=id;draft=w.ex.map(x=>({name:x.name,sets:x.sets.join(' '),unit:x.unit,feel:x.feel}));$('#woDate').value=w.d;$('#woNote').value=w.note||'';renderDraft();window.scrollTo(0,0)}
+  else if(a==='del-wo'){if(editingId===id)resetForm();removeWith('workouts',id,'Workout')}
+  else if(a==='more-wo'){woShown+=15;renderFit()}
+  else if(a==='sub'){sub=b.dataset.v;renderMoney()}
+  else if(a==='cat'){expCat=b.dataset.v;renderMoney()}
+  else if(a==='del-exp'){removeWith('expenses',id,'Expense')}
+  else if(a==='del-plan'){removeWith('plans',id,'Planned payment')}
+  else if(a==='del-debt'){removeWith('debts',id,'Repayment')}
+  else if(a==='skin'){S.skin=b.dataset.v;commit()}
+  else if(a==='auth'){authDo(b.dataset.v)}
+  else if(a==='signout'){if(cloud)cloud.signOut();toast('Signed out · data stays on this device')}
+  else if(a==='export'){
+    const blob=new Blob([JSON.stringify(S,null,1)],{type:'application/json'}),u=URL.createObjectURL(blob),l=document.createElement('a');
+    l.href=u;l.download='excelsior-backup-'+today()+'.json';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);
+    toast('Backup downloaded');
+  }
+  else if(a==='pick-import'){$('#impFile').value='';$('#impFile').click()}
+  else if(a==='cancel-import'){pending=null;$('#impConfirm').hidden=true}
+  else if(a==='do-import'){if(!pending)return;const old=S;S=Object.assign(defaults(),pending);pending=null;$('#impConfirm').hidden=true;commit();toast('Backup restored',()=>{S=old;commit()})}
+  else if(a==='lang'){lang=b.dataset.v;queue=[];cur=null;sessionDone=0;renderLang()}
+  else if(a==='start-rev'){startReview(!!b.dataset.x)}
+  else if(a==='show-ans'){shown=true;renderReview()}
+  else if(a==='rate'){rate(b.dataset.v)}
+  else if(a==='add-pack'){const have=new Set(S.cards.filter(c=>c.lang===lang).map(c=>c.f.toLowerCase()));let n=0;PACKS[lang].forEach(p=>{if(!have.has(p[0].toLowerCase())){S.cards.push(newCard(p[0],p[1]));n++}});commit();toast(n+' '+LN[lang]+' words added')}
+  else if(a==='del-card'){if(cur&&cur.id===id){cur=null}queue=queue.filter(q=>q!==id);removeWith('cards',id,'Word')}
+});
+$('#wSearch').addEventListener('input',renderWords);
+let pending=null;
+$('#impFile').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  f.text().then(t=>{
+    const d=JSON.parse(t);
+    if(!d||!Array.isArray(d.workouts)||!Array.isArray(d.expenses))throw 0;
+    pending=d;$('#impInfo').textContent=d.workouts.length+' workouts, '+d.expenses.length+' expenses, '+((d.cards||[]).length)+' words.';
+    $('#impConfirm').hidden=false;
+  }).catch(()=>toast('That file isn\'t an Excelsior backup'));
+});
+function onDraftInput(e){
+  const t=e.target;if(t.dataset.f==null||t.dataset.i==null)return;
+  const i=+t.dataset.i,r=draft[i];if(!r)return;
+  r[t.dataset.f]=t.value;
+  if(t.dataset.f==='name'){
+    const h=$('#hint'+i);if(h)h.innerHTML=hint(t.value);
+    if(isHold(t.value)&&r.unit!=='sec'){r.unit='sec';const s=document.querySelector(`select[data-i="${i}"]`);if(s)s.value='sec'}
+  }
+}
+document.addEventListener('input',onDraftInput);
+document.addEventListener('change',e=>{
+  onDraftInput(e);
+  if(e.target.id==='weekGoal'){S.weekGoal=+e.target.value;commit()}
+  if(e.target.id==='progSel'){progEx=e.target.value;renderFit()}
+  if(e.target.id==='lDir'){S.langDir=e.target.value;commit()}
+  if(e.target.id==='setName'){S.name=e.target.value.trim()||'Rasul';commit()}
+  if(e.target.id==='budget'){const n=num(e.target.value);if(n>=0){S.budget=n;commit()}else e.target.value=S.budget}
+});
+document.addEventListener('submit',e=>{
+  const f=e.target,k=f.dataset.form;if(!k)return;e.preventDefault();
+  if(k==='wo')saveWo();
+  else if(k==='exp'){
+    const amt=num($('#expAmt').value);
+    if(!(amt>0)){$('#expMsg').textContent='Enter the amount you spent.';return}
+    S.expenses.push({id:newId(),amt,cat:expCat,note:$('#expNote').value.trim(),d:$('#expDate').value||today(),t:Date.now()});
+    $('#expAmt').value='';$('#expNote').value='';$('#expDate').value=today();$('#expMsg').textContent='';
+    commit();toast('Expense added');
+  }
+  else if(k==='plan'){
+    const name=$('#plName').value.trim(),d=$('#plDate').value,amt=num($('#plAmt').value),sv=num($('#plSaved').value);
+    if(!name||!d||!(amt>0)){$('#plMsg').textContent='Add a name, a date and the cost.';return}
+    S.plans.push({id:newId(),name,d,amt,contribs:sv>0?[{d:'1970-01-01',amt:sv}]:[]});
+    ['#plName','#plDate','#plAmt','#plSaved'].forEach(s=>$(s).value='');$('#plMsg').textContent='';
+    commit();toast('Planned payment added');
+  }
+  else if(k==='contrib'||k==='pay'){
+    const amt=num(f.querySelector('input').value);if(!(amt>0))return;
+    const x=(k==='contrib'?S.plans:S.debts).find(y=>y.id===f.dataset.id);if(!x)return;
+    (k==='contrib'?x.contribs:x.pays).push({d:today(),amt});
+    commit();toast(k==='contrib'?'Savings added · +10 XP':(debtInfo(x).done?'Settled · +40 XP':'Payment recorded · +10 XP'));
+  }
+  else if(k==='card'){
+    const f=$('#cF').value.trim(),bk=$('#cB').value.trim();
+    if(!f||!bk){$('#cMsg').textContent='Add the word and its meaning.';return}
+    if(S.cards.some(c=>c.lang===lang&&c.f.toLowerCase()===f.toLowerCase())){$('#cMsg').textContent='That word is already in your list.';return}
+    S.cards.push(newCard(f,bk,$('#cEx').value.trim()));
+    ['#cF','#cB','#cEx'].forEach(s=>$(s).value='');$('#cMsg').textContent='';
+    commit();toast('Word added');$('#cF').focus();
+  }
+  else if(k==='debt'){
+    const who=$('#dWho').value.trim(),amt=num($('#dAmt').value);
+    if(!who||!(amt>0)){$('#dMsg').textContent='Add the person and the amount.';return}
+    S.debts.push({id:newId(),dir:$('#dDir').value,who,amt,due:$('#dDue').value||null,note:$('#dNote').value.trim(),pays:[]});
+    ['#dWho','#dAmt','#dDue','#dNote'].forEach(s=>$(s).value='');$('#dMsg').textContent='';
+    commit();toast('Repayment added');
+  }
+});
+window.addEventListener('hashchange',show);
+
+$('#expDate').value=today();
+resetForm();renderAll();show();
+}
+</script>
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import {initializeFirestore,persistentLocalCache,doc,onSnapshot,setDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+const app=initializeApp({
+  apiKey:"AIzaSyCRKIUDzNOP29jfY1k4ymVTyw3nk2ZXI-w",
+  authDomain:"me-vs-me-50eee.firebaseapp.com",
+  projectId:"me-vs-me-50eee",
+  storageBucket:"me-vs-me-50eee.firebasestorage.app",
+  messagingSenderId:"289017172741",
+  appId:"1:289017172741:web:e411e975a6723fa5059d6c"
+});
+const auth=getAuth(app);
+let db;try{db=initializeFirestore(app,{localCache:persistentLocalCache()})}catch(e){db=initializeFirestore(app,{})}
+const ref=uid=>doc(db,'users',uid,'app','state');
+window.saroCloud={
+  onUser:cb=>onAuthStateChanged(auth,cb),
+  signIn:(e,p)=>signInWithEmailAndPassword(auth,e,p),
+  signUp:(e,p)=>createUserWithEmailAndPassword(auth,e,p),
+  reset:e=>sendPasswordResetEmail(auth,e),
+  signOut:()=>signOut(auth),
+  save:(uid,data)=>setDoc(ref(uid),data),
+  watch:(uid,next,err)=>onSnapshot(ref(uid),{includeMetadataChanges:true},s=>next({exists:s.exists(),data:s.data(),pending:s.metadata.hasPendingWrites,fromCache:s.metadata.fromCache}),err)
+};
+window.dispatchEvent(new Event('saro-cloud'));
+</script>
+</body>
+</html>
