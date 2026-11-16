@@ -358,13 +358,16 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
 
     <div class="card" id="invKeyCard" hidden style="margin-top:14px">
       <b>Connect market data</b>
-      <p class="small muted" style="margin-top:4px">Paste your free Financial Modeling Prep API key (from your FMP dashboard). It's stored privately in your account, not in the app's code.</p>
-      <form data-form="invkey" class="inline"><input id="invKey" autocomplete="off" autocapitalize="off" placeholder="API key"><button class="ghost" type="submit">Save</button></form>
+      <p class="small muted" style="margin-top:4px">Keys are stored privately in your account, not in the app's code. FMP's free plan only covers some stocks, so add a free Alpha Vantage key too (alphavantage.co → Get free API key). The app uses whichever works for each stock.</p>
+      <form data-form="invkey">
+        <label for="invKey">Financial Modeling Prep key</label><input id="invKey" autocomplete="off" autocapitalize="off" placeholder="leave empty to keep current">
+        <label for="avKey">Alpha Vantage key</label><input id="avKey" autocomplete="off" autocapitalize="off" placeholder="leave empty to keep current">
+        <button class="btn" type="submit">Save keys</button></form>
       <p class="msg" id="invKeyMsg"></p>
     </div>
 
     <div class="card" style="margin-top:14px">
-      <div class="row"><span class="small muted">Forecast income, next 12 months (after 15% US tax)</span><button class="link" data-act="inv-refresh">Refresh</button></div>
+      <div class="row"><span class="small muted">Forecast income, next 12 months (after 15% US tax)</span><span><button class="link" data-act="inv-keys">Keys</button><button class="link" data-act="inv-refresh">Refresh</button></span></div>
       <div class="big" style="font-size:40px" id="invYear">£0</div>
       <p class="small muted" id="invSub"></p>
       <div id="invBars" style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;align-items:end;height:120px;margin-top:14px"></div>
@@ -465,7 +468,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v1.1.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v1.2 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -578,7 +581,7 @@ function onInbox(items,delFn){
 }
 function onUser(u){
   user=u;if(unsub){unsub();unsub=null}if(unsubIn){unsubIn();unsubIn=null}if(unsubDrop){unsubDrop();unsubDrop=null}
-  uid=u?u.uid:null;keyLoaded=false;fmpKey=null;renderAccount();if(uid&&location.hash==='#invest')setTimeout(()=>refreshInv(false),300);
+  uid=u?u.uid:null;keyLoaded=false;fmpKey=null;avKey=null;renderAccount();if(uid&&location.hash==='#invest')setTimeout(()=>refreshInv(false),300);
   if(!uid){setSync('Not signed in');return}
   setSync('Connecting…');
   const t=setTimeout(()=>setSync('Offline · saved on this device'),10000);
@@ -916,7 +919,7 @@ function renderLang(){
 const newCard=(f,b,ex)=>({id:newId(),lang,f,b,ex:ex||'',due:today(),int:0,ease:2.5,reps:0});
 
 /* ---------- Invest ---------- */
-let fmpKey=null,keyLoaded=false,invBusy=false;
+let fmpKey=null,avKey=null,keyLoaded=false,invBusy=false,showKeys=false;
 const FMP='https://financialmodelingprep.com/stable/';
 const isUK=s=>/\.L$/i.test(s);
 const isUS=(c)=>!c||/NYSE|NASDAQ|AMEX|NYSEARCA|BATS|CBOE|OTC/i.test(c.exchange||'')||(!c.exchange&&!isUK(c.sym||''));
@@ -927,24 +930,57 @@ function conv(usdOrGbp,from){ // from: 'USD' or 'GBP' -> display ccy
   return from==='USD'?usdOrGbp/r:usdOrGbp*r;
 }
 const fmtC=(v,ccy)=>v==null?'—':new Intl.NumberFormat('en-GB',{style:'currency',currency:ccy||invCcy(),maximumFractionDigits:2}).format(v);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));let avLast=0;
+async function av(params){
+  if(!avKey)throw new Error('add an Alpha Vantage key');
+  const wait=avLast+12500-Date.now();if(wait>0){$('#invMsg').textContent='Alpha Vantage allows 5 requests a minute, loading slowly…';await sleep(wait)}
+  avLast=Date.now();
+  const u='https://www.alphavantage.co/query?'+new URLSearchParams(Object.assign({},params,{apikey:avKey}));
+  let r;try{r=await fetch(u)}catch(e){throw new Error('couldn\'t reach Alpha Vantage')}
+  const j=await r.json().catch(()=>null);
+  if(!j)throw new Error('unexpected reply from Alpha Vantage');
+  if(j.Information||j.Note)throw new Error(/25 requests per day|daily/i.test(j.Information||j.Note)?'Alpha Vantage daily limit (25) reached, try tomorrow':'Alpha Vantage: '+(j.Information||j.Note).slice(0,120));
+  if(j['Error Message'])throw new Error('Alpha Vantage: ticker not found');
+  return j;
+}
+async function avLoad(sym){
+  const s=isUK(sym)?sym.replace(/\.L$/i,'.LON'):sym;
+  const q=await av({function:'GLOBAL_QUOTE',symbol:s});const g=q['Global Quote']||{};const price=+g['05. price'];
+  if(!price)throw new Error('no price found, check the ticker');
+  let divs=[],divErr=null;
+  try{const d=await av({function:'DIVIDENDS',symbol:s});divs=(d.data||[]).map(x=>({ex:x.ex_dividend_date,pay:x.payment_date&&x.payment_date!=='None'?x.payment_date:null,amt:+x.amount,freq:''})).filter(x=>x.ex&&x.amt>0).sort((a,b)=>b.ex.localeCompare(a.ex)).slice(0,30)}catch(e){divErr=e.message}
+  return {sym,name:(S.invCache&&S.invCache[sym]&&S.invCache[sym].name)||sym,price,exchange:isUK(sym)?'LSE':'US',divs,t:Date.now(),divErr,src:'Alpha Vantage'};
+}
 async function fmp(path,params){
   if(!fmpKey)throw new Error('Add your FMP API key first.');
   const u=FMP+path+'?'+new URLSearchParams(Object.assign({},params,{apikey:fmpKey}));
   let r;try{r=await fetch(u)}catch(e){throw new Error('Couldn\'t reach Financial Modeling Prep. Check your connection.')}
+  if(r.status===402||r.status===403){const e=new Error('not in FMP\'s free plan');e.plan=true;throw e}
   let j;try{j=await r.json()}catch(e){throw new Error('Unexpected reply from FMP ('+r.status+').')}
   if(j&&!Array.isArray(j)&&(j['Error Message']||j.error||j.message))throw new Error('FMP: '+(j['Error Message']||j.error||j.message));
   if(!r.ok)throw new Error('FMP error '+r.status);
   return j;
 }
 async function loadSym(sym){
-  const [q,dv]=await Promise.all([fmp('quote',{symbol:sym}),fmp('dividends',{symbol:sym}).catch(e=>({err:e.message}))]);
-  const qq=Array.isArray(q)?q[0]:null;if(!qq)throw new Error('No data for '+sym+'. Check the ticker.');
-  let divs=[];if(Array.isArray(dv))divs=dv.map(d=>({ex:d.date,pay:d.paymentDate||null,amt:+(d.adjDividend??d.dividend??0),freq:d.frequency||''})).filter(d=>d.ex&&d.amt>0).sort((a,b)=>b.ex.localeCompare(a.ex)).slice(0,30);
-  const c={sym,name:qq.name||sym,price:+qq.price,exchange:qq.exchange||'',divs,t:Date.now(),divErr:dv&&dv.err||null};
+  let c=null,why='';
+  if(fmpKey){try{c=await fmpLoad(sym)}catch(e){why=e.message}}
+  if(!c&&avKey){try{c=await avLoad(sym)}catch(e){throw new Error((why?'FMP: '+why+'; ':'')+'Alpha Vantage: '+e.message)}}
+  if(!c)throw new Error(why?(why+(avKey?'':'. Add an Alpha Vantage key (Keys) to cover this stock.')):'Add a data key first.');
   c.ccy=isUK(sym)?'GBP':'USD';if(isUK(sym)){c.price=c.price/100;c.divs.forEach(d=>d.amt=d.amt/100)}
   S.invCache=S.invCache||{};S.invCache[sym]=c;return c;
 }
-async function loadFx(){const q=await fmp('quote',{symbol:'GBPUSD'});const p=Array.isArray(q)&&q[0]&&+q[0].price;if(p)S.invFx={rate:p,t:Date.now()}}
+async function fmpLoad(sym){
+  const [q,dv]=await Promise.all([fmp('quote',{symbol:sym}),fmp('dividends',{symbol:sym}).catch(e=>({err:e.message}))]);
+  const qq=Array.isArray(q)?q[0]:null;if(!qq)throw new Error('No data for '+sym+'. Check the ticker.');
+  let divs=[];if(Array.isArray(dv))divs=dv.map(d=>({ex:d.date,pay:d.paymentDate||null,amt:+(d.adjDividend??d.dividend??0),freq:d.frequency||''})).filter(d=>d.ex&&d.amt>0).sort((a,b)=>b.ex.localeCompare(a.ex)).slice(0,30);
+  return {sym,name:qq.name||sym,price:+qq.price,exchange:qq.exchange||'',divs,t:Date.now(),divErr:dv&&dv.err||null,src:'FMP'};
+}
+async function loadFx(){
+  let p=null;
+  if(fmpKey){try{const q=await fmp('quote',{symbol:'GBPUSD'});p=Array.isArray(q)&&q[0]&&+q[0].price}catch(e){}}
+  if(!p&&avKey){const j=await av({function:'CURRENCY_EXCHANGE_RATE',from_currency:'GBP',to_currency:'USD'});p=+((j['Realtime Currency Exchange Rate']||{})['5. Exchange Rate'])}
+  if(p)S.invFx={rate:p,t:Date.now()};else throw new Error('no exchange rate available');
+}
 function freqOf(c){
   const f=(c.divs[0]&&c.divs[0].freq||'').toLowerCase();
   if(f.startsWith('month'))return 12;if(f.startsWith('quarter'))return 4;if(f.startsWith('semi'))return 2;if(f.startsWith('annual'))return 1;
@@ -972,15 +1008,16 @@ function holdingCalc(h){
 async function ensureKey(){
   if(keyLoaded)return fmpKey;
   if(!uid||!cloud||!cloud.getSecret)return null;
-  try{const s=await cloud.getSecret(uid);fmpKey=s&&s.fmp||null}catch(e){}
+  try{const s=await cloud.getSecret(uid);fmpKey=s&&s.fmp||null;avKey=s&&s.av||null}catch(e){}
   keyLoaded=true;return fmpKey;
 }
 async function refreshInv(force){
-  if(invBusy)return;await ensureKey();renderInvest();if(!fmpKey)return;
+  if(invBusy)return;await ensureKey();renderInvest();if(!fmpKey&&!avKey)return;
   const hs=S.holdings||[],stale=c=>!c||Date.now()-c.t>20*3600e3;
   const need=hs.map(h=>h.sym).filter((s,i,a)=>a.indexOf(s)===i).filter(s=>force||stale((S.invCache||{})[s]));
   const fxStale=!S.invFx||Date.now()-S.invFx.t>20*3600e3;
   if(!need.length&&!fxStale&&!force)return;
+  if(!fmpKey&&!avKey)return;
   invBusy=true;$('#invMsg').textContent='Updating prices and dividends…';
   const errs=[];
   try{if(fxStale||force)await loadFx()}catch(e){errs.push('Exchange rate: '+e.message)}
@@ -990,7 +1027,7 @@ async function refreshInv(force){
 function renderInvest(){
   if(!$('#v-invest'))return;
   document.querySelectorAll('[data-act=inv-ccy]').forEach(b=>b.classList.toggle('on',b.dataset.v===invCcy()));
-  $('#invKeyCard').hidden=!!fmpKey||!keyLoaded&&!!uid;
+  $('#invKeyCard').hidden=!showKeys&&(!!(fmpKey||avKey)||!keyLoaded&&!!uid);
   if(!uid){$('#invKeyCard').hidden=false;$('#invKeyMsg').textContent='Sign in first (Settings → Account & sync), so your key is stored safely.'}
   const hs=(S.holdings||[]).slice().sort((a,b)=>(b.qty>0)-(a.qty>0)||a.sym.localeCompare(b.sym));
   // forecast by pay month
@@ -1016,7 +1053,7 @@ function renderInvest(){
   $('#invCal').innerHTML=html||'<div class="empty">Upcoming ex-dates and pay dates for your stocks will appear here.</div>';
   // holdings list
   $('#invList').innerHTML=hs.length?hs.map(h=>{const x=holdingCalc(h);const c=x&&x.c;
-    return `<div class="card"><div class="row"><span><b>${esc(h.sym)}</b> <span class="small muted">${c?esc(c.name):'loading…'}</span></span><span class="amt">${c?fmtC(conv(c.price,c.ccy)):''}</span></div>
+    return `<div class="card"><div class="row"><span><b>${esc(h.sym)}</b> <span class="small muted">${c?esc(c.name===h.sym?'':c.name):'not loaded yet'}</span></span><span class="amt">${c?fmtC(conv(c.price,c.ccy)):''}</span></div>
     ${x?`<p class="small muted" style="margin-top:4px">${h.qty>0?h.qty+' shares · value '+fmtC(conv(x.value,c.ccy))+' · ':'Watchlist · '}${x.f?({12:'monthly',4:'quarterly',2:'twice a year',1:'yearly'}[x.f]||'')+' dividend':'no dividend found'} · yield ${(x.yld*100).toFixed(2)}%</p>
     ${h.qty>0?`<p class="small" style="margin-top:4px">Income: <b>${fmtC(conv(x.annNet/12,c.ccy))}</b>/month · <b>${fmtC(conv(x.annNet,c.ccy))}</b>/year after tax</p>`:''}
     ${h.cost&&h.qty>0?`<p class="small muted">Cost ${fmtC(conv(h.cost*h.qty,c.ccy))} · ${(()=>{const g=(c.price-h.cost)*h.qty;return (g>=0?'+':'−')+fmtC(Math.abs(conv(g,c.ccy)))})()} · yield on cost ${(x.annPS/h.cost*100).toFixed(2)}%</p>`:''}
@@ -1026,7 +1063,7 @@ function renderInvest(){
 async function runCalc(){
   const sym=$('#cSym').value.trim().toUpperCase(),qty=num($('#cQty').value),tgt=num($('#cTarget').value);
   const out=$('#calcOut');if(!sym){out.innerHTML='<p class="msg">Enter a ticker.</p>';return}
-  await ensureKey();if(!fmpKey){out.innerHTML='<p class="msg">Add your FMP API key above first.</p>';return}
+  await ensureKey();if(!fmpKey&&!avKey){out.innerHTML='<p class="msg">Add a data key above first.</p>';return}
   out.innerHTML='<p class="small muted">Loading…</p>';
   let c=(S.invCache||{})[sym];
   try{if(!c||Date.now()-c.t>20*3600e3){c=await loadSym(sym);if(!S.invFx)await loadFx().catch(()=>{});commit()}}catch(e){out.innerHTML='<p class="msg">'+esc(e.message)+'</p>';return}
@@ -1097,6 +1134,7 @@ document.addEventListener('click',e=>{
   else if(a==='use-bk'){const b=bkCache.find(x=>x.id===id);if(!b)return;pending=b.data;$('#impInfo').textContent=(b.data.workouts||[]).length+' workouts, '+(b.data.expenses||[]).length+' expenses, '+((b.data.cards||[]).length)+' words (from '+short(b.id)+').';$('#impConfirm').hidden=false}
   else if(a==='inv-ccy'){S.invCcy=b.dataset.v;commit()}
   else if(a==='inv-refresh'){refreshInv(true)}
+  else if(a==='inv-keys'){showKeys=!showKeys;renderInvest()}
   else if(a==='del-hold'){removeWith('holdings',id,'Stock')}
   else if(a==='calc-add'){const sym=b.dataset.sym,q=+b.dataset.qty;S.holdings=S.holdings||[];const h=S.holdings.find(x=>x.sym===sym);if(h)h.qty=q;else S.holdings.push({id:newId(),sym,qty:q,cost:null});commit();toast(sym+' added to holdings')}
   else if(a==='pot-adj'){$('#potForm').hidden=!$('#potForm').hidden}
@@ -1193,10 +1231,10 @@ document.addEventListener('submit',e=>{
     $('#potAmt').value='';$('#potNote').value='';$('#potForm').hidden=true;commit();toast('Savings pot updated');
   }
   else if(k==='invkey'){
-    const v=$('#invKey').value.trim();if(!v)return;
+    const v=$('#invKey').value.trim(),a2=$('#avKey').value.trim();if(!v&&!a2)return;
     if(!uid||!cloud||!cloud.setSecret){$('#invKeyMsg').textContent='Sign in first (Settings → Account & sync).';return}
-    $('#invKeyMsg').textContent='Saving…';
-    cloud.setSecret(uid,{fmp:v}).then(()=>{fmpKey=v;keyLoaded=true;$('#invKey').value='';$('#invKeyMsg').textContent='';toast('Key saved');refreshInv(true)}).catch(()=>{$('#invKeyMsg').textContent='Couldn\'t save the key. Try again.'});
+    $('#invKeyMsg').textContent='Saving…';const upd={};if(v)upd.fmp=v;if(a2)upd.av=a2;
+    cloud.setSecret(uid,upd).then(()=>{if(v)fmpKey=v;if(a2)avKey=a2;keyLoaded=true;showKeys=false;$('#invKey').value='';$('#avKey').value='';$('#invKeyMsg').textContent='';toast('Keys saved');refreshInv(true)}).catch(()=>{$('#invKeyMsg').textContent='Couldn\'t save. Try again.'});
   }
   else if(k==='hold'){
     const sym=$('#hSym').value.trim().toUpperCase(),qty=$('#hQty').value.trim()===''?0:num($('#hQty').value),cost=num($('#hCost').value);
