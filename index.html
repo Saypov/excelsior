@@ -59,6 +59,13 @@ main{max-width:600px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom) 
 :root{--good:light-dark(#0a8f4a,#3ddc84);--bad:light-dark(#d92d20,#ff6b6b)}
 .band{--good:#8dffbf;--bad:#ffb1a6}
 [data-skin=mono] .band{--good:light-dark(#0a8f4a,#3ddc84);--bad:light-dark(#d92d20,#ff6b6b)}
+.evacts{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px}.evacts .link{min-height:30px;padding:0;font-size:13px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:10px;text-align:center}
+.cal-h{font-size:12px;color:var(--muted);padding:2px 0}
+.cal-d{min-height:46px;padding:4px 0;border-radius:10px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:500}
+.cal-d i{display:flex;gap:2px;height:6px}.cal-d i b{width:6px;height:6px;border-radius:50%}
+.cal-d.now span{background:var(--ink);color:var(--bg);border-radius:50%;width:26px;height:26px;display:grid;place-items:center}
+.cal-d.sel{background:var(--soft);outline:2px solid var(--blue)}
 .hero2{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
 .hero2 .side{display:flex;flex-direction:column;align-items:flex-end;text-align:right;padding-bottom:10px;padding-left:14px;border-left:1px solid color-mix(in srgb,currentColor 25%,transparent)}
 .hero2 .side b{font:700 clamp(20px,6vw,30px)/1.1 Sora,sans-serif;letter-spacing:-.02em;margin:2px 0}
@@ -95,7 +102,7 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 .hint{font-size:13px;color:var(--muted);margin-top:8px}
 .hint b{color:var(--ink)}
 .inline{display:flex;gap:8px;margin-top:10px}.inline input{flex:1}
-.subtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:16px 0 4px}
+.subtabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:16px 0 4px}
 .subtabs button{background:var(--soft);font-weight:500;font-size:14px;padding:0 6px}
 .subtabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .cat{margin:8px 0}.cat .row{font-size:14px}
@@ -239,7 +246,8 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
     <div class="subtabs" role="tablist">
       <button data-act="sub" data-v="spend" role="tab">Spending</button>
       <button data-act="sub" data-v="plans" role="tab">Planned</button>
-      <button data-act="sub" data-v="debts" role="tab">Repayments</button>
+      <button data-act="sub" data-v="debts" role="tab">Repay</button>
+      <button data-act="sub" data-v="invest" role="tab">Invest</button>
     </div>
 
     <div id="s-spend">
@@ -318,6 +326,59 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <button class="btn" type="submit">Add repayment</button>
       </form>
     </div>
+    <div id="s-invest" hidden>
+    <div class="row" style="margin-top:12px;align-items:center"><span class="small muted">Dividend income</span>
+      <div class="seg" style="margin:0;flex:none" role="group" aria-label="Currency"><button data-act="inv-ccy" data-v="GBP">£ GBP</button><button data-act="inv-ccy" data-v="USD">$ USD</button></div></div>
+
+    <div class="card" id="invKeyCard" hidden style="margin-top:12px">
+      <b>Connect market data</b>
+      <p class="small muted" style="margin-top:4px">Keys are stored privately in your account, not in the app's code. FMP's free plan only covers some stocks, so add a free Alpha Vantage key too (alphavantage.co → Get free API key). The app uses whichever works for each stock.</p>
+      <form data-form="invkey">
+        <label for="invKey">Financial Modeling Prep key</label><input id="invKey" autocomplete="off" autocapitalize="off" placeholder="leave empty to keep current">
+        <label for="avKey">Alpha Vantage key</label><input id="avKey" autocomplete="off" autocapitalize="off" placeholder="leave empty to keep current">
+        <button class="btn" type="submit">Save keys</button></form>
+      <p class="msg" id="invKeyMsg"></p>
+    </div>
+
+    <div class="card" style="margin-top:14px">
+      <div class="row"><span class="small muted">Forecast income, next 12 months (after 15% US tax)</span><span style="display:flex;flex:none"><button class="link" data-act="inv-keys">Keys</button><button class="link" data-act="inv-refresh">Refresh</button></span></div>
+      <div class="big" style="font-size:40px" id="invYear">£0</div>
+      <p class="small muted" id="invSub"></p>
+      <div id="invBars" style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;align-items:end;height:120px;margin-top:14px"></div>
+      <div id="invBarLbl" style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;font-size:11px;color:var(--muted);text-align:center;margin-top:4px"></div>
+      <p class="msg" id="invMsg"></p>
+    </div>
+
+    <h2>Dividend calendar</h2>
+    <div id="invCal"></div>
+
+    <h2>Holdings &amp; watchlist</h2>
+    <div id="invList"></div>
+    <form data-form="hold" class="card">
+      <b>Add a stock</b>
+      <div class="grid2">
+        <div><label for="hSym">Ticker</label><input id="hSym" autocomplete="off" autocapitalize="characters" placeholder="e.g. O"></div>
+        <div><label for="hQty">Shares (0 = watchlist)</label><input id="hQty" inputmode="decimal" placeholder="0"></div>
+      </div>
+      <label for="hCost">Average buy price per share, in the stock's currency (optional)</label>
+      <input id="hCost" inputmode="decimal" placeholder="e.g. 56.20">
+      <p class="msg" id="hMsg"></p>
+      <button class="btn" type="submit">Add</button>
+    </form>
+
+    <h2>Calculator</h2>
+    <form data-form="calc" class="card">
+      <div class="grid2">
+        <div><label for="cSym">Ticker</label><input id="cSym" autocomplete="off" autocapitalize="characters" placeholder="e.g. O"></div>
+        <div><label for="cQty">Shares</label><input id="cQty" inputmode="decimal" placeholder="e.g. 50"></div>
+      </div>
+      <label for="cTarget">…or target monthly income (in the currency shown above)</label>
+      <input id="cTarget" inputmode="decimal" placeholder="e.g. 100">
+      <button class="btn" type="submit">Calculate</button>
+      <div id="calcOut" style="margin-top:12px"></div>
+    </form>
+    <p class="small muted" style="margin:6px 0 20px">Prices and dividends from Financial Modeling Prep, refreshed once a day. Future amounts beyond announced dividends are estimates based on the latest payment. For planning only, not investment advice.</p>
+      </div>
   </div>
 </section>
 
@@ -355,59 +416,32 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
   </div>
 </section>
 
-<section class="view" id="v-invest">
+
+
+<section class="view" id="v-events">
   <div class="pad">
-    <div class="row" style="margin-top:22px;align-items:center"><h1 style="margin:0">Invest</h1>
-      <div class="seg" style="margin:0;flex:none" role="group" aria-label="Currency"><button data-act="inv-ccy" data-v="GBP">£ GBP</button><button data-act="inv-ccy" data-v="USD">$ USD</button></div></div>
-
-    <div class="card" id="invKeyCard" hidden style="margin-top:14px">
-      <b>Connect market data</b>
-      <p class="small muted" style="margin-top:4px">Keys are stored privately in your account, not in the app's code. FMP's free plan only covers some stocks, so add a free Alpha Vantage key too (alphavantage.co → Get free API key). The app uses whichever works for each stock.</p>
-      <form data-form="invkey">
-        <label for="invKey">Financial Modeling Prep key</label><input id="invKey" autocomplete="off" autocapitalize="off" placeholder="leave empty to keep current">
-        <label for="avKey">Alpha Vantage key</label><input id="avKey" autocomplete="off" autocapitalize="off" placeholder="leave empty to keep current">
-        <button class="btn" type="submit">Save keys</button></form>
-      <p class="msg" id="invKeyMsg"></p>
+    <h1 style="margin-top:22px">Events</h1>
+    <div class="card" style="margin-top:12px">
+      <div class="row" style="align-items:center"><button class="link" data-act="ev-mon" data-v="-1" aria-label="Previous month">‹</button><b id="evMonth"></b><button class="link" data-act="ev-mon" data-v="1" aria-label="Next month">›</button></div>
+      <div class="cal" id="evCal"></div>
+      <div class="chips" style="margin-top:10px" id="evLegend"></div>
     </div>
-
-    <div class="card" style="margin-top:14px">
-      <div class="row"><span class="small muted">Forecast income, next 12 months (after 15% US tax)</span><span><button class="link" data-act="inv-keys">Keys</button><button class="link" data-act="inv-refresh">Refresh</button></span></div>
-      <div class="big" style="font-size:40px" id="invYear">£0</div>
-      <p class="small muted" id="invSub"></p>
-      <div id="invBars" style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;align-items:end;height:120px;margin-top:14px"></div>
-      <div id="invBarLbl" style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;font-size:11px;color:var(--muted);text-align:center;margin-top:4px"></div>
-      <p class="msg" id="invMsg"></p>
-    </div>
-
-    <h2>Dividend calendar</h2>
-    <div id="invCal"></div>
-
-    <h2>Holdings &amp; watchlist</h2>
-    <div id="invList"></div>
-    <form data-form="hold" class="card">
-      <b>Add a stock</b>
+    <div class="row" style="align-items:baseline"><h2 id="evListTitle">Coming up</h2><button class="link" id="evAll" data-act="ev-day" data-v="" hidden>Show all</button></div>
+    <div id="evList"></div>
+    <form data-form="ev" class="card" style="margin-top:14px">
+      <h2 style="margin-top:0" id="evFormTitle">Add an event</h2>
+      <label for="evTitle">What</label><input id="evTitle" autocomplete="off" placeholder="e.g. Business Modelling essay due">
       <div class="grid2">
-        <div><label for="hSym">Ticker</label><input id="hSym" autocomplete="off" autocapitalize="characters" placeholder="e.g. O"></div>
-        <div><label for="hQty">Shares (0 = watchlist)</label><input id="hQty" inputmode="decimal" placeholder="0"></div>
+        <div><label for="evDate">Date</label><input type="date" id="evDate"></div>
+        <div><label for="evTime">Time (optional)</label><input type="time" id="evTime"></div>
       </div>
-      <label for="hCost">Average buy price per share, in the stock's currency (optional)</label>
-      <input id="hCost" inputmode="decimal" placeholder="e.g. 56.20">
-      <p class="msg" id="hMsg"></p>
-      <button class="btn" type="submit">Add</button>
+      <label>Type</label><div class="chips" id="evCats"></div>
+      <label for="evNote">Notes (place, link, details)</label><input id="evNote" autocomplete="off">
+      <p class="msg" id="evMsg"></p>
+      <button class="btn" type="submit" id="evSave">Add event</button>
+      <button type="button" class="link" id="evCancel" data-act="ev-cancel" hidden>Cancel editing</button>
     </form>
-
-    <h2>Calculator</h2>
-    <form data-form="calc" class="card">
-      <div class="grid2">
-        <div><label for="cSym">Ticker</label><input id="cSym" autocomplete="off" autocapitalize="characters" placeholder="e.g. O"></div>
-        <div><label for="cQty">Shares</label><input id="cQty" inputmode="decimal" placeholder="e.g. 50"></div>
-      </div>
-      <label for="cTarget">…or target monthly income (in the currency shown above)</label>
-      <input id="cTarget" inputmode="decimal" placeholder="e.g. 100">
-      <button class="btn" type="submit">Calculate</button>
-      <div id="calcOut" style="margin-top:12px"></div>
-    </form>
-    <p class="small muted" style="margin:6px 0 20px">Prices and dividends from Financial Modeling Prep, refreshed once a day. Future amounts beyond announced dividends are estimates based on the latest payment. For planning only, not investment advice.</p>
+    <details class="card" style="margin-bottom:20px"><summary>Past events</summary><div id="evPast"></div></details>
   </div>
 </section>
 
@@ -472,7 +506,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v1.2.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v1.3 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -482,7 +516,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
   <a href="#fitness" data-tab="fitness"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg>Training</a>
   <a href="#money" data-tab="money"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M15 8.5a3 3 0 0 0-5 1.5c0 3 5 1.5 5 4.5a3 3 0 0 1-5 1M12 6v1.5M12 16.5V18"/></svg>Money</a>
   <a href="#lingue" data-tab="lingue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>Lingue</a>
-  <a href="#invest" data-tab="invest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M5 16l4-5 4 3 6-8"/><path d="M15 6h4v4"/></svg>Invest</a>
+  <a href="#events" data-tab="events"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Events</a>
 </nav>
 <div id="toast" role="status"><span id="toastT"></span><button id="toastU" hidden>Undo</button></div>
 
@@ -532,7 +566,7 @@ function commit(){
   if(uid){clearTimeout(timer);timer=setTimeout(flush,700)}
 }
 /* Merge two copies so nothing is ever lost: keep every item either side has, unless it was deleted on purpose. */
-const LISTS=['workouts','expenses','plans','debts','cards','holdings'];
+const LISTS=['workouts','expenses','plans','debts','cards','holdings','events'];
 function mergeState(o,n){
   const s=JSON.parse(JSON.stringify(n));let changed=0;
   s.del=Object.assign({},o.del||{},n.del||{});
@@ -731,8 +765,9 @@ function renderToday(){
   const up=[];
   S.plans.forEach(p=>{const i=planInfo(p);if(i.dl<=60&&i.left>0)up.push({dl:i.dl,h:`<span><b>${esc(p.name)}</b><br><span class="small muted">${short(p.d)} · ${money(i.left)} still to save</span></span><span class="tag${i.dl<0?' hot':''}">${when(i.dl)}</span>`})});
   S.debts.forEach(d=>{const i=debtInfo(d);if(!i.done&&i.dl!=null&&i.dl<=30)up.push({dl:i.dl,h:`<span><b>${d.dir==='owe'?'Pay back '+esc(d.who):esc(d.who)+' pays you'}</b><br><span class="small muted">${money(i.left)} left · by ${short(d.due)}</span></span><span class="tag${i.dl<0?' hot':''}">${when(i.dl)}</span>`})});
+  (S.events||[]).forEach(e=>{const n=days(today(),e.d);if(n>=0&&n<=7&&!e.done)up.push({dl:n+(e.time?0:0.5)/10,h:`<span style="display:flex;gap:10px"><i style="flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;background:${evColor(e.cat)}"></i><span><b>${esc(e.title)}</b><br><span class="small muted">${dayLabel(e.d)}${e.time?' · '+e.time:''}</span></span></span><span class="tag${n<=1&&(e.cat==='academic'||e.cat==='work')?' hot':''}">${when(n)}</span>`})});
   up.sort((a,b)=>a.dl-b.dl);
-  $('#upcoming').innerHTML=up.length?up.slice(0,6).map(u=>`<li class="li">${u.h}</li>`).join(''):'<li class="empty">Nothing due soon. Add events in Money → Planned.</li>';
+  $('#upcoming').innerHTML=up.length?up.slice(0,8).map(u=>`<li class="li">${u.h}</li>`).join(''):'<li class="empty">Nothing coming up this week. Add deadlines and plans in Events.</li>';
   const w=sortedWo()[0];
   $('#lastWo').innerHTML=w?woCard(w,false):'<div class="empty">No workouts yet. Log your first one in Training.</div>';
 }
@@ -814,7 +849,7 @@ function saveWo(){
 let sub='spend',expCat='food';
 function renderMoney(){
   document.querySelectorAll('.subtabs button').forEach(b=>{b.classList.toggle('on',b.dataset.v===sub);b.setAttribute('aria-selected',b.dataset.v===sub)});
-  ['spend','plans','debts'].forEach(k=>$('#s-'+k).hidden=k!==sub);
+  ['spend','plans','debts','invest'].forEach(k=>$('#s-'+k).hidden=k!==sub);
   const m=ym(today()),spent=monthSpent(m);
   $('#monLbl').textContent='Spent in '+new Date().toLocaleDateString('en-GB',{month:'long'});
   $('#monSpent').textContent=money(spent);
@@ -921,6 +956,55 @@ function renderLang(){
   $('#langToday').textContent=(S.cards.length?(all?all+' card'+(all>1?'s':'')+' due today':'All caught up today'):'Italian & French flashcards')+(st?' · '+st+'-day streak':'');
 }
 const newCard=(f,b,ex)=>({id:newId(),lang,f,b,ex:ex||'',due:today(),int:0,ease:2.5,reps:0});
+
+/* ---------- Events ---------- */
+const EVC=[['academic','Academic','#f97316'],['work','Jobs & careers','#3b82f6'],['meeting','Meeting','#14b8a6'],['social','Social','#a855f7'],['other','Other','#8b93a6']];
+const EVN=Object.fromEntries(EVC.map(c=>[c[0],c]));
+let evCat='academic',evEdit=null,evDay='',evView=ym(today());
+const evColor=c=>(EVN[c]||EVN.other)[2];
+const evSort=(a,b)=>a.d.localeCompare(b.d)||(a.time||'99').localeCompare(b.time||'99');
+function dayLabel(d){const n=days(today(),d);return n===0?'Today':n===1?'Tomorrow':n>1&&n<7?pd(d).toLocaleDateString('en-GB',{weekday:'long'}):pd(d).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
+function evRow(e){
+  const n=days(today(),e.d),dl=e.cat==='academic'||e.cat==='work';
+  return `<div class="li" style="align-items:flex-start${e.done?';opacity:.5':''}"><span style="display:flex;gap:10px;align-items:flex-start"><i style="flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;background:${evColor(e.cat)}"></i>
+    <span><b style="${e.done?'text-decoration:line-through':''}">${esc(e.title)}</b><br><span class="small muted">${e.time?e.time+' · ':''}${(EVN[e.cat]||EVN.other)[1]}${e.note?' · '+esc(e.note):''}</span>
+    <span class="evacts">${dl?`<button class="link" data-act="ev-done" data-id="${e.id}">${e.done?'Undo':'Done'}</button>`:''}<button class="link" data-act="ev-ics" data-id="${e.id}">+ Calendar</button><button class="link" data-act="ev-edit" data-id="${e.id}">Edit</button><button class="link" data-act="ev-del" data-id="${e.id}">Delete</button></span></span></span>
+    ${n>=0&&!e.done?`<span class="tag${n<=2&&dl?' hot':''}">${n===0?'today':n===1?'tomorrow':'in '+n+'d'}</span>`:''}</div>`;
+}
+function renderEvents(){
+  if(!$('#v-events'))return;
+  const ev=(S.events||[]).slice().sort(evSort),t=today();
+  // month grid
+  const [y,m]=evView.split('-').map(Number),first=new Date(y,m-1,1),off=(first.getDay()+6)%7,dim=daysIn(evView);
+  $('#evMonth').textContent=first.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  const byDay={};ev.forEach(e=>{(byDay[e.d]=byDay[e.d]||[]).push(e)});
+  let g='MTWTFSS'.split('').map(x=>`<span class="cal-h">${x}</span>`).join('')+'<span></span>'.repeat(off);
+  for(let d=1;d<=dim;d++){const k=evView+'-'+pad(d),es=byDay[k]||[];
+    g+=`<button class="cal-d${k===t?' now':''}${k===evDay?' sel':''}" data-act="ev-day" data-v="${k}" aria-label="${k}"><span>${d}</span><i>${es.slice(0,3).map(e=>`<b style="background:${evColor(e.cat)}"></b>`).join('')}</i></button>`}
+  $('#evCal').innerHTML=g;
+  $('#evLegend').innerHTML=EVC.map(c=>`<span class="small muted" style="display:inline-flex;align-items:center;gap:5px;margin-right:6px"><i style="width:9px;height:9px;border-radius:50%;background:${c[2]}"></i>${c[1]}</span>`).join('');
+  // list
+  let list,title;
+  if(evDay){list=byDay[evDay]||[];title=dayLabel(evDay)}
+  else{list=ev.filter(e=>e.d>=t&&e.d<=addDays(t,60));title='Coming up'}
+  $('#evListTitle').textContent=title;$('#evAll').hidden=!evDay;
+  let h='',cur='';
+  list.forEach(e=>{if(!evDay&&e.d!==cur){cur=e.d;h+=`<p class="small muted" style="margin:12px 0 2px;font-weight:600">${dayLabel(e.d)}</p>`}h+=evRow(e)});
+  $('#evList').innerHTML=h||`<div class="empty">${evDay?'Nothing on this day. Add something below.':'Nothing in the next 60 days. Add your deadlines, events and meetings below.'}</div>`;
+  const past=ev.filter(e=>e.d<t).reverse().slice(0,40);
+  $('#evPast').innerHTML=past.length?past.map(e=>`<p class="small muted" style="margin:10px 0 0">${short(e.d)}</p>`+evRow(e)).join(''):'<p class="small muted" style="padding:8px 0">No past events yet.</p>';
+  $('#evCats').innerHTML=EVC.map(c=>`<button type="button" data-act="ev-cat" data-v="${c[0]}" class="${evCat===c[0]?'on':''}">${c[1]}</button>`).join('');
+  $('#evFormTitle').textContent=evEdit?'Edit event':'Add an event';$('#evSave').textContent=evEdit?'Save changes':'Add event';$('#evCancel').hidden=!evEdit;
+}
+function evReset(){evEdit=null;evCat='academic';['#evTitle','#evTime','#evNote'].forEach(x=>$(x).value='');$('#evDate').value=evDay||today();$('#evMsg').textContent='';renderEvents()}
+function icsFor(e){
+  const z=s=>String(s||'').replace(/[\\,;]/g,m=>'\\'+m).replace(/\n/g,'\\n'),dt=e.d.replace(/-/g,'');
+  const st=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
+  let start,end,alarm;
+  if(e.time){const tm=e.time.replace(':','')+'00';start='DTSTART:'+dt+'T'+tm;const d2=new Date(e.d+'T'+e.time);d2.setHours(d2.getHours()+1);end='DTEND:'+iso(d2).replace(/-/g,'')+'T'+pad(d2.getHours())+pad(d2.getMinutes())+'00';alarm='-PT1H'}
+  else{start='DTSTART;VALUE=DATE:'+dt;end='DTEND;VALUE=DATE:'+addDays(e.d,1).replace(/-/g,'');alarm='-PT15H'}
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Excelsior//EN','BEGIN:VEVENT','UID:'+e.id+'@excelsior','DTSTAMP:'+st,start,end,'SUMMARY:'+z(e.title),e.note?'DESCRIPTION:'+z(e.note):'','BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+z(e.title),'TRIGGER:'+alarm,'END:VALARM','END:VEVENT','END:VCALENDAR'].filter(Boolean).join('\r\n');
+}
 
 /* ---------- Invest ---------- */
 let fmpKey=null,avKey=null,keyLoaded=false,invBusy=false,showKeys=false;
@@ -1084,7 +1168,7 @@ async function runCalc(){
 }
 
 /* ---------- routing ---------- */
-const VIEWS=['today','fitness','money','lingue','invest','settings'];
+const VIEWS=['today','fitness','money','lingue','events','settings'];
 function renderPay(){
   const on=!!S.dropKey;$('#payOff').hidden=on;$('#payOn').hidden=!on;
   if(on){$('#payUrl').value=DROP_URL(S.dropKey);$('#payBody').value='{"fields":{"amt":{"stringValue":"AMOUNT"},"merchant":{"stringValue":"MERCHANT"},"d":{"stringValue":"DATE"}}}'}
@@ -1095,13 +1179,13 @@ function renderSettings(){
   document.querySelectorAll('[data-act=skin]').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.skin);b.setAttribute('aria-pressed',b.dataset.v===S.skin)});
   if(document.activeElement!==$('#setName'))$('#setName').value=S.name;
 }
-function show(){if(location.hash==='#invest')setTimeout(()=>refreshInv(false),50);
+function show(){if(location.hash==='#invest'){sub='invest';renderMoney();setTimeout(()=>refreshInv(false),50);location.replace('#money');return}
   const v=VIEWS.includes(location.hash.slice(1))?location.hash.slice(1):'today';
   VIEWS.forEach(k=>$('#v-'+k).classList.toggle('on',k===v));
   document.querySelectorAll('.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab===v));
   window.scrollTo(0,0);
 }
-function renderAll(){if(!S.potStart){S.potStart=ym(today());S.potStartDay=+today().slice(8);S.budgets=S.budgets||{};if(S.budgets[S.potStart]==null)S.budgets[S.potStart]=S.budget}try{watchDrop()}catch(e){}renderPay();renderSettings();renderToday();renderFit();renderMoney();renderLang();renderInvest()}
+function renderAll(){if(!S.potStart){S.potStart=ym(today());S.potStartDay=+today().slice(8);S.budgets=S.budgets||{};if(S.budgets[S.potStart]==null)S.budgets[S.potStart]=S.budget}try{watchDrop()}catch(e){}renderPay();renderSettings();renderToday();renderFit();renderMoney();renderLang();renderInvest();renderEvents()}
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
@@ -1115,7 +1199,7 @@ document.addEventListener('click',e=>{
   else if(a==='edit-wo'){const w=S.workouts.find(x=>x.id===id);if(!w)return;editingId=id;draft=w.ex.map(x=>({name:x.name,sets:x.sets.join(' '),unit:x.unit,feel:x.feel,note:x.note||''}));$('#woDate').value=w.d;$('#woNote').value=w.note||'';renderDraft();window.scrollTo(0,0)}
   else if(a==='del-wo'){if(editingId===id)resetForm();removeWith('workouts',id,'Workout')}
   else if(a==='more-wo'){woShown+=15;renderFit()}
-  else if(a==='sub'){sub=b.dataset.v;renderMoney()}
+  else if(a==='sub'){sub=b.dataset.v;renderMoney();if(sub==='invest')refreshInv(false)}
   else if(a==='cat'){expCat=b.dataset.v;renderMoney()}
   else if(a==='del-exp'){removeWith('expenses',id,'Expense')}
   else if(a==='del-plan'){removeWith('plans',id,'Planned payment')}
@@ -1136,6 +1220,14 @@ document.addEventListener('click',e=>{
     }).catch(()=>toast('Couldn\'t load backups'));
   }
   else if(a==='use-bk'){const b=bkCache.find(x=>x.id===id);if(!b)return;pending=b.data;$('#impInfo').textContent=(b.data.workouts||[]).length+' workouts, '+(b.data.expenses||[]).length+' expenses, '+((b.data.cards||[]).length)+' words (from '+short(b.id)+').';$('#impConfirm').hidden=false}
+  else if(a==='ev-mon'){const p=evView.split('-').map(Number);const d=new Date(p[0],p[1]-1+(+b.dataset.v),1);evView=iso(d).slice(0,7);renderEvents()}
+  else if(a==='ev-day'){evDay=b.dataset.v===evDay?'':b.dataset.v;if(!evEdit)$('#evDate').value=evDay||today();renderEvents()}
+  else if(a==='ev-cat'){evCat=b.dataset.v;renderEvents()}
+  else if(a==='ev-cancel'){evReset()}
+  else if(a==='ev-done'){const e=(S.events||[]).find(x=>x.id===id);if(e){e.done=!e.done;commit();if(e.done)toast('Nice, done')}}
+  else if(a==='ev-del'){if(evEdit===id)evReset();removeWith('events',id,'Event')}
+  else if(a==='ev-edit'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;evEdit=id;evCat=e.cat;$('#evTitle').value=e.title;$('#evDate').value=e.d;$('#evTime').value=e.time||'';$('#evNote').value=e.note||'';renderEvents();$('#evTitle').scrollIntoView({block:'center'});$('#evTitle').focus()}
+  else if(a==='ev-ics'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;const l=document.createElement('a');l.href='data:text/calendar;charset=utf-8,'+encodeURIComponent(icsFor(e));l.download=(e.title.replace(/[^a-z0-9]+/gi,'-').slice(0,40)||'event')+'.ics';document.body.appendChild(l);l.click();l.remove()}
   else if(a==='inv-ccy'){S.invCcy=b.dataset.v;commit()}
   else if(a==='inv-refresh'){refreshInv(true)}
   else if(a==='inv-keys'){showKeys=!showKeys;renderInvest()}
@@ -1248,6 +1340,13 @@ document.addEventListener('submit',e=>{
     commit();toast(sym+' added');refreshInv(false);
   }
   else if(k==='calc'){runCalc()}
+  else if(k==='ev'){
+    const title=$('#evTitle').value.trim(),d=$('#evDate').value;
+    if(!title||!d){$('#evMsg').textContent='Add a title and a date.';return}
+    S.events=S.events||[];const o={id:evEdit||newId(),title,d,time:$('#evTime').value||'',cat:evCat,note:$('#evNote').value.trim(),done:false};
+    if(evEdit){const i=S.events.findIndex(x=>x.id===evEdit);if(i>=0){o.done=S.events[i].done;S.events[i]=o}else S.events.push(o)}else S.events.push(o);
+    const was=!!evEdit;evView=d.slice(0,7);evReset();commit();toast(was?'Event updated':'Event added');
+  }
   else if(k==='debt'){
     const who=$('#dWho').value.trim(),amt=num($('#dAmt').value);
     if(!who||!(amt>0)){$('#dMsg').textContent='Add the person and the amount.';return}
@@ -1259,7 +1358,7 @@ document.addEventListener('submit',e=>{
 window.addEventListener('hashchange',show);
 
 $('#expDate').value=today();
-resetForm();renderAll();show();
+resetForm();$('#evDate').value=today();renderAll();show();
 }
 </script>
 <script type="module">
