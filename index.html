@@ -370,7 +370,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v0.6 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v0.7 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -442,8 +442,23 @@ function syncFail(e){
   setSync(c==='unavailable'?'Offline · will sync later':'Not synced · tap ⚙︎');
   const el=$('#syncErr');if(el){el.hidden=false;el.textContent=(SYNC_ERR[c]||'Sync failed.')+' (code: '+c+')'}
 }
+const CAT_RULES=[[/tesco|sainsbury|aldi|lidl|asda|co-?op|morrisons|waitrose|m&s food|iceland|spar|one stop/i,'groc'],[/uber|bolt|trainline|national rail|avanti|west midlands|stagecoach|national express|tfl|shell|bp |esso|parking|nx bus/i,'trans'],[/pret|costa|starbucks|caffe|nero|greggs|mcdonald|kfc|burger|subway|nando|deliveroo|just eat|uber eats|domino|pizza|leon|wasabi|itsu|five guys|restaurant|cafe|kitchen|grill/i,'food'],[/netflix|spotify|apple\.com|icloud|google|youtube|amazon prime|disney|chatgpt|claude|anthropic|gym|puregym/i,'subs'],[/amazon|asos|zara|h&m|primark|uniqlo|nike|adidas|jd sports|argos|currys|boots|superdrug/i,'shop'],[/bar|pub|club|cinema|odeon|cineworld|vue|ticket|student union|kasbah/i,'out']];
+const guessCat=m=>{for(const [r,c] of CAT_RULES)if(r.test(m||''))return c;return 'other'};
+let unsubIn=null;
+function onInbox(items){
+  let n=0;
+  items.forEach(it=>{
+    const id='ib-'+it.id,d=it.data||{};
+    if(!S.expenses.some(e=>e.id===id)){
+      const amt=num(d.amt);
+      if(amt>0){S.expenses.push({id,amt,cat:guessCat(d.merchant),note:String(d.merchant||'Apple Pay').slice(0,60),d:/^\d{4}-\d{2}-\d{2}$/.test(d.d||'')?d.d:today(),t:Date.now(),auto:true});n++}
+    }
+  });
+  if(n){commit();toast(n+' payment'+(n>1?'s':'')+' added automatically')}
+  items.forEach(it=>cloud.delInbox(uid,it.id).catch(()=>{}));
+}
 function onUser(u){
-  user=u;if(unsub){unsub();unsub=null}
+  user=u;if(unsub){unsub();unsub=null}if(unsubIn){unsubIn();unsubIn=null}
   uid=u?u.uid:null;renderAccount();
   if(!uid){setSync('Not signed in');return}
   setSync('Connecting…');
@@ -462,6 +477,7 @@ function onUser(u){
     }else if(hasData(S))flush();
     else setSync('Synced');
   },e=>{clearTimeout(t);syncFail(e)});
+  if(cloud.watchInbox)unsubIn=cloud.watchInbox(uid,onInbox);
 }
 function startCloud(){
   if(cloud||!window.saroCloud)return;
@@ -653,7 +669,7 @@ function renderMoney(){
   const by={};mon.forEach(e=>by[e.cat]=(by[e.cat]||0)+e.amt);
   const ks=Object.keys(by).sort((a,b)=>by[b]-by[a]);
   $('#catBars').innerHTML=ks.length?ks.map(k=>`<div class="cat"><div class="row"><span>${CATN[k]||'Other'}</span><span class="amt">${money(by[k])}</span></div><div class="bar"><i style="width:${by[k]/spent*100}%"></i></div></div>`).join(''):'<div class="empty">Add an expense to see where your money goes.</div>';
-  $('#expList').innerHTML=mon.length?mon.map(e=>`<li class="li"><span><b>${esc(e.note||CATN[e.cat])}</b><br><span class="small muted">${CATN[e.cat]||'Other'} · ${short(e.d)}</span></span><span style="display:flex;align-items:center;gap:4px"><span class="amt">${money(e.amt)}</span><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
+  $('#expList').innerHTML=mon.length?mon.map(e=>`<li class="li"><span><b>${esc(e.note||CATN[e.cat])}</b><br><span class="small muted">${e.auto?`<span class="tag">Apple Pay</span> <select data-catfor="${e.id}" aria-label="Category" style="width:auto;min-height:32px;padding:2px 6px;font-size:13px;display:inline-block">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>`:(CATN[e.cat]||'Other')} · ${short(e.d)}</span></span><span style="display:flex;align-items:center;gap:4px"><span class="amt">${money(e.amt)}</span><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
   const ps=S.plans.slice().sort((a,b)=>a.d.localeCompare(b.d));
   $('#planList').innerHTML=ps.length?ps.map(p=>{const i=planInfo(p);const full=i.left<=0.004;return `<div class="card${full&&i.dl<0?' done':''}">
     <div class="row"><b>${esc(p.name)}</b><span class="amt">${money(p.amt)}</span></div>
@@ -819,6 +835,7 @@ document.addEventListener('change',e=>{
   onDraftInput(e);
   if(e.target.id==='weekGoal'){S.weekGoal=+e.target.value;commit()}
   if(e.target.id==='progSel'){progEx=e.target.value;renderFit()}
+  if(e.target.dataset&&e.target.dataset.catfor){const x=S.expenses.find(y=>y.id===e.target.dataset.catfor);if(x){x.cat=e.target.value;commit()}}
   if(e.target.id==='lDir'){S.langDir=e.target.value;commit()}
   if(e.target.id==='setName'){S.name=e.target.value.trim()||'Rasul';commit()}
   if(e.target.id==='budget'){const n=num(e.target.value);if(n>=0){S.budget=n;commit()}else e.target.value=S.budget}
@@ -871,7 +888,7 @@ resetForm();renderAll();show();
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
-import {initializeFirestore,persistentLocalCache,doc,onSnapshot,setDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+import {initializeFirestore,persistentLocalCache,doc,onSnapshot,setDoc,collection,deleteDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 const app=initializeApp({
   apiKey:"AIzaSyCRKIUDzNOP29jfY1k4ymVTyw3nk2ZXI-w",
   authDomain:"me-vs-me-50eee.firebaseapp.com",
@@ -890,6 +907,8 @@ window.saroCloud={
   reset:e=>sendPasswordResetEmail(auth,e),
   signOut:()=>signOut(auth),
   save:(uid,data)=>setDoc(ref(uid),data),
+  watchInbox:(uid,next)=>onSnapshot(collection(db,'users',uid,'inbox'),q=>next(q.docs.map(d=>({id:d.id,data:d.data()}))),()=>{}),
+  delInbox:(uid,id)=>deleteDoc(doc(db,'users',uid,'inbox',id)),
   watch:(uid,next,err)=>onSnapshot(ref(uid),{includeMetadataChanges:true},s=>next({exists:s.exists(),data:s.data(),pending:s.metadata.hasPendingWrites,fromCache:s.metadata.fromCache}),err)
 };
 window.dispatchEvent(new Event('saro-cloud'));
