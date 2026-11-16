@@ -177,6 +177,10 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
   <div class="pad" id="syncBanner" hidden><div class="card" style="margin:12px 0 0;display:flex;justify-content:space-between;align-items:center;gap:12px">
     <span class="small"><b>Sync is off</b><br><span class="muted">Sign in to keep data on all your devices.</span></span>
     <button class="ghost" data-act="go" data-to="settings">Sign in</button></div></div>
+  <div class="pad"><div class="card" id="monthEnd" hidden style="margin:12px 0 0"></div>
+    <div class="card" style="margin:12px 0 0;display:flex;justify-content:space-between;align-items:center;gap:12px" data-act="go" data-to="money">
+      <span><span class="small muted">Savings pot</span><br><b class="amt" style="font-size:22px" id="potToday">£0</b><br><span class="small muted" id="potTodaySub"></span></span>
+    </div></div>
   <div class="quick">
     <button class="ghost" data-act="go" data-to="money">+ Expense</button>
     <button class="ghost" data-act="go" data-to="fitness">+ Workout</button>
@@ -233,8 +237,19 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="row"><span class="muted small" id="monLbl">Spent this month</span><span class="muted small" id="monLeft"></span></div>
         <div class="big" style="font-size:44px" id="monSpent">£0</div>
         <div class="bar" id="monBarW"><i id="monBar"></i></div>
-        <label for="budget">Monthly budget (£)</label>
+        <p class="small muted" style="margin-top:8px" id="monDaily"></p>
+        <label for="budget">Monthly budget for everyday spending (£)</label>
         <input id="budget" inputmode="decimal" placeholder="900">
+      </div>
+      <div class="card">
+        <div class="row"><span class="muted small">Savings pot</span><button class="link" data-act="pot-adj">Adjust</button></div>
+        <div class="big" style="font-size:36px" id="potBig">£0</div>
+        <p class="small muted" id="potBreak"></p>
+        <form data-form="pot" id="potForm" hidden>
+          <div class="grid2"><div><label for="potAmt">Amount (£, use − to take out)</label><input id="potAmt" inputmode="text" placeholder="e.g. 250 or -40"></div>
+          <div><label for="potNote">Note</label><input id="potNote" placeholder="e.g. Starting savings" autocomplete="off"></div></div>
+          <button class="btn" type="submit">Save adjustment</button>
+        </form>
       </div>
       <form data-form="exp" class="card">
         <div class="grid2">
@@ -245,6 +260,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="chips" id="cats"></div>
         <label for="expNote">Note</label>
         <input id="expNote" placeholder="e.g. Tesco, Uber, Pret" autocomplete="off">
+        <label style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:12px"><input type="checkbox" id="expPot" style="width:22px;min-height:22px;height:22px;flex:none"> Pay from savings pot (big one-off, not today's budget)</label>
         <p class="msg" id="expMsg"></p>
         <button class="btn" type="submit">Add expense</button>
       </form>
@@ -390,7 +406,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v0.9 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v1.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -570,7 +586,32 @@ function removeWith(list,id,label){
 
 /* ---------- derived numbers ---------- */
 const sum=(a,f)=>a.reduce((t,x)=>t+(f?f(x):x),0);
-const monthSpent=m=>sum(S.expenses.filter(e=>ym(e.d)===m),e=>e.amt);
+const monthSpent=m=>sum(S.expenses.filter(e=>!e.fromPot&&ym(e.d)===m),e=>e.amt);
+const daysIn=m=>{const p=m.split('-').map(Number);return new Date(p[0],p[1],0).getDate()};
+function budgetFor(m){const b=S.budgets||{};if(b[m]!=null)return b[m];const ks=Object.keys(b).filter(k=>k<=m).sort();return ks.length?b[ks[ks.length-1]]:S.budget}
+function monthFrame(m){const D=daysIn(m),B=budgetFor(m),sd=(m===S.potStart&&S.potStartDay>1)?S.potStartDay:1,Deff=D-sd+1;return {D:Deff,B:B*Deff/D,sd}}
+const budgetSpend=(m,f)=>sum(S.expenses.filter(e=>!e.fromPot&&ym(e.d)===m&&(!f||f(e))),e=>e.amt);
+function dayInfo(){
+  const t=today(),m=ym(t),fr=monthFrame(m),D=fr.D,dl=daysIn(m)-(+t.slice(8))+1,B=fr.B,a=B/D;
+  const before=budgetSpend(m,e=>e.d<t),R=B-before;
+  const allow=Math.max(0,Math.min(a,R/dl)),saved=Math.max(0,R-a*dl),todaySpent=budgetSpend(m,e=>e.d===t);
+  return {a,allow,saved,todaySpent,left:allow-todaySpent,B,spent:before+todaySpent,dl,reduced:allow<a-0.005};
+}
+const monthLeftover=m=>monthFrame(m).B-budgetSpend(m);
+function closedMonths(){
+  const cur=ym(today()),out=[];let p=(S.potStart||cur).split('-').map(Number);
+  for(let i=0;i<240;i++){const k=p[0]+'-'+pad(p[1]);if(k>=cur)break;out.push(k);p[1]++;if(p[1]>12){p[1]=1;p[0]++}}
+  return out;
+}
+function potInfo(){
+  const months=closedMonths().reduce((t,m)=>t+monthLeftover(m),0);
+  const adj=sum(S.potAdj||[],x=>x.amt);
+  const plansOut=sum(S.plans,p=>sum(p.contribs.filter(c=>c.d!=='1970-01-01'),c=>c.amt));
+  const debts=sum(S.debts,d=>sum(d.pays,c=>c.amt)*(d.dir==='owe'?-1:1));
+  const big=sum(S.expenses.filter(e=>e.fromPot),e=>e.amt);
+  return {pot:months+adj-plansOut+debts-big,months,adj,plansOut,debts,big};
+}
+const monthName=m=>pd(m+'-01').toLocaleDateString('en-GB',{month:'long'});
 function planInfo(p){
   const m=ym(today()),saved=sum(p.contribs,c=>c.amt),before=sum(p.contribs.filter(c=>ym(c.d)<m),c=>c.amt);
   const left=Math.max(0,p.amt-saved),dl=days(today(),p.d),months=Math.max(1,Math.ceil(dl/30.44));
@@ -595,17 +636,22 @@ function weekDays(){
 /* ---------- Today ---------- */
 function renderToday(){
   const t=today(),m=ym(t),spent=monthSpent(m);
-  const reserve=sum(S.plans,p=>planInfo(p).need);
-  const owe=sum(S.debts.filter(d=>d.dir==='owe'&&d.due&&ym(d.due)<=m),d=>debtInfo(d).left);
-  const safe=S.budget-spent-reserve-owe;
+  const di=dayInfo(),pi=potInfo();
   const h=new Date().getHours();
   $('#hello').textContent=(h<12?'Buongiorno':h<18?'Ciao':'Buonasera')+', '+(S.name||'Rasul')+' · '+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
-  $('#safeLbl').textContent='Safe to spend in '+new Date().toLocaleDateString('en-GB',{month:'long'});
-  $('#safe').textContent=money(safe);
-  const parts=[money(spent)+' spent of '+money(S.budget)];
-  if(reserve>0)parts.push(money(reserve)+' set aside for plans');
-  if(owe>0)parts.push(money(owe)+' repayments due');
-  $('#safeSub').textContent=parts.join(' · ');
+  $('#safeLbl').textContent=di.left>=0?'Left to spend today':'Over today\'s budget';
+  $('#safe').textContent=money(Math.abs(di.left));
+  $('#safeSub').textContent='of '+money(di.allow)+' today'+(di.reduced?' (reduced: over budget this month)':'')+' · '+money(di.saved)+' saved this month';
+  $('#potToday').textContent=money(pi.pot+di.saved);
+  $('#potTodaySub').textContent=money(pi.pot)+' in the pot + '+money(di.saved)+' saved so far this month';
+  const lm=closedMonths().slice(-1)[0];
+  if(lm&&!(S.monthAck||{})[lm]){
+    const lo=monthLeftover(lm),ps=S.plans.filter(p=>planInfo(p).left>0);
+    $('#monthEnd').hidden=false;
+    $('#monthEnd').innerHTML=`<b>${monthName(lm)} is closed</b><p class="small" style="margin-top:4px">${lo>=0?'You saved <b>'+money(lo)+'</b>':'You went <b>'+money(-lo)+'</b> over budget'}. ${lo>=0?'It\'s been added to':'It\'s been taken from'} your savings pot.</p>
+      ${lo>0&&ps.length?`<label for="meSel">Put it towards a planned payment?</label><div class="inline" style="margin-top:4px"><select id="meSel">${ps.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select><button class="ghost" data-act="me-put" data-v="${lm}">Put</button></div>`:''}
+      <button class="btn" data-act="me-ok" data-v="${lm}">Keep in pot</button>`;
+  }else $('#monthEnd').hidden=true;
   const wd=weekDays(),done=new Set(S.workouts.map(w=>w.d));
   const n=wd.filter(d=>done.has(d)).length;
   $('#weekCount').textContent=n+' / '+S.weekGoal+(n>=S.weekGoal?' · goal hit':'');
@@ -704,24 +750,29 @@ function renderMoney(){
   const m=ym(today()),spent=monthSpent(m);
   $('#monLbl').textContent='Spent in '+new Date().toLocaleDateString('en-GB',{month:'long'});
   $('#monSpent').textContent=money(spent);
-  const left=S.budget-spent;
+  const BB=budgetFor(m),left=BB-spent;
   $('#monLeft').textContent=left>=0?money(left)+' of budget left':money(-left)+' over budget';
-  $('#monBar').style.width=Math.min(100,S.budget?spent/S.budget*100:0)+'%';
+  $('#monBar').style.width=Math.min(100,BB?spent/BB*100:0)+'%';
   $('#monBarW').classList.toggle('hot',left<0);
-  if(document.activeElement!==$('#budget'))$('#budget').value=S.budget;
+  {const di=dayInfo(),pi=potInfo();
+   $('#monDaily').textContent='Today: '+money(di.allow)+(di.reduced?' (reduced)':'')+' · saved this month: '+money(di.saved)+' · '+di.dl+' day'+(di.dl>1?'s':'')+' left';
+   $('#potBig').textContent=money(pi.pot+di.saved);
+   const bits=[];if(pi.months)bits.push(money(pi.months)+' from past months');if(pi.adj)bits.push(money(pi.adj)+' adjustments');if(pi.plansOut)bits.push('−'+money(pi.plansOut)+' to planned payments');if(pi.debts)bits.push((pi.debts<0?'−':'+')+money(Math.abs(pi.debts))+' repayments');if(pi.big)bits.push('−'+money(pi.big)+' big one-offs');bits.push(money(di.saved)+' saved this month');
+   $('#potBreak').textContent=bits.join(' · ');}
+  if(document.activeElement!==$('#budget'))$('#budget').value=BB;
   $('#cats').innerHTML=CATS.map(c=>`<button type="button" data-act="cat" data-v="${c[0]}" class="${expCat===c[0]?'on':''}">${c[1]}</button>`).join('');
   const mon=S.expenses.filter(e=>ym(e.d)===m).sort((a,b)=>b.d.localeCompare(a.d)||(b.t||0)-(a.t||0));
   const by={};mon.forEach(e=>by[e.cat]=(by[e.cat]||0)+e.amt);
   const ks=Object.keys(by).sort((a,b)=>by[b]-by[a]);
   $('#catBars').innerHTML=ks.length?ks.map(k=>`<div class="cat"><div class="row"><span>${CATN[k]||'Other'}</span><span class="amt">${money(by[k])}</span></div><div class="bar"><i style="width:${by[k]/spent*100}%"></i></div></div>`).join(''):'<div class="empty">Add an expense to see where your money goes.</div>';
-  $('#expList').innerHTML=mon.length?mon.map(e=>`<li class="li"><span><b>${esc(e.note||CATN[e.cat])}</b><br><span class="small muted">${e.auto?`<span class="tag">Apple Pay</span> <select data-catfor="${e.id}" aria-label="Category" style="width:auto;min-height:32px;padding:2px 6px;font-size:13px;display:inline-block">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>`:(CATN[e.cat]||'Other')} · ${short(e.d)}</span></span><span style="display:flex;align-items:center;gap:4px"><span class="amt">${money(e.amt)}</span><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
+  $('#expList').innerHTML=mon.length?mon.map(e=>`<li class="li"><span><b>${esc(e.note||CATN[e.cat])}</b><br><span class="small muted">${e.fromPot?'<span class="tag">From pot</span> ':''}${e.auto?`<span class="tag">Apple Pay</span> <select data-catfor="${e.id}" aria-label="Category" style="width:auto;min-height:32px;padding:2px 6px;font-size:13px;display:inline-block">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>`:(CATN[e.cat]||'Other')} · ${short(e.d)}</span></span><span style="display:flex;align-items:center;gap:4px"><span class="amt">${money(e.amt)}</span><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
   const ps=S.plans.slice().sort((a,b)=>a.d.localeCompare(b.d));
   $('#planList').innerHTML=ps.length?ps.map(p=>{const i=planInfo(p);const full=i.left<=0.004;return `<div class="card${full&&i.dl<0?' done':''}">
     <div class="row"><b>${esc(p.name)}</b><span class="amt">${money(p.amt)}</span></div>
     <div class="row small muted" style="margin:2px 0 10px"><span>${short(p.d)} · ${when(i.dl)}</span><span>${money(i.saved)} saved</span></div>
     <div class="bar"><i style="width:${Math.min(100,i.saved/p.amt*100)}%"></i></div>
     <p class="small" style="margin-top:8px">${full?'Fully saved — you\'re covered.':i.dl<0?`<span class="tag hot">Date passed</span> ${money(i.left)} was still unsaved`:`Set aside <b>${money(i.need)}</b> this month · ${money(i.left)} to go`}</p>
-    ${full?'':`<form class="inline" data-form="contrib" data-id="${p.id}"><input inputmode="decimal" placeholder="£ amount" aria-label="Amount to add to savings"><button class="ghost" type="submit">Add saved</button></form>`}
+    ${full?'':`<form class="inline" data-form="contrib" data-id="${p.id}"><input inputmode="decimal" placeholder="£ amount" aria-label="Amount to add to savings"><button class="ghost" type="submit">Add from pot</button></form>`}
     <div class="acts"><button class="link" data-act="del-plan" data-id="${p.id}">Delete</button></div></div>`}).join(''):'<div class="empty" style="margin-bottom:10px">No planned payments yet. New Year\'s, the May Ball, flights home — add them below.</div>';
   const ds=S.debts.slice().sort((a,b)=>debtInfo(a).done-debtInfo(b).done||(a.due||'9').localeCompare(b.due||'9'));
   $('#dOwe').textContent=money(sum(S.debts.filter(d=>d.dir==='owe'),d=>debtInfo(d).left));
@@ -821,7 +872,7 @@ function show(){
   document.querySelectorAll('.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab===v));
   window.scrollTo(0,0);
 }
-function renderAll(){try{watchDrop()}catch(e){}renderPay();renderSettings();renderToday();renderFit();renderMoney();renderLang()}
+function renderAll(){if(!S.potStart){S.potStart=ym(today());S.potStartDay=+today().slice(8);S.budgets=S.budgets||{};if(S.budgets[S.potStart]==null)S.budgets[S.potStart]=S.budget}try{watchDrop()}catch(e){}renderPay();renderSettings();renderToday();renderFit();renderMoney();renderLang()}
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
@@ -856,6 +907,9 @@ document.addEventListener('click',e=>{
     }).catch(()=>toast('Couldn\'t load backups'));
   }
   else if(a==='use-bk'){const b=bkCache.find(x=>x.id===id);if(!b)return;pending=b.data;$('#impInfo').textContent=(b.data.workouts||[]).length+' workouts, '+(b.data.expenses||[]).length+' expenses, '+((b.data.cards||[]).length)+' words (from '+short(b.id)+').';$('#impConfirm').hidden=false}
+  else if(a==='pot-adj'){$('#potForm').hidden=!$('#potForm').hidden}
+  else if(a==='me-ok'){S.monthAck=S.monthAck||{};S.monthAck[b.dataset.v]=true;commit();toast('Kept in your savings pot')}
+  else if(a==='me-put'){const lm=b.dataset.v,p=S.plans.find(x=>x.id===$('#meSel').value),lo=monthLeftover(lm);if(!p||!(lo>0))return;const amt=Math.min(lo,planInfo(p).left);p.contribs.push({d:today(),amt});S.monthAck=S.monthAck||{};S.monthAck[lm]=true;commit();toast(money(amt)+' put towards '+p.name)}
   else if(a==='pay-setup'){
     if(!uid||!cloud||!cloud.makeDropKey){$('#payMsg').textContent='Sign in first (Account & sync above).';return}
     const k=Array.from(crypto.getRandomValues(new Uint8Array(20)),x=>'abcdefghijklmnopqrstuvwxyz0123456789'[x%36]).join('')+'x'+Date.now().toString(36);
@@ -905,7 +959,7 @@ document.addEventListener('change',e=>{
   if(e.target.dataset&&e.target.dataset.catfor){const x=S.expenses.find(y=>y.id===e.target.dataset.catfor);if(x){x.cat=e.target.value;commit()}}
   if(e.target.id==='lDir'){S.langDir=e.target.value;commit()}
   if(e.target.id==='setName'){S.name=e.target.value.trim()||'Rasul';commit()}
-  if(e.target.id==='budget'){const n=num(e.target.value);if(n>=0){S.budget=n;commit()}else e.target.value=S.budget}
+  if(e.target.id==='budget'){const n=num(e.target.value);if(n>=0){S.budget=n;S.budgets=S.budgets||{};S.budgets[ym(today())]=n;commit()}else e.target.value=budgetFor(ym(today()))}
 });
 document.addEventListener('submit',e=>{
   const f=e.target,k=f.dataset.form;if(!k)return;e.preventDefault();
@@ -913,7 +967,8 @@ document.addEventListener('submit',e=>{
   else if(k==='exp'){
     const amt=num($('#expAmt').value);
     if(!(amt>0)){$('#expMsg').textContent='Enter the amount you spent.';return}
-    S.expenses.push({id:newId(),amt,cat:expCat,note:$('#expNote').value.trim(),d:$('#expDate').value||today(),t:Date.now()});
+    const ex={id:newId(),amt,cat:expCat,note:$('#expNote').value.trim(),d:$('#expDate').value||today(),t:Date.now()};if($('#expPot').checked)ex.fromPot=true;
+    S.expenses.push(ex);$('#expPot').checked=false;
     $('#expAmt').value='';$('#expNote').value='';$('#expDate').value=today();$('#expMsg').textContent='';
     commit();toast('Expense added');
   }
@@ -937,6 +992,12 @@ document.addEventListener('submit',e=>{
     S.cards.push(newCard(f,bk,$('#cEx').value.trim()));
     ['#cF','#cB','#cEx'].forEach(s=>$(s).value='');$('#cMsg').textContent='';
     commit();toast('Word added');$('#cF').focus();
+  }
+  else if(k==='pot'){
+    const n=parseFloat(String($('#potAmt').value).replace(/[£,\s]/g,'').replace('−','-'));
+    if(!isFinite(n)||!n){toast('Enter an amount, e.g. 250 or -40');return}
+    S.potAdj=S.potAdj||[];S.potAdj.push({id:newId(),amt:n,note:$('#potNote').value.trim(),d:today()});
+    $('#potAmt').value='';$('#potNote').value='';$('#potForm').hidden=true;commit();toast('Savings pot updated');
   }
   else if(k==='debt'){
     const who=$('#dWho').value.trim(),amt=num($('#dAmt').value);
