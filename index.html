@@ -506,7 +506,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v1.3 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v1.3.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1113,7 +1113,7 @@ async function refreshInv(force){
   invBusy=false;$('#invMsg').textContent=errs.join(' · ');commit();
 }
 function renderInvest(){
-  if(!$('#v-invest'))return;
+  if(!$('#s-invest'))return;
   document.querySelectorAll('[data-act=inv-ccy]').forEach(b=>b.classList.toggle('on',b.dataset.v===invCcy()));
   $('#invKeyCard').hidden=!showKeys&&(!!(fmpKey||avKey)||!keyLoaded&&!!uid);
   if(!uid){$('#invKeyCard').hidden=false;$('#invKeyMsg').textContent='Sign in first (Settings → Account & sync), so your key is stored safely.'}
