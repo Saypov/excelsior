@@ -370,7 +370,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v0.7 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v0.7.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -450,7 +450,7 @@ function onInbox(items){
   items.forEach(it=>{
     const id='ib-'+it.id,d=it.data||{};
     if(!S.expenses.some(e=>e.id===id)){
-      const amt=num(d.amt);
+      const m=String(d.amt||'').replace(/,/g,'').match(/\d+(\.\d+)?/),amt=m?parseFloat(m[0]):0;
       if(amt>0){S.expenses.push({id,amt,cat:guessCat(d.merchant),note:String(d.merchant||'Apple Pay').slice(0,60),d:/^\d{4}-\d{2}-\d{2}$/.test(d.d||'')?d.d:today(),t:Date.now(),auto:true});n++}
     }
   });
