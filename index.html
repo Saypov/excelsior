@@ -360,6 +360,24 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <button class="ghost" style="width:100%;margin-top:12px" data-act="signout">Sign out</button>
       </div>
     </div>
+    <h2>Apple Pay auto-logging</h2>
+    <div class="card" id="payCard">
+      <div id="payOff">
+        <p class="small muted">Get a private link your iPhone Shortcut can send payments to. No password needed in the Shortcut.</p>
+        <p class="msg" id="payMsg"></p>
+        <button class="btn" data-act="pay-setup">Set up automatic payments</button>
+      </div>
+      <div id="payOn" hidden>
+        <p class="small"><b>Your Shortcut needs just two actions after Format Date:</b></p>
+        <p class="small muted" style="margin-top:8px">1 · <b>Text</b> with this, then swap the capital words for Amount, Merchant and Formatted Date:</p>
+        <textarea id="payBody" readonly style="font-size:13px;min-height:84px;margin-top:6px"></textarea>
+        <button class="ghost" style="width:100%;margin-top:6px" data-act="copy" data-src="payBody">Copy text</button>
+        <p class="small muted" style="margin-top:12px">2 · <b>Get Contents of URL</b> with this link, Method POST, header Content-Type = application/json, Request Body = File → Text:</p>
+        <textarea id="payUrl" readonly style="font-size:13px;min-height:84px;margin-top:6px"></textarea>
+        <button class="ghost" style="width:100%;margin-top:6px" data-act="copy" data-src="payUrl">Copy link</button>
+        <p class="small muted" style="margin-top:10px">Keep this link private: anyone with it could add entries to your spending list (but can't read anything).</p>
+      </div>
+    </div>
     <h2>Backup</h2>
     <div class="card">
       <p class="small muted">Save a copy of all your data as a file, or restore one. Good to do now and then.</p>
@@ -372,7 +390,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v0.8 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v0.9 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -462,21 +480,28 @@ function syncFail(e){
 }
 const CAT_RULES=[[/tesco|sainsbury|aldi|lidl|asda|co-?op|morrisons|waitrose|m&s food|iceland|spar|one stop/i,'groc'],[/uber|bolt|trainline|national rail|avanti|west midlands|stagecoach|national express|tfl|shell|bp |esso|parking|nx bus/i,'trans'],[/pret|costa|starbucks|caffe|nero|greggs|mcdonald|kfc|burger|subway|nando|deliveroo|just eat|uber eats|domino|pizza|leon|wasabi|itsu|five guys|restaurant|cafe|kitchen|grill/i,'food'],[/netflix|spotify|apple\.com|icloud|google|youtube|amazon prime|disney|chatgpt|claude|anthropic|gym|puregym/i,'subs'],[/amazon|asos|zara|h&m|primark|uniqlo|nike|adidas|jd sports|argos|currys|boots|superdrug/i,'shop'],[/bar|pub|club|cinema|odeon|cineworld|vue|ticket|student union|kasbah/i,'out']];
 const guessCat=m=>{for(const [r,c] of CAT_RULES)if(r.test(m||''))return c;return 'other'};
-let unsubIn=null;
-function onInbox(items){
+let unsubIn=null,unsubDrop=null,dropOn='';
+function watchDrop(){
+  if(!uid||!cloud||!cloud.watchDrop||!S.dropKey||dropOn===S.dropKey)return;
+  if(unsubDrop)unsubDrop();dropOn=S.dropKey;const k=S.dropKey;
+  unsubDrop=cloud.watchDrop(k,items=>onInbox(items,id=>cloud.delDrop(k,id)));
+}
+const DROP_URL=k=>'https://firestore.googleapis.com/v1/projects/me-vs-me-50eee/databases/(default)/documents/drop/'+k+'/items';
+function onInbox(items,delFn){
   let n=0;
   items.forEach(it=>{
     const id='ib-'+it.id,d=it.data||{};
     if(!S.expenses.some(e=>e.id===id)){
       const m=String(d.amt||'').replace(/,/g,'').match(/\d+(\.\d+)?/),amt=m?parseFloat(m[0]):0;
-      if(amt>0){S.expenses.push({id,amt,cat:guessCat(d.merchant),note:String(d.merchant||'Apple Pay').slice(0,60),d:/^\d{4}-\d{2}-\d{2}$/.test(d.d||'')?d.d:today(),t:Date.now(),auto:true});n++}
+      const dd=String(d.d||'').slice(0,10);
+      if(amt>0&&!(S.del&&S.del[id])){S.expenses.push({id,amt,cat:guessCat(d.merchant),note:String(d.merchant||'Apple Pay').slice(0,60),d:/^\d{4}-\d{2}-\d{2}$/.test(dd)?dd:today(),t:Date.now(),auto:true});n++}
     }
   });
   if(n){commit();toast(n+' payment'+(n>1?'s':'')+' added automatically')}
-  items.forEach(it=>cloud.delInbox(uid,it.id).catch(()=>{}));
+  items.forEach(it=>(delFn?delFn(it.id):cloud.delInbox(uid,it.id)).catch(()=>{}));
 }
 function onUser(u){
-  user=u;if(unsub){unsub();unsub=null}if(unsubIn){unsubIn();unsubIn=null}
+  user=u;if(unsub){unsub();unsub=null}if(unsubIn){unsubIn();unsubIn=null}if(unsubDrop){unsubDrop();unsubDrop=null}
   uid=u?u.uid:null;renderAccount();
   if(!uid){setSync('Not signed in');return}
   setSync('Connecting…');
@@ -497,6 +522,7 @@ function onUser(u){
     else setSync('Synced');
   },e=>{clearTimeout(t);syncFail(e)});
   if(cloud.watchInbox)unsubIn=cloud.watchInbox(uid,onInbox);
+  dropOn='';watchDrop();
 }
 function startCloud(){
   if(cloud||!window.saroCloud)return;
@@ -779,6 +805,10 @@ const newCard=(f,b,ex)=>({id:newId(),lang,f,b,ex:ex||'',due:today(),int:0,ease:2
 
 /* ---------- routing ---------- */
 const VIEWS=['today','fitness','money','lingue','settings'];
+function renderPay(){
+  const on=!!S.dropKey;$('#payOff').hidden=on;$('#payOn').hidden=!on;
+  if(on){$('#payUrl').value=DROP_URL(S.dropKey);$('#payBody').value='{"fields":{"amt":{"stringValue":"AMOUNT"},"merchant":{"stringValue":"MERCHANT"},"d":{"stringValue":"DATE"}}}'}
+}
 function renderSettings(){
   applySkin(S.skin);
   try{localStorage.setItem('saro-skin',S.skin)}catch(e){}
@@ -791,7 +821,7 @@ function show(){
   document.querySelectorAll('.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab===v));
   window.scrollTo(0,0);
 }
-function renderAll(){renderSettings();renderToday();renderFit();renderMoney();renderLang()}
+function renderAll(){try{watchDrop()}catch(e){}renderPay();renderSettings();renderToday();renderFit();renderMoney();renderLang()}
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
@@ -826,6 +856,17 @@ document.addEventListener('click',e=>{
     }).catch(()=>toast('Couldn\'t load backups'));
   }
   else if(a==='use-bk'){const b=bkCache.find(x=>x.id===id);if(!b)return;pending=b.data;$('#impInfo').textContent=(b.data.workouts||[]).length+' workouts, '+(b.data.expenses||[]).length+' expenses, '+((b.data.cards||[]).length)+' words (from '+short(b.id)+').';$('#impConfirm').hidden=false}
+  else if(a==='pay-setup'){
+    if(!uid||!cloud||!cloud.makeDropKey){$('#payMsg').textContent='Sign in first (Account & sync above).';return}
+    const k=Array.from(crypto.getRandomValues(new Uint8Array(20)),x=>'abcdefghijklmnopqrstuvwxyz0123456789'[x%36]).join('')+'x'+Date.now().toString(36);
+    $('#payMsg').textContent='One moment…';
+    cloud.makeDropKey(uid,k).then(()=>{S.dropKey=k;$('#payMsg').textContent='';commit();toast('Payment link ready')})
+      .catch(e=>{$('#payMsg').textContent=(e&&e.code==='permission-denied')?'Firebase rules need updating first. Ask Claude for the new rules.':'Couldn\'t set it up. Try again.'});
+  }
+  else if(a==='copy'){
+    const ta=$('#'+b.dataset.src);const done=()=>toast('Copied');
+    try{navigator.clipboard.writeText(ta.value).then(done,()=>{ta.focus();ta.select();document.execCommand&&document.execCommand('copy');done()})}catch(err){ta.focus();ta.select()}
+  }
   else if(a==='pick-import'){$('#impFile').value='';$('#impFile').click()}
   else if(a==='cancel-import'){pending=null;$('#impConfirm').hidden=true}
   else if(a==='do-import'){if(!pending)return;const old=S;S=Object.assign(defaults(),pending);pending=null;$('#impConfirm').hidden=true;commit();toast('Backup restored',()=>{S=old;commit()})}
@@ -936,6 +977,9 @@ window.saroCloud={
   watchInbox:(uid,next)=>onSnapshot(collection(db,'users',uid,'inbox'),q=>next(q.docs.map(d=>({id:d.id,data:d.data()}))),()=>{}),
   backup:(uid,day,data)=>setDoc(doc(db,'users',uid,'backups',day),data),
   listBackups:async uid=>(await getDocs(collection(db,'users',uid,'backups'))).docs.map(d=>({id:d.id,data:d.data()})).sort((a,b)=>b.id.localeCompare(a.id)),
+  makeDropKey:(uid,k)=>setDoc(doc(db,'dropkeys',k),{uid}),
+  watchDrop:(k,next)=>onSnapshot(collection(db,'drop',k,'items'),q=>next(q.docs.map(d=>({id:d.id,data:d.data()}))),()=>{}),
+  delDrop:(k,id)=>deleteDoc(doc(db,'drop',k,'items',id)),
   delInbox:(uid,id)=>deleteDoc(doc(db,'users',uid,'inbox',id)),
   watch:(uid,next,err)=>onSnapshot(ref(uid),{includeMetadataChanges:true},s=>next({exists:s.exists(),data:s.data(),pending:s.metadata.hasPendingWrites,fromCache:s.metadata.fromCache}),err)
 };
