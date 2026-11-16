@@ -55,6 +55,11 @@ main{max-width:600px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom) 
 .day.done b{background:#fff;border-color:#fff}
 .day.now{color:#fff;font-weight:600}
 .lvl{margin-top:18px}
+.hero2{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.hero2 .side{display:flex;flex-direction:column;align-items:flex-end;text-align:right;padding-bottom:10px;padding-left:14px;border-left:1px solid color-mix(in srgb,currentColor 25%,transparent)}
+.hero2 .side b{font:700 clamp(20px,6vw,30px)/1.1 Sora,sans-serif;letter-spacing:-.02em;margin:2px 0}
+[data-skin=mono] .hero2 .side b{font-family:Archivo,sans-serif;font-weight:900;font-stretch:125%}
+.band .hero2 .side .muted{color:inherit;opacity:.75}
 .quick{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 18px 0}
 .card{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;background:var(--bg)}
 .card.done{opacity:.55}
@@ -165,7 +170,8 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
     <p class="small" style="font-weight:600;letter-spacing:.02em;opacity:.85;margin-bottom:2px">Sarò il migliore</p>
     <p id="hello" class="muted">Ciao, Rasul</p>
     <p class="muted small" id="safeLbl">Safe to spend this month</p>
-    <div class="big" id="safe">£0</div>
+    <div class="hero2"><div class="big" id="safe">£0</div>
+      <div class="side"><span class="small muted">Left this month</span><b class="amt" id="monRem">£0</b><span class="small muted" id="monOf"></span></div></div>
     <p class="small muted" id="safeSub"></p>
     <div class="row" style="margin-top:20px"><span class="small" style="font-weight:600">Training this week</span><span class="small" id="weekCount"></span></div>
     <div class="week" id="week"></div>
@@ -459,7 +465,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v1.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v1.1.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -643,7 +649,7 @@ const sum=(a,f)=>a.reduce((t,x)=>t+(f?f(x):x),0);
 const monthSpent=m=>sum(S.expenses.filter(e=>!e.fromPot&&ym(e.d)===m),e=>e.amt);
 const daysIn=m=>{const p=m.split('-').map(Number);return new Date(p[0],p[1],0).getDate()};
 function budgetFor(m){const b=S.budgets||{};if(b[m]!=null)return b[m];const ks=Object.keys(b).filter(k=>k<=m).sort();return ks.length?b[ks[ks.length-1]]:S.budget}
-function monthFrame(m){const D=daysIn(m),B=budgetFor(m),sd=(m===S.potStart&&S.potStartDay>1)?S.potStartDay:1,Deff=D-sd+1;return {D:Deff,B:B*Deff/D,sd}}
+function monthFrame(m){const D=daysIn(m),B=budgetFor(m),sd=(m===S.potStart&&S.potStartDay>1)?S.potStartDay:1,Deff=D-sd+1;return {D:Deff,B,sd}}
 const budgetSpend=(m,f)=>sum(S.expenses.filter(e=>!e.fromPot&&ym(e.d)===m&&(!f||f(e))),e=>e.amt);
 function dayInfo(){
   const t=today(),m=ym(t),fr=monthFrame(m),D=fr.D,dl=daysIn(m)-(+t.slice(8))+1,B=fr.B,a=B/D;
@@ -695,6 +701,7 @@ function renderToday(){
   $('#hello').textContent=(h<12?'Buongiorno':h<18?'Ciao':'Buonasera')+', '+(S.name||'Rasul')+' · '+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
   $('#safeLbl').textContent=di.left>=0?'Left to spend today':'Over today\'s budget';
   $('#safe').textContent=money(Math.abs(di.left));
+  {const rem=di.B-di.spent;$('#monRem').textContent=(rem<0?'−':'')+money(Math.abs(rem));$('#monOf').textContent=rem<0?'over £'+(+di.B.toFixed(2)):'of '+money(di.B);}
   $('#safeSub').textContent='of '+money(di.allow)+' today'+(di.reduced?' (reduced: over budget this month)':'')+' · '+money(di.saved)+' saved this month';
   $('#potToday').textContent=money(pi.pot+di.saved);
   $('#potTodaySub').textContent=money(pi.pot)+' in the pot + '+money(di.saved)+' saved so far this month';
