@@ -228,6 +228,9 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
   <div class="pad" id="syncBanner" hidden><div class="card" style="margin:12px 0 0;display:flex;justify-content:space-between;align-items:center;gap:12px">
     <span class="small"><b>Sync is off</b><br><span class="muted">Sign in to keep data on all your devices.</span></span>
     <button class="ghost" data-act="go" data-to="settings">Sign in</button></div></div>
+  <div class="pad" id="payBanner" hidden><div class="card" style="margin:12px 0 0;display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--bad)">
+    <span class="small"><b>Apple Pay logging is off</b><br><span class="muted">The payment link is missing. Reconnect it in Settings, then update your Shortcut.</span></span>
+    <button class="ghost" data-act="go" data-to="settings">Fix</button></div></div>
   <div class="pad"><div class="card" id="monthEnd" hidden style="margin:12px 0 0"></div>
     <div class="card" style="margin:12px 0 0;display:flex;justify-content:space-between;align-items:center;gap:12px" data-act="go" data-to="money">
       <span><span class="small muted">Savings pot</span><br><b class="amt" style="font-size:22px" id="potToday">£0</b><br><span class="small muted" id="potTodaySub"></span></span>
@@ -574,7 +577,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v3.0.2 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v3.0.3 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -653,6 +656,7 @@ function mergeState(o,n,cloudIs){
     if(useO&&JSON.stringify(o[k])!==JSON.stringify(n[k])){s[k]=JSON.parse(JSON.stringify(o[k]));changed++}
     s.mt[k]=Math.max(to,tn);if(!s.mt[k])delete s.mt[k];
   });
+  if(!s.dropKey&&(o.dropKey||n.dropKey))s.dropKey=o.dropKey||n.dropKey; // never lose the Apple Pay link to an empty copy
   s.del=Object.assign({},o.del||{},n.del||{});
   LISTS.forEach(k=>{
     s[k]=s[k]||[];const have=new Set(s[k].map(x=>x.id));
@@ -1537,7 +1541,7 @@ function show(){if(location.hash==='#invest'){sub='invest';renderMoney();setTime
   document.querySelectorAll('.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab===v));
   window.scrollTo(0,0);
 }
-function renderAll(){if(!S.potStart){S.potStart=ym(today());S.potStartDay=+today().slice(8);S.budgets=S.budgets||{};if(S.budgets[S.potStart]==null)S.budgets[S.potStart]=S.budget}try{watchDrop()}catch(e){}renderPay();renderSettings();renderToday();renderFit();renderMoney();renderLang();renderInvest();renderEvents()}
+function renderAll(){if(!S.potStart){S.potStart=ym(today());S.potStartDay=+today().slice(8);S.budgets=S.budgets||{};if(S.budgets[S.potStart]==null)S.budgets[S.potStart]=S.budget}try{const lk=localStorage.getItem('excelsior-dropkey');if(S.dropKey){if(lk!==S.dropKey)localStorage.setItem('excelsior-dropkey',S.dropKey)}else if(lk&&uid){S.dropKey=lk;commit()}}catch(e){}try{const b=$('#payBanner');let sy=null;try{sy=localStorage.getItem('excelsior-synced')}catch(e){}if(b)b.hidden=!(uid&&sy&&!S.dropKey)}catch(e){}try{watchDrop()}catch(e){}renderPay();renderSettings();renderToday();renderFit();renderMoney();renderLang();renderInvest();renderEvents()}
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
