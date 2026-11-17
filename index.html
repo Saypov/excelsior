@@ -564,7 +564,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v2.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v2.2 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1042,7 +1042,7 @@ function renderReview(){
 function renderWords(){
   const q=$('#wSearch').value.trim().toLowerCase();
   const ws=S.cards.filter(c=>c.lang===lang&&(!q||(c.f+' '+c.b).toLowerCase().includes(q))).sort((a,b)=>a.f.localeCompare(b.f));
-  $('#wList').innerHTML=ws.length?ws.map(c=>`<li class="li"><span><b>${esc(c.f)}</b><br><span class="small muted">${esc(c.b)} · next ${c.due<=today()?'today':short(c.due)}</span></span><button class="x" data-act="del-card" data-id="${c.id}" aria-label="Delete word">×</button></li>`).join(''):'<li class="muted small" style="padding:10px 0">No words match.</li>';
+  $('#wList').innerHTML=ws.length?ws.map(c=>`<li class="li"><span><b>${esc(c.f)}</b><br><span class="small muted">${esc(c.b)} · next ${c.due<=today()?'today':short(c.due)}${c.wS!=null?' · spelling '+c.wS+'/10':''}</span></span><button class="x" data-act="del-card" data-id="${c.id}" aria-label="Delete word">×</button></li>`).join(''):'<li class="muted small" style="padding:10px 0">No words match.</li>';
 }
 function renderLang(){
   document.querySelectorAll('[data-act=lang]').forEach(b=>{b.classList.toggle('on',b.dataset.v===lang);b.setAttribute('aria-selected',b.dataset.v===lang)});
@@ -1139,8 +1139,9 @@ function diffHtml(input,target){ // mark letters of the correct answer that you 
 }
 function startWrite(){
   const mine=S.cards.filter(c=>c.lang===lang);if(!mine.length)return;
-  const due=dueCards(lang),rest=mine.filter(c=>!due.includes(c)).sort(()=>Math.random()-.5);
-  wq=due.sort(()=>Math.random()-.5).concat(rest).slice(0,10).map(c=>c.id);
+  const due=new Set(dueCards(lang).map(c=>c.id));
+  const wt=c=>{const sc=c.wS==null?5:c.wS;return (1+Math.pow(10-sc,1.5))*(due.has(c.id)?1.5:1)};
+  wq=mine.map(c=>({id:c.id,k:-Math.log(Math.random()||1e-9)/wt(c)})).sort((a,b)=>a.k-b.k).slice(0,10).map(x=>x.id);
   wScore=0;wDone=0;wMax=wq.length*10;wres=null;nextWrite();
 }
 function nextWrite(){const id=wq.shift();wcur=id?S.cards.find(c=>c.id===id)||null:null;wres=null;renderWrite();if(wcur)setTimeout(()=>{const i=$('#wIn');if(i)i.focus()},50)}
@@ -1148,7 +1149,7 @@ function checkWrite(){
   if(!wcur||wres)return;const val=$('#wIn').value;const g=gradeWrite(val,wcur.f);wres={val,g};
   wScore+=g.pts;wDone++;
   const c=wcur,r=g.pts>=8?'good':g.pts>=3?'hard':'again',n=nextInt(c,r);
-  c.ease=Math.max(1.3,(c.ease||2.5)+({again:-.2,hard:-.15,good:0})[r]);c.int=n;c.reps=(c.reps||0)+1;c.due=addDays(today(),n<1?0:n);
+  c.wS=c.wS==null?g.pts:Math.round((c.wS+g.pts)*5)/10;c.ease=Math.max(1.3,(c.ease||2.5)+({again:-.2,hard:-.15,good:0})[r]);c.int=n;c.reps=(c.reps||0)+1;c.due=addDays(today(),n<1?0:n);
   logRev(c.lang);const t=today();S.revLog[t]=(S.revLog[t]||0)+1;S.writeLog=S.writeLog||{};S.writeLog[t]=(S.writeLog[t]||0)+g.pts;
   const ks=Object.keys(S.writeLog).sort();while(ks.length>120)delete S.writeLog[ks.shift()];
   if(!wq.length){S.writeBest=S.writeBest||{};const pct=Math.round(wScore/wMax*100);if(!(S.writeBest[lang]>=pct))S.writeBest[lang]=pct}
