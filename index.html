@@ -424,7 +424,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
     <div class="stats">
       <div><b id="lDue">0</b><span>due today</span></div>
       <div><b id="lTotal">0</b><span>words</span></div>
-      <div><b id="lStreak">0</b><span>day streak</span></div>
+      <div><b id="lStreak">0</b><span id="lStreakL">day streak</span></div>
     </div>
     <div class="subtabs" style="grid-template-columns:1fr 1fr;margin-top:14px" role="tablist">
       <button data-act="lmode" data-v="flash" role="tab">Flashcards</button>
@@ -564,7 +564,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v2.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v2.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -629,7 +629,7 @@ function commit(){
 /* Merge two copies so nothing is ever lost: keep every item either side has, unless it was deleted on purpose. */
 const LISTS=['workouts','expenses','plans','debts','cards','holdings','events','potAdj'];
 /* Settings (budget, theme, keys…) carry a per-setting 'last changed' time, so a fresh device's defaults never overwrite real values. */
-const NOSCALAR=new Set(['updated','mt','del','revLog','writeLog'].concat(LISTS));
+const NOSCALAR=new Set(['updated','mt','del','revLog','writeLog','rev_it','rev_fr'].concat(LISTS));
 const scalarKeys=o=>Object.keys(o||{}).filter(k=>!NOSCALAR.has(k));
 let baseSnap={};const snapNow=()=>{baseSnap={};scalarKeys(S).forEach(k=>baseSnap[k]=JSON.stringify(S[k]))};
 let everSynced=false;try{everSynced=!!localStorage.getItem('excelsior-synced')}catch(e){}
@@ -649,7 +649,7 @@ function mergeState(o,n,cloudIs){
     (o[k]||[]).forEach(x=>{if(x&&!have.has(x.id)&&!s.del[x.id]){s[k].push(x);changed++}});
     const before=s[k].length;s[k]=s[k].filter(x=>!s.del[x.id]);changed+=before-s[k].length;
   });
-  ['revLog','writeLog'].forEach(L=>{s[L]=s[L]||{};Object.entries(o[L]||{}).forEach(([k,v])=>{if(!(s[L][k]>=v)){s[L][k]=v;changed++}})});
+  ['revLog','writeLog','rev_it','rev_fr'].forEach(L=>{s[L]=s[L]||{};Object.entries(o[L]||{}).forEach(([k,v])=>{if(!(s[L][k]>=v)){s[L][k]=v;changed++}})});
   return {s,changed};
 }
 let lastBk='';try{lastBk=localStorage.getItem('excelsior-lastbk')||''}catch(e){}
@@ -996,7 +996,10 @@ fr:[['bonjour','hello'],['merci beaucoup','thank you very much'],['s\'il vous pl
 let lang='it',queue=[],cur=null,shown=false,sessionDone=0;
 const addDays=(s,n)=>{const d=pd(s);d.setDate(d.getDate()+Math.round(n));return iso(d)};
 const dueCards=l=>S.cards.filter(c=>c.lang===l&&c.due<=today());
-function streak(){let n=0;const d=new Date();if(!S.revLog[iso(d)])d.setDate(d.getDate()-1);while(S.revLog[iso(d)]){n++;d.setDate(d.getDate()-1)}return n}
+const LSPLIT='2026-11-17';
+function practised(L,k){return (S['rev_'+L]||{})[k]||(k<=LSPLIT&&S.revLog[k])}
+function streak(L){let n=0;const d=new Date();if(!practised(L,iso(d)))d.setDate(d.getDate()-1);while(practised(L,iso(d))){n++;d.setDate(d.getDate()-1)}return n}
+function logRev(L){const t=today(),k='rev_'+L;S[k]=S[k]||{};S[k][t]=(S[k][t]||0)+1;const ks=Object.keys(S[k]).sort();while(ks.length>120)delete S[k][ks.shift()]}
 function nextInt(c,r){
   if(r==='again')return 0;
   if(r==='hard')return Math.max(1,(c.int||0)*1.2);
@@ -1017,7 +1020,7 @@ function rate(r){
   c.ease=Math.max(1.3,(c.ease||2.5)+({again:-.2,hard:-.15,good:0,easy:.15})[r]);
   c.int=n;c.reps=(c.reps||0)+1;c.due=addDays(today(),n<1?0:n);
   if(r==='again')queue.push(c.id);
-  const t=today();S.revLog[t]=(S.revLog[t]||0)+1;
+  logRev(c.lang);const t=today();S.revLog[t]=(S.revLog[t]||0)+1;
   const keys=Object.keys(S.revLog).sort();while(keys.length>120)delete S.revLog[keys.shift()];
   sessionDone++;commit();nextCard();
 }
@@ -1044,7 +1047,7 @@ function renderWords(){
 function renderLang(){
   document.querySelectorAll('[data-act=lang]').forEach(b=>{b.classList.toggle('on',b.dataset.v===lang);b.setAttribute('aria-selected',b.dataset.v===lang)});
   const mine=S.cards.filter(c=>c.lang===lang);
-  $('#lDue').textContent=dueCards(lang).length;$('#lTotal').textContent=mine.length;$('#lStreak').textContent=streak();
+  $('#lDue').textContent=dueCards(lang).length;$('#lTotal').textContent=mine.length;$('#lStreak').textContent=streak(lang);$('#lStreakL').textContent=(lang==='it'?'Italian':'French')+' streak';
   $('#lDir').innerHTML=`<option value="f">${LN[lang]} → English</option><option value="b">English → ${LN[lang]}</option>`;$('#lDir').value=S.langDir;
   $('#cFl').textContent=LN[lang];$('#cF').placeholder=lang==='it'?'e.g. comunque':'e.g. souvent';$('#cB').placeholder=lang==='it'?'e.g. anyway':'e.g. often';
   const have=new Set(mine.map(c=>c.f.toLowerCase())),missing=PACKS[lang].filter(p=>!have.has(p[0].toLowerCase())).length;
@@ -1053,8 +1056,8 @@ function renderLang(){
   document.querySelectorAll('[data-act=lmode]').forEach(b=>{b.classList.toggle('on',b.dataset.v===lmode);b.setAttribute('aria-selected',b.dataset.v===lmode)});
   $('#review').hidden=lmode!=='flash';$('#dirWrap').hidden=lmode!=='flash';$('#writeBox').hidden=lmode!=='write';
   renderReview();renderWords();if(lmode==='write'&&!(document.activeElement&&document.activeElement.id==='wIn'))renderWrite();
-  const all=dueCards('it').length+dueCards('fr').length,st=streak();
-  $('#langToday').textContent=(S.cards.length?(all?all+' card'+(all>1?'s':'')+' due today':'All caught up today'):'Italian & French flashcards')+(st?' · '+st+'-day streak':'');
+  const all=dueCards('it').length+dueCards('fr').length,si=streak('it'),sf=streak('fr'),st=si||sf?' · streaks IT '+si+' · FR '+sf:'';
+  $('#langToday').textContent=(S.cards.length?(all?all+' card'+(all>1?'s':'')+' due today':'All caught up today'):'Italian & French flashcards')+st;
 }
 const newCard=(f,b,ex)=>({id:newId(),lang,f,b,ex:ex||'',due:today(),int:0,ease:2.5,reps:0});
 
@@ -1146,7 +1149,7 @@ function checkWrite(){
   wScore+=g.pts;wDone++;
   const c=wcur,r=g.pts>=8?'good':g.pts>=3?'hard':'again',n=nextInt(c,r);
   c.ease=Math.max(1.3,(c.ease||2.5)+({again:-.2,hard:-.15,good:0})[r]);c.int=n;c.reps=(c.reps||0)+1;c.due=addDays(today(),n<1?0:n);
-  const t=today();S.revLog[t]=(S.revLog[t]||0)+1;S.writeLog=S.writeLog||{};S.writeLog[t]=(S.writeLog[t]||0)+g.pts;
+  logRev(c.lang);const t=today();S.revLog[t]=(S.revLog[t]||0)+1;S.writeLog=S.writeLog||{};S.writeLog[t]=(S.writeLog[t]||0)+g.pts;
   const ks=Object.keys(S.writeLog).sort();while(ks.length>120)delete S.writeLog[ks.shift()];
   if(!wq.length){S.writeBest=S.writeBest||{};const pct=Math.round(wScore/wMax*100);if(!(S.writeBest[lang]>=pct))S.writeBest[lang]=pct}
   commit();renderWrite();
