@@ -532,7 +532,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v1.8 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v1.8.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1214,7 +1214,11 @@ function renderInvest(){
     ${h.qty>0?`<p class="small" style="margin-top:4px">Income: <b>${fmtC(conv(x.annNet/12,c.ccy))}</b>/month · <b>${fmtC(conv(x.annNet,c.ccy))}</b>/year after tax</p>`:''}
     ${h.cost&&h.qty>0?`<p class="small muted">Cost ${fmtC(conv(h.cost*h.qty,c.ccy))} · ${(()=>{const g=(c.price-h.cost)*h.qty;return (g>=0?'+':'−')+fmtC(Math.abs(conv(g,c.ccy)))})()} · yield on cost ${(x.annPS/h.cost*100).toFixed(2)}%</p>`:''}
     ${x.next?`<p class="small muted">Next ex-date ${short(x.next.ex)}${x.next.est?' (est.)':''}</p>`:''}`:''}
-    <div class="inline"><input inputmode="decimal" value="${h.qty}" data-holdqty="${h.id}" aria-label="Shares"><button class="link" data-act="del-hold" data-id="${h.id}">Delete</button></div></div>`}).join(''):'<div class="empty" style="margin-bottom:10px">No stocks yet. Add one below. Use 0 shares for a watchlist stock.</div>';
+    <div class="grid2" style="margin-top:10px;align-items:end">
+      <div><label style="margin-top:0">Shares</label><input inputmode="decimal" value="${h.qty}" data-holdqty="${h.id}" aria-label="Shares"></div>
+      <div><label style="margin-top:0">Avg buy price (${c?c.ccy==='GBP'?'£':'$':'stock currency'})</label><input inputmode="decimal" value="${h.cost??''}" placeholder="optional" data-holdcost="${h.id}" aria-label="Average buy price"></div>
+    </div>
+    <div class="acts"><button class="link" data-act="del-hold" data-id="${h.id}">Delete</button></div></div>`}).join(''):'<div class="empty" style="margin-bottom:10px">No stocks yet. Add one below. Use 0 shares for a watchlist stock.</div>';
 }
 async function runCalc(){
   const sym=$('#cSym').value.trim().toUpperCase(),qty=num($('#cQty').value),tgt=num($('#cTarget').value);
@@ -1357,6 +1361,7 @@ document.addEventListener('change',e=>{
   if(e.target.id==='weekGoal'){S.weekGoal=+e.target.value;commit()}
   if(e.target.id==='progSel'){progEx=e.target.value;renderFit()}
   if(e.target.dataset&&e.target.dataset.catfor){const x=S.expenses.find(y=>y.id===e.target.dataset.catfor);if(x){x.cat=e.target.value;commit()}}
+  if(e.target.dataset&&e.target.dataset.holdcost){const h=(S.holdings||[]).find(x=>x.id===e.target.dataset.holdcost),v=e.target.value.trim(),n=num(v);if(h){if(v===''){h.cost=null;commit()}else if(n>0){h.cost=n;commit()}else e.target.value=h.cost??''}}
   if(e.target.dataset&&e.target.dataset.holdqty){const h=(S.holdings||[]).find(x=>x.id===e.target.dataset.holdqty),n=num(e.target.value);if(h&&n>=0){h.qty=n;commit()}}
   if(e.target.id==='lDir'){S.langDir=e.target.value;commit()}
   if(e.target.id==='setName'){S.name=e.target.value.trim()||'Rasul';commit()}
