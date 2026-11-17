@@ -494,7 +494,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <button class="skin ghost" data-act="skin" data-v="mono-dark"><div class="sw-d">£840</div>Mono Black<div class="small muted" style="font-weight:400">Black, always</div></button>
       <button class="skin ghost" data-act="skin" data-v="terra"><div class="sw-t">£840</div>Terracotta<div class="small muted" style="font-weight:400">Cream, burnt orange, olive</div></button>
     </div>
-    <p class="small muted" style="margin-top:8px">Azzurro follows your phone's light or dark mode. The Mono themes stay the same whatever your phone is set to.</p>
+    <p class="small muted" style="margin-top:8px">Azzurro follows your phone's light or dark mode. The Mono themes stay the same whatever your phone is set to. Each device keeps its own theme.</p>
     <h2>App icon</h2>
     <div class="skins" style="grid-template-columns:repeat(2,minmax(0,1fr))">
       <button class="skin ghost" data-act="icon" data-v="light"><img src="icon.png" alt="" style="width:64px;height:64px;border-radius:15px;display:block;margin-bottom:6px;border:1px solid #0002">Light</button>
@@ -571,7 +571,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v2.6 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v2.7 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -617,7 +617,7 @@ function applySkin(k){
   r.dataset.skin=k==='azzurro'?'azzurro':k==='terra'?'terra':'mono';
   if(k==='mono'||k==='terra')r.dataset.scheme='light';else if(k==='mono-dark')r.dataset.scheme='dark';else delete r.dataset.scheme;
 }
-try{const k=localStorage.getItem('saro-skin');if(k)applySkin(k)}catch(e){}
+try{const k=localStorage.getItem('excelsior-skin')||localStorage.getItem('saro-skin');if(k)applySkin(k)}catch(e){}
 let S=defaults();
 try{const j=localStorage.getItem(K);if(j)S=Object.assign(defaults(),JSON.parse(j))}catch(e){}
 
@@ -1376,11 +1376,11 @@ function renderVoices(){const box=$('#voiceBox');if(!box)return;if(!('speechSynt
     return `<label for="voice-${L}" style="margin-top:12px">${n} voice</label><div style="display:flex;gap:8px;align-items:center"><select id="voice-${L}" data-voice="${L}" style="flex:1">${'<option value="">Automatic</option>'+vs.map(v=>`<option value="${esc(v.voiceURI||v.name)}" ${(v.voiceURI||v.name)===cur?'selected':''}>${esc(v.name)} · ${esc(v.lang)}</option>`).join('')}</select><button type="button" class="spk" style="margin:0;padding:10px 14px" data-act="say" data-t="${esc(demo)}" data-l="${L}" aria-label="Preview">▶</button></div>${vs.length?'':`<p class="small muted">No ${n} voices found on this device.</p>`}`}).join('')+`<p class="small muted" style="margin-top:6px">Downloaded a new voice? Fully close and reopen the app, then pick it here. This choice is per device.</p>`}
 if('speechSynthesis' in window)speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',()=>{if(!(document.activeElement&&document.activeElement.dataset&&document.activeElement.dataset.voice))renderVoices()});
 function renderSettings(){renderVoices();
-  applySkin(S.skin);
-  try{localStorage.setItem('saro-skin',S.skin)}catch(e){}
+  let sk=S.skin;try{sk=localStorage.getItem('excelsior-skin')||localStorage.getItem('saro-skin')||S.skin;localStorage.setItem('excelsior-skin',sk)}catch(e){}
+  applySkin(sk);
   document.querySelectorAll('[data-act=tts]').forEach(b=>b.classList.toggle('on',b.dataset.v===(S.tts===false?'off':'on')));
   document.querySelectorAll('[data-act=ttsauto]').forEach(b=>b.classList.toggle('on',b.dataset.v===(S.ttsAuto?'on':'off')));
-  document.querySelectorAll('[data-act=skin]').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.skin);b.setAttribute('aria-pressed',b.dataset.v===S.skin)});
+  document.querySelectorAll('[data-act=skin]').forEach(b=>{b.classList.toggle('on',b.dataset.v===sk);b.setAttribute('aria-pressed',b.dataset.v===sk)});
   if(document.activeElement!==$('#setName'))$('#setName').value=S.name;
   let ic='light';try{ic=localStorage.getItem('excelsior-icon')||'light'}catch(e){}applyIcon(ic);
   document.querySelectorAll('[data-act=icon]').forEach(b=>{b.classList.toggle('on',b.dataset.v===ic);b.setAttribute('aria-pressed',b.dataset.v===ic)});
@@ -1411,7 +1411,7 @@ document.addEventListener('click',e=>{
   else if(a==='del-plan'){removeWith('plans',id,'Planned payment')}
   else if(a==='del-debt'){removeWith('debts',id,'Repayment')}
   else if(a==='icon'){try{localStorage.setItem('excelsior-icon',b.dataset.v)}catch(e){}renderSettings();toast('Icon chosen for this device · reloading…');setTimeout(()=>location.reload(),900)}
-  else if(a==='skin'){S.skin=b.dataset.v;commit()}
+  else if(a==='skin'){try{localStorage.setItem('excelsior-skin',b.dataset.v)}catch(e){}S.skin=b.dataset.v;commit()}
   else if(a==='tts'){S.tts=b.dataset.v==='on';commit();if(S.tts)say(lang==='fr'?'bonjour':'ciao',lang)}
   else if(a==='ttsauto'){S.ttsAuto=b.dataset.v==='on';commit()}
   else if(a==='say'){say(b.dataset.t,b.dataset.l||lang,true)}
