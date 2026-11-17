@@ -267,6 +267,9 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
     </form>
     <datalist id="exlist"></datalist>
 
+    <h2>Body weight</h2>
+    <div class="card" id="wtBox"></div>
+
     <h2>Progress</h2>
     <div id="progWrap"></div>
 
@@ -577,7 +580,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v3.1.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v3.2.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -640,7 +643,7 @@ function commit(){
   if(uid){clearTimeout(timer);timer=setTimeout(flush,700)}
 }
 /* Merge two copies so nothing is ever lost: keep every item either side has, unless it was deleted on purpose. */
-const LISTS=['workouts','expenses','plans','debts','cards','holdings','events','potAdj'];
+const LISTS=['workouts','expenses','plans','debts','cards','holdings','events','potAdj','weights'];
 /* Settings (budget, theme, keys…) carry a per-setting 'last changed' time, so a fresh device's defaults never overwrite real values. */
 const NOSCALAR=new Set(['updated','mt','del','revLog','writeLog','rev_it','rev_fr'].concat(LISTS));
 const scalarKeys=o=>Object.keys(o||{}).filter(k=>!NOSCALAR.has(k));
@@ -899,6 +902,29 @@ function hint(name){
   }
   return 'First time logging this one.';
 }
+let wtRange=30;
+function wtAvg(ws,d,n){const lo=addDays(d,-(n-1)),xs=ws.filter(w=>w.d>=lo&&w.d<=d);return xs.length?sum(xs,w=>w.kg)/xs.length:null}
+function renderWeight(){const box=$('#wtBox');if(!box)return;S.weights=S.weights||[];
+  const ws=S.weights.slice().sort((a,b)=>a.d.localeCompare(b.d)),t=today(),last=ws[ws.length-1],todayW=ws.find(w=>w.d===t);
+  const f1=v=>v==null?'—':v.toFixed(1),sg=v=>v==null?'':(v>0?'+':v<0?'−':'±')+Math.abs(v).toFixed(1)+' kg';
+  const a7=last?wtAvg(ws,last.d,7):null,a7p=last?wtAvg(ws,addDays(last.d,-30),7):null,ch=a7!=null&&a7p!=null?a7-a7p:null;
+  let chart='';const lo=wtRange?addDays(t,-wtRange):'0000',pts=ws.filter(w=>w.d>=lo);
+  if(pts.length>=2){const W=320,H=150,P=8,x0=+new Date(pts[0].d),x1=+new Date(pts[pts.length-1].d)||x0+1,kgs=pts.map(w=>w.kg),mn=Math.min(...kgs)-0.5,mx=Math.max(...kgs)+0.5;
+    const X=d=>P+(x1===x0?0:(+new Date(d)-x0)/(x1-x0))*(W-2*P),Y=k=>P+(1-(k-mn)/(mx-mn))*(H-2*P-14);
+    const avg=pts.map(w=>[X(w.d),Y(wtAvg(ws,w.d,7))]);
+    chart=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;margin-top:12px" role="img" aria-label="Weight trend">
+      <text x="${P}" y="${H-2}" font-size="10" fill="var(--muted)">${short(pts[0].d)}</text><text x="${W-P}" y="${H-2}" font-size="10" fill="var(--muted)" text-anchor="end">${short(pts[pts.length-1].d)}</text>
+      <text x="${W-P}" y="${P+8}" font-size="10" fill="var(--muted)" text-anchor="end">${mx.toFixed(1)}</text><text x="${W-P}" y="${H-18}" font-size="10" fill="var(--muted)" text-anchor="end">${mn.toFixed(1)}</text>
+      ${pts.map(w=>`<circle cx="${X(w.d).toFixed(1)}" cy="${Y(w.kg).toFixed(1)}" r="2.6" fill="var(--muted)" opacity=".55"/>`).join('')}
+      <polyline points="${avg.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      <p class="small muted" style="margin-top:4px">Dots: daily weigh-ins · line: 7-day average (the real trend)</p>`}
+  else chart=`<p class="small muted" style="margin-top:12px">${ws.length?'Log one more day to see your trend chart.':'Weigh yourself at the same time each day (ideally morning, after the bathroom, before eating) for the most reliable trend.'}</p>`;
+  box.innerHTML=`<form data-form="wt" class="grid2" style="align-items:end"><div><label for="wtKg">${todayW?'Today (update)':'Today\'s weight (kg)'}</label><input id="wtKg" inputmode="decimal" placeholder="${last?last.kg.toFixed(1):'e.g. 75.4'}" value="${todayW?todayW.kg:''}" autocomplete="off"></div>
+    <div><label for="wtD">Date</label><input type="date" id="wtD" value="${t}"></div><button class="btn" type="submit" style="grid-column:1/-1;margin-top:4px">Save weight</button></form><p class="msg" id="wtMsg"></p>
+    ${ws.length?`<div class="stats" style="margin-top:14px"><div><b>${f1(last.kg)}</b><span>latest kg</span></div><div><b>${f1(a7)}</b><span>7-day avg</span></div><div><b style="font-size:clamp(16px,5vw,22px)">${ch==null?'—':sg(ch)}</b><span>vs 30 days ago</span></div></div>
+    <div class="subtabs" style="grid-template-columns:1fr 1fr 1fr;margin-top:14px" role="group">${[[30,'30 days'],[90,'90 days'],[0,'All']].map(o=>`<button type="button" data-act="wt-range" data-v="${o[0]}" class="${wtRange===o[0]?'on':''}">${o[1]}</button>`).join('')}</div>`:''}
+    ${chart}
+    ${ws.length?`<details style="margin-top:10px"><summary class="small">Recent entries</summary><ul class="list">${ws.slice(-14).reverse().map(w=>`<li class="li"><span>${short(w.d)}</span><span style="display:flex;align-items:center;gap:4px"><span class="amt">${w.kg.toFixed(1)} kg</span><button class="x" data-act="del-wt" data-id="${w.id}" aria-label="Delete entry">×</button></span></li>`).join('')}</ul></details>`:''}`}
 function renderDraft(){
   $('#exRows').innerHTML=draft.map((r,i)=>`<div class="ex">
     <div class="exhead"><input list="exlist" data-f="name" data-i="${i}" placeholder="Exercise, e.g. Pull-ups" value="${esc(r.name)}" aria-label="Exercise" autocomplete="off">
@@ -969,7 +995,7 @@ function expEditHtml(e){return `<li class="li" style="display:block"><form data-
   <p class="msg" id="eeMsg"></p>
   <div class="grid2" style="margin-top:10px"><button class="ghost" type="button" data-act="edit-exp-cancel">Cancel</button><button class="btn" type="submit" style="margin:0">Save</button></div></form></li>`}
 function renderMoney(){
-  document.querySelectorAll('.subtabs button').forEach(b=>{b.classList.toggle('on',b.dataset.v===sub);b.setAttribute('aria-selected',b.dataset.v===sub)});
+  document.querySelectorAll('.subtabs [data-act=sub]').forEach(b=>{b.classList.toggle('on',b.dataset.v===sub);b.setAttribute('aria-selected',b.dataset.v===sub)});
   ['spend','plans','debts','invest'].forEach(k=>$('#s-'+k).hidden=k!==sub);
   const m=ym(today()),spent=monthSpent(m);
   $('#monLbl').textContent='Spent in '+new Date().toLocaleDateString('en-GB',{month:'long'});
@@ -1549,7 +1575,7 @@ function show(){if(location.hash==='#invest'){sub='invest';renderMoney();setTime
   document.querySelectorAll('.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab===v));
   window.scrollTo(0,0);
 }
-function renderAll(){if(!S.potStart){S.potStart=ym(today());S.potStartDay=+today().slice(8);S.budgets=S.budgets||{};if(S.budgets[S.potStart]==null)S.budgets[S.potStart]=S.budget}try{const lk=localStorage.getItem('excelsior-dropkey');if(S.dropKey){if(lk!==S.dropKey)localStorage.setItem('excelsior-dropkey',S.dropKey)}else if(lk&&uid){S.dropKey=lk;commit()}}catch(e){}try{const b=$('#payBanner');let sy=null;try{sy=localStorage.getItem('excelsior-synced')}catch(e){}if(b)b.hidden=!(uid&&sy&&!S.dropKey)}catch(e){}try{watchDrop()}catch(e){}renderPay();renderSettings();renderToday();renderFit();renderMoney();renderLang();renderInvest();renderEvents()}
+function renderAll(){if(!S.potStart){S.potStart=ym(today());S.potStartDay=+today().slice(8);S.budgets=S.budgets||{};if(S.budgets[S.potStart]==null)S.budgets[S.potStart]=S.budget}try{const lk=localStorage.getItem('excelsior-dropkey');if(S.dropKey){if(lk!==S.dropKey)localStorage.setItem('excelsior-dropkey',S.dropKey)}else if(lk&&uid){S.dropKey=lk;commit()}}catch(e){}try{const b=$('#payBanner');let sy=null;try{sy=localStorage.getItem('excelsior-synced')}catch(e){}if(b)b.hidden=!(uid&&sy&&!S.dropKey)}catch(e){}try{watchDrop()}catch(e){}try{renderWeight()}catch(e){}renderPay();renderSettings();renderToday();renderFit();renderMoney();renderLang();renderInvest();renderEvents()}
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
@@ -1565,6 +1591,8 @@ document.addEventListener('click',e=>{
   else if(a==='more-wo'){woShown+=15;renderFit()}
   else if(a==='sub'){sub=b.dataset.v;renderMoney();if(sub==='invest')refreshInv(false)}
   else if(a==='cat'){expCat=b.dataset.v;renderMoney()}
+  else if(a==='del-wt'){removeWith('weights',id,'Weight entry')}
+  else if(a==='wt-range'){wtRange=+b.dataset.v;renderWeight()}
   else if(a==='del-exp'){if(editExp===id)editExp=null;removeWith('expenses',id,'Expense')}
   else if(a==='edit-exp'){editExp=id;renderMoney();setTimeout(()=>{const i=$('#eeAmt');if(i)i.focus()},50)}
   else if(a==='edit-exp-cancel'){editExp=null;renderMoney()}
@@ -1679,6 +1707,10 @@ document.addEventListener('change',e=>{
 document.addEventListener('submit',e=>{
   const f=e.target,k=f.dataset.form;if(!k)return;e.preventDefault();
   if(k==='wo')saveWo();
+  else if(k==='wt'){const kg=parseFloat(String($('#wtKg').value).replace(',','.')),d=$('#wtD').value;
+    if(!(kg>=25&&kg<=300)){$('#wtMsg').textContent='Enter your weight in kg, e.g. 75.4';return}if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){$('#wtMsg').textContent='Pick a date.';return}
+    S.weights=S.weights||[];S.del=S.del||{};S.weights.filter(w=>w.d===d).forEach(w=>S.del[w.id]=Date.now());S.weights=S.weights.filter(w=>w.d!==d);
+    S.weights.push({id:'w'+newId(),d,kg:Math.round(kg*10)/10,u:Date.now()});commit();toast('Weight saved')}
   else if(k==='exp'){
     const amt=num($('#expAmt').value);
     if(!(amt>0)){$('#expMsg').textContent='Enter the amount you spent.';return}
