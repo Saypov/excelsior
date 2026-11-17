@@ -532,7 +532,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v1.7.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v1.8 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -587,16 +587,30 @@ let cloud=null,uid=null,unsub=null,writing=false,again=false,timer=null,user=nul
 const setSync=t=>{$('#sync').textContent=t};
 const hasData=s=>s.workouts.length||s.expenses.length||s.plans.length||s.debts.length||s.cards.length;
 function commit(){
-  S.updated=Date.now();
+  S.updated=Date.now();S.mt=S.mt||{};
+  scalarKeys(S).forEach(k=>{const v=JSON.stringify(S[k]);if(baseSnap[k]!==v){S.mt[k]=S.updated;baseSnap[k]=v}});
   if(S.del){const cut=Date.now()-1.5e10;for(const k in S.del)if(S.del[k]<cut)delete S.del[k]}
   try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}
   renderAll();
   if(uid){clearTimeout(timer);timer=setTimeout(flush,700)}
 }
 /* Merge two copies so nothing is ever lost: keep every item either side has, unless it was deleted on purpose. */
-const LISTS=['workouts','expenses','plans','debts','cards','holdings','events'];
-function mergeState(o,n){
+const LISTS=['workouts','expenses','plans','debts','cards','holdings','events','potAdj'];
+/* Settings (budget, theme, keys…) carry a per-setting 'last changed' time, so a fresh device's defaults never overwrite real values. */
+const NOSCALAR=new Set(['updated','mt','del','revLog'].concat(LISTS));
+const scalarKeys=o=>Object.keys(o||{}).filter(k=>!NOSCALAR.has(k));
+let baseSnap={};const snapNow=()=>{baseSnap={};scalarKeys(S).forEach(k=>baseSnap[k]=JSON.stringify(S[k]))};
+let everSynced=false;try{everSynced=!!localStorage.getItem('excelsior-synced')}catch(e){}
+function mergeState(o,n,cloudIs){
   const s=JSON.parse(JSON.stringify(n));let changed=0;
+  const mo=o.mt||{},mn=n.mt||{};s.mt=Object.assign({},mo,mn);
+  new Set(scalarKeys(o).concat(scalarKeys(n))).forEach(k=>{
+    const to=mo[k]||0,tn=mn[k]||0;
+    let useO=to>tn||(to===tn&&cloudIs==='o');
+    if(useO&&o[k]===undefined)useO=false;if(!useO&&n[k]===undefined&&o[k]!==undefined)useO=true;
+    if(useO&&JSON.stringify(o[k])!==JSON.stringify(n[k])){s[k]=JSON.parse(JSON.stringify(o[k]));changed++}
+    s.mt[k]=Math.max(to,tn);if(!s.mt[k])delete s.mt[k];
+  });
   s.del=Object.assign({},o.del||{},n.del||{});
   LISTS.forEach(k=>{
     s[k]=s[k]||[];const have=new Set(s[k].map(x=>x.id));
@@ -608,11 +622,12 @@ function mergeState(o,n){
   return {s,changed};
 }
 let lastBk='';try{lastBk=localStorage.getItem('excelsior-lastbk')||''}catch(e){}
+let devId='';try{devId=localStorage.getItem('excelsior-dev')||'';if(!devId){devId=Math.random().toString(36).slice(2,8);localStorage.setItem('excelsior-dev',devId)}}catch(e){devId='x'}
 async function flush(){
   if(!uid||!cloud)return;
   if(writing){again=true;return}
   writing=true;setSync('Saving…');
-  try{await cloud.save(uid,JSON.parse(JSON.stringify(S)));setSync('Synced');if(hasData(S)&&lastBk!==today()&&cloud.backup){lastBk=today();try{localStorage.setItem('excelsior-lastbk',lastBk)}catch(e){}cloud.backup(uid,lastBk,JSON.parse(JSON.stringify(S))).catch(()=>{})}const el=$('#syncErr');if(el)el.hidden=true}
+  try{await cloud.save(uid,JSON.parse(JSON.stringify(S)));setSync('Synced');if(hasData(S)&&lastBk!==today()&&cloud.backup){lastBk=today();try{localStorage.setItem('excelsior-lastbk',lastBk)}catch(e){}cloud.backup(uid,lastBk+'_'+devId,JSON.parse(JSON.stringify(S))).catch(()=>{})}const el=$('#syncErr');if(el)el.hidden=true}
   catch(e){syncFail(e)}
   writing=false;
   if(again){again=false;flush()}
@@ -657,9 +672,11 @@ function onUser(u){
     if(!snap.fromCache)clearTimeout(t);
     if(snap.exists){
       const d=Object.assign(defaults(),JSON.parse(JSON.stringify(snap.data||{})));
+      if(!everSynced){S.mt={}}
       const cloudNewer=(d.updated||0)>=(S.updated||0);
-      const r=cloudNewer?mergeState(S,d):mergeState(d,S);
-      S=r.s;
+      const r=cloudNewer?mergeState(S,d,'n'):mergeState(d,S,'o');
+      S=r.s;snapNow();
+      if(!everSynced){everSynced=true;try{localStorage.setItem('excelsior-synced','1')}catch(e){}}
       try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}
       renderAll();
       if(!cloudNewer||r.changed){S.updated=Date.now();flush()}else setSync('Synced');
@@ -1273,10 +1290,10 @@ document.addEventListener('click',e=>{
   else if(a==='cloud-bk'){
     if(!uid||!cloud||!cloud.listBackups){toast('Sign in first');return}
     cloud.listBackups(uid).then(bs=>{bkCache=bs;$('#bkList').hidden=false;
-      $('#bkList').innerHTML=bs.length?bs.slice(0,30).map(b=>`<li class="li"><span><b>${short(b.id)}</b><br><span class="small muted">${(b.data.workouts||[]).length} workouts · ${(b.data.expenses||[]).length} expenses · ${(b.data.cards||[]).length} words</span></span><button class="ghost" data-act="use-bk" data-id="${b.id}">Restore</button></li>`).join(''):'<li class="muted small" style="padding:10px 0">No cloud backups yet. One is saved automatically each day you use the app.</li>';
+      $('#bkList').innerHTML=bs.length?bs.slice(0,30).map(b=>`<li class="li"><span><b>${short(b.id.slice(0,10))}${b.id.length>10?' · device '+esc(b.id.slice(11)):''}</b><span class="small muted"> · budget ${money((b.data.budgets&&b.data.budgets[ym(b.id.slice(0,10))])||b.data.budget||0)}</span><br><span class="small muted">${(b.data.workouts||[]).length} workouts · ${(b.data.expenses||[]).length} expenses · ${(b.data.cards||[]).length} words</span></span><button class="ghost" data-act="use-bk" data-id="${b.id}">Restore</button></li>`).join(''):'<li class="muted small" style="padding:10px 0">No cloud backups yet. One is saved automatically each day you use the app.</li>';
     }).catch(()=>toast('Couldn\'t load backups'));
   }
-  else if(a==='use-bk'){const b=bkCache.find(x=>x.id===id);if(!b)return;pending=b.data;$('#impInfo').textContent=(b.data.workouts||[]).length+' workouts, '+(b.data.expenses||[]).length+' expenses, '+((b.data.cards||[]).length)+' words (from '+short(b.id)+').';$('#impConfirm').hidden=false}
+  else if(a==='use-bk'){const b=bkCache.find(x=>x.id===id);if(!b)return;pending=b.data;$('#impInfo').textContent=(b.data.workouts||[]).length+' workouts, '+(b.data.expenses||[]).length+' expenses, '+((b.data.cards||[]).length)+' words (from '+short(b.id.slice(0,10))+'). Your current entries are kept too.';$('#impConfirm').hidden=false}
   else if(a==='ev-mon'){const p=evView.split('-').map(Number);const d=new Date(p[0],p[1]-1+(+b.dataset.v),1);evView=iso(d).slice(0,7);renderEvents()}
   else if(a==='ev-day'){evDay=b.dataset.v===evDay?'':b.dataset.v;if(!evEdit)$('#evDate').value=evDay||today();renderEvents()}
   else if(a==='ev-cat'){evCat=b.dataset.v;renderEvents()}
@@ -1306,7 +1323,7 @@ document.addEventListener('click',e=>{
   }
   else if(a==='pick-import'){$('#impFile').value='';$('#impFile').click()}
   else if(a==='cancel-import'){pending=null;$('#impConfirm').hidden=true}
-  else if(a==='do-import'){if(!pending)return;const old=S;S=Object.assign(defaults(),pending);pending=null;$('#impConfirm').hidden=true;commit();toast('Backup restored',()=>{S=old;commit()})}
+  else if(a==='do-import'){if(!pending)return;const old=S;S=Object.assign(defaults(),pending);S.mt={};const now=Date.now();scalarKeys(S).forEach(k=>S.mt[k]=now);snapNow();pending=null;$('#impConfirm').hidden=true;commit();toast('Backup restored',()=>{S=old;commit()})}
   else if(a==='lang'){lang=b.dataset.v;queue=[];cur=null;sessionDone=0;renderLang()}
   else if(a==='start-rev'){startReview(!!b.dataset.x)}
   else if(a==='show-ans'){shown=true;renderReview()}
@@ -1431,7 +1448,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 setTimeout(checkUpdate,3000);
 
 $('#expDate').value=today();
-resetForm();$('#evDate').value=today();renderAll();show();
+resetForm();$('#evDate').value=today();snapNow();renderAll();show();
 }
 </script>
 <script type="module">
