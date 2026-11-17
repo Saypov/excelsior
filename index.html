@@ -202,6 +202,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
 [data-skin=mono] .tabs a{font-size:13px;font-weight:500}
 [data-skin=mono] .tabs a.on{background:var(--soft);color:var(--ink);font-weight:600}
 [data-skin=mono] .empty{border:0;background:var(--soft);border-radius:20px}
+.spk{background:none;border:1px solid var(--line,#8884);border-radius:999px;padding:4px 10px;font-size:16px;line-height:1;cursor:pointer;vertical-align:middle;margin-left:6px;color:inherit;min-height:0}
 </style>
 </head>
 <body>
@@ -500,6 +501,10 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <button class="skin ghost" data-act="icon" data-v="dark"><img src="icon-dark.png" alt="" style="width:64px;height:64px;border-radius:15px;display:block;margin-bottom:6px">Dark</button>
     </div>
     <p class="small muted" style="margin-top:8px">To apply it: remove Excelsior from your Home Screen, then open the link in Safari and tap Share → Add to Home Screen again. Your data stays safe. This choice is per device. On a computer (Edge/Chrome): choose the icon first, then install the app; if it's already installed, uninstall and install again.</p>
+    <h2>Pronunciation</h2>
+    <div class="subtabs" style="grid-template-columns:1fr 1fr" role="group"><button data-act="tts" data-v="on">Sound on</button><button data-act="tts" data-v="off">Sound off</button></div>
+    <div class="subtabs" style="grid-template-columns:1fr 1fr;margin-top:8px" role="group"><button data-act="ttsauto" data-v="on">Auto-play</button><button data-act="ttsauto" data-v="off">Tap to play</button></div>
+    <p class="small muted" style="margin-top:8px">Uses your device's built-in French and Italian voices: free and works offline. Auto-play reads each word aloud when it appears. On iPhone, the silent switch must be off. For nicer voices: Settings → Accessibility → Spoken Content → Voices → download an Enhanced one.</p>
     <h2>You</h2>
     <label for="setName">Name for greetings</label>
     <input id="setName" autocomplete="off">
@@ -565,7 +570,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v2.4 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v2.5 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -997,6 +1002,11 @@ fr:[['bonjour','hello'],['merci beaucoup','thank you very much'],['s\'il vous pl
 const XPACKS={it:[],fr:[{id:'onizuka',name:'Onizuka (PNL)',w:[["grailler", "to eat (slang)", "On va grailler un kebab après les cours ?"], ["gronder", "to rumble; to scold", "Le tonnerre gronde au loin."], ["le sommet", "the summit, the top", "Elle vise le sommet de sa carrière."], ["un allié", "an ally", "Dans ce projet, c'est mon meilleur allié."], ["remporter", "to win (a match, a prize, a war)", "L'équipe a remporté la finale."], ["apercevoir", "to catch sight of", "J'ai aperçu Paul à la gare ce matin."], ["le destin", "fate, destiny", "On ne choisit pas toujours son destin."], ["se quitter", "to part ways, to break up", "Ils se sont quittés après trois ans."], ["gratter", "to scrape; (slang) to scrounge", "Il gratte toujours des cigarettes à tout le monde."], ["recompter", "to count again", "Je recompte la monnaie avant de partir."], ["le cran", "guts, nerve", "Il faut du cran pour dire non à son patron."], ["s'écarter", "to move away, to step aside", "Écarte-toi, la voiture arrive !"], ["le bâtiment", "the building; (slang) the tower block", "On se retrouve en bas du bâtiment."], ["le taro", "(slang) the price", "C'est quoi le taro de ces baskets ?"], ["faire son beurre", "to make a lot of money", "Il a fait son beurre dans l'immobilier."], ["un billet", "a banknote; a ticket", "Tu as un billet de vingt ?"], ["faire des longueurs", "to swim lengths", "Le matin, je fais des longueurs à la piscine."], ["faire le con", "to act stupid, to mess around", "Arrête de faire le con, on est en retard."], ["bellek", "(slang) watch out!", "Bellek, il y a une marche."], ["la météo", "the weather forecast", "La météo annonce de la pluie demain."], ["une balle", "a bullet; a ball", "Il a lancé la balle trop loin."], ["le tel-hô", "(verlan of hôtel) the hotel", "On dort au tel-hô ce soir."], ["chelou", "weird, sketchy (verlan of louche)", "Ce mec est trop chelou."], ["relou", "annoying (verlan of lourd)", "Il est relou avec ses questions."], ["gros", "(slang) mate, bro", "Ça va, gros ?"], ["solitaire", "lonely, solitary", "C'est un garçon assez solitaire."], ["se casser le cou", "to break one's neck", "Fais attention, tu vas te casser le cou."], ["le charme", "charm", "Cette vieille ville a beaucoup de charme."], ["la street", "(franglais) the streets", "Il a appris la vie dans la street."], ["un gosse", "a kid", "Elle a deux gosses de huit et dix ans."], ["s'habiller", "to get dressed", "Je m'habille en dix minutes le matin."]]}]};
 let lang='it',queue=[],cur=null,shown=false,sessionDone=0;
 const addDays=(s,n)=>{const d=pd(s);d.setDate(d.getDate()+Math.round(n));return iso(d)};
+const ttsOk=()=>'speechSynthesis' in window&&S.tts!==false;
+function say(t,l,force){if(!ttsOk()||!t)return;const L=l==='it'?'it':'fr';const u=new SpeechSynthesisUtterance(String(t).replace(/\(.*?\)/g,'').replace(/…/g,'').trim());u.lang=L==='it'?'it-IT':'fr-FR';u.rate=.9;
+  const vs=speechSynthesis.getVoices().filter(v=>v.lang&&v.lang.toLowerCase().startsWith(L));const ex=v=>v.lang.toLowerCase().replace('_','-')===u.lang.toLowerCase(),hq=v=>/premium|enhanced|natural|google/i.test(v.name);const best=vs.find(v=>ex(v)&&hq(v))||vs.find(ex)||vs.find(hq)||vs[0];if(best)u.voice=best;
+  speechSynthesis.cancel();speechSynthesis.speak(u)}
+const spk=(t,l,big)=>ttsOk()?`<button type="button" class="spk" data-act="say" data-t="${esc(t)}" data-l="${l}" aria-label="Hear it"${big?' style="font-size:30px;padding:14px 22px"':''}>🔊</button>`:'';
 const dueCards=l=>S.cards.filter(c=>c.lang===l&&c.due<=today());
 function packOf(c){const f=c.f.toLowerCase();if((PACKS[c.lang]||[]).some(p=>p[0].toLowerCase()===f))return 'starter';const x=(XPACKS[c.lang]||[]).find(x=>x.w.some(p=>p[0].toLowerCase()===f));return x?x.id:'mine'}
 const curPack=()=>(S.lpack&&S.lpack[lang])||'all';
@@ -1023,7 +1033,7 @@ function startReview(extra){
   queue=pool.slice(0,20).map(c=>c.id).sort(()=>Math.random()-.5);
   sessionDone=0;nextCard();
 }
-function nextCard(){const id=queue.shift();cur=id?S.cards.find(c=>c.id===id)||null:null;shown=false;renderLang()}
+function nextCard(){const id=queue.shift();cur=id?S.cards.find(c=>c.id===id)||null:null;shown=false;renderLang();if(cur&&S.ttsAuto&&S.langDir==='f')say(cur.f,cur.lang)}
 function rate(r){
   if(!cur)return;
   const c=cur,n=nextInt(c,r);
@@ -1044,15 +1054,15 @@ function renderReview(){
     return;
   }
   const q=dir==='f'?cur.f:cur.b,a=dir==='f'?cur.b:cur.f;
-  box.innerHTML=`<div class="flash"><p class="small muted">${LN[lang]} · ${queue.length+1} left</p><div class="w">${esc(q)}</div>
-    ${shown?`<div class="a">${esc(a)}</div>${cur.ex?`<p class="small muted" style="margin-top:8px">${esc(cur.ex)}</p>`:''}
+  box.innerHTML=`<div class="flash"><p class="small muted">${LN[lang]} · ${queue.length+1} left</p><div class="w">${esc(q)}${dir==='f'?spk(cur.f,lang):''}</div>
+    ${shown?`<div class="a">${esc(a)}${dir==='b'?spk(cur.f,lang):''}</div>${cur.ex?`<p class="small muted" style="margin-top:8px">${esc(cur.ex)}</p>`:''}
     <div class="rate">${[['again','Again'],['hard','Hard'],['good','Good'],['easy','Easy']].map(r=>`<button data-act="rate" data-v="${r[0]}">${r[1]}<span>${ivl(nextInt(cur,r[0]))}</span></button>`).join('')}</div>`
     :`<button class="btn" data-act="show-ans">Show answer</button>`}</div>`;
 }
 function renderWords(){
   const q=$('#wSearch').value.trim().toLowerCase();
   const ws=S.cards.filter(c=>c.lang===lang&&(!q||(c.f+' '+c.b).toLowerCase().includes(q))).sort((a,b)=>a.f.localeCompare(b.f));
-  $('#wList').innerHTML=ws.length?ws.map(c=>`<li class="li"><span><b>${esc(c.f)}</b><br><span class="small muted">${esc(c.b)} · next ${c.due<=today()?'today':short(c.due)}${c.wS!=null?' · spelling '+c.wS+'/10':''}</span></span><button class="x" data-act="del-card" data-id="${c.id}" aria-label="Delete word">×</button></li>`).join(''):'<li class="muted small" style="padding:10px 0">No words match.</li>';
+  $('#wList').innerHTML=ws.length?ws.map(c=>`<li class="li"><span><b>${esc(c.f)}</b>${spk(c.f,c.lang)}<br><span class="small muted">${esc(c.b)} · next ${c.due<=today()?'today':short(c.due)}${c.wS!=null?' · spelling '+c.wS+'/10':''}</span></span><button class="x" data-act="del-card" data-id="${c.id}" aria-label="Delete word">×</button></li>`).join(''):'<li class="muted small" style="padding:10px 0">No words match.</li>';
 }
 function renderLang(){
   document.querySelectorAll('[data-act=lang]').forEach(b=>{b.classList.toggle('on',b.dataset.v===lang);b.setAttribute('aria-selected',b.dataset.v===lang)});
@@ -1154,7 +1164,7 @@ function startWrite(){
   wq=mine.map(c=>({id:c.id,k:-Math.log(Math.random()||1e-9)/wt(c)})).sort((a,b)=>a.k-b.k).slice(0,10).map(x=>x.id);
   wScore=0;wDone=0;wMax=wq.length*10;wres=null;nextWrite();
 }
-function nextWrite(){const id=wq.shift();wcur=id?S.cards.find(c=>c.id===id)||null:null;wres=null;renderWrite();if(wcur)setTimeout(()=>{const i=$('#wIn');if(i)i.focus()},50)}
+function nextWrite(){const id=wq.shift();wcur=id?S.cards.find(c=>c.id===id)||null:null;wres=null;renderWrite();if(wcur&&S.wDict)say(wcur.f,wcur.lang);if(wcur)setTimeout(()=>{const i=$('#wIn');if(i)i.focus()},50)}
 function checkWrite(){
   if(!wcur||wres)return;const val=$('#wIn').value;const g=gradeWrite(val,wcur.f);wres={val,g};
   wScore+=g.pts;wDone++;
@@ -1163,7 +1173,7 @@ function checkWrite(){
   logRev(c.lang);const t=today();S.revLog[t]=(S.revLog[t]||0)+1;S.writeLog=S.writeLog||{};S.writeLog[t]=(S.writeLog[t]||0)+g.pts;
   const ks=Object.keys(S.writeLog).sort();while(ks.length>120)delete S.writeLog[ks.shift()];
   if(!wq.length){S.writeBest=S.writeBest||{};const pct=Math.round(wScore/wMax*100);if(!(S.writeBest[lang]>=pct))S.writeBest[lang]=pct}
-  commit();renderWrite();
+  commit();renderWrite();if(S.ttsAuto&&!S.wDict)say(wcur.f,wcur.lang);
 }
 function renderWrite(){
   const box=$('#writeBox');if(!box)return;
@@ -1171,18 +1181,18 @@ function renderWrite(){
     const mine=poolCards().length,best=(S.writeBest||{})[lang];
     box.innerHTML=!mine?`<div class="empty" style="margin-top:12px">Add some ${LN[lang]} words first, then test yourself here.</div>`
       :wDone?`<div class="flash"><p class="small muted">Test complete</p><div class="w">${wScore} / ${wMax}</div><p class="small muted">${Math.round(wScore/wMax*100)}% · best ${best??'—'}% · +${Math.round(wScore/5)+wDone} XP</p><button class="btn" data-act="w-start">Another round</button></div>`
-      :`<div class="flash"><p class="small muted">Write mode · ${LN[lang]}</p><div class="w" style="font-size:22px">See the English, type the ${LN[lang]}</div><p class="small muted" style="margin-top:6px">10 words · up to 10 points each for spelling${best!=null?' · best '+best+'%':''}</p><button class="btn" data-act="w-start">Start test</button></div>`;
+      :`<div class="flash"><p class="small muted">Write mode · ${LN[lang]}</p><div class="w" style="font-size:22px">See the English, type the ${LN[lang]}</div><p class="small muted" style="margin-top:6px">10 words · up to 10 points each for spelling${best!=null?' · best '+best+'%':''}</p>${ttsOk()?`<div class="subtabs" style="grid-template-columns:1fr 1fr;margin:10px 0 0" role="group"><button type="button" data-act="wdict" data-v="off" class="${S.wDict?'':'on'}">See English</button><button type="button" data-act="wdict" data-v="on" class="${S.wDict?'on':''}">Dictation 🔊</button></div>`:''}<button class="btn" data-act="w-start">Start test</button></div>`;
     return;
   }
   const n=wDone+(wres?0:1),total=wDone+wq.length+(wres?0:1);
   box.innerHTML=`<div class="flash" style="text-align:left">
     <div class="row small muted"><span>Word ${n} of ${total}</span><span>Score ${wScore}</span></div>
-    <p class="small muted" style="margin-top:12px">Write in ${LN[lang]}:</p>
-    <div class="w" style="text-align:left">${esc(wcur.b)}</div>
+    ${S.wDict&&!wres?`<p class="small muted" style="margin-top:12px">Listen and write in ${LN[lang]}:</p><div style="margin:8px 0">${spk(wcur.f,lang,1)||'<span class="small muted">Turn Sound on in Settings for dictation.</span>'}</div>`
+    :`<p class="small muted" style="margin-top:12px">${S.wDict?'Meaning':'Write in '+LN[lang]+':'}</p><div class="w" style="text-align:left">${esc(wcur.b)}</div>`}
     <form data-form="write"><input id="wIn" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Type the ${LN[lang]} word" ${wres?'disabled':''} value="${wres?esc(wres.val):''}" style="font-size:18px">
     <div class="chips" style="margin-top:8px">${ACC[lang].map(a=>`<button type="button" data-act="w-acc" data-v="${a}" ${wres?'disabled':''} style="min-width:40px">${a}</button>`).join('')}</div>
     ${wres?`<div style="margin-top:14px"><p style="font-weight:600;color:${wres.g.cls==='good'?'var(--good)':wres.g.cls==='bad'?'var(--bad)':'var(--ink)'}">${wres.g.v} · +${wres.g.pts}</p>
-      ${wres.g.pts<10?`<p class="small muted" style="margin-top:4px">Correct: <b style="font-size:17px;color:var(--ink)">${diffHtml(wres.val,wcur.f)}</b></p>`:''}
+      ${wres.g.pts<10?`<p class="small muted" style="margin-top:4px">Correct: <b style="font-size:17px;color:var(--ink)">${diffHtml(wres.val,wcur.f)}</b></p>`:''}<p style="margin-top:4px">${spk(wcur.f,lang)}</p>
       ${wcur.ex?`<p class="small muted" style="margin-top:4px">${esc(wcur.ex)}</p>`:''}</div>
       <button type="button" class="btn" data-act="w-next">${wq.length?'Next word':'See result'}</button>`
     :`<button class="btn" type="submit">Check</button>`}</form></div>`;
@@ -1362,6 +1372,8 @@ function renderPay(){
 function renderSettings(){
   applySkin(S.skin);
   try{localStorage.setItem('saro-skin',S.skin)}catch(e){}
+  document.querySelectorAll('[data-act=tts]').forEach(b=>b.classList.toggle('on',b.dataset.v===(S.tts===false?'off':'on')));
+  document.querySelectorAll('[data-act=ttsauto]').forEach(b=>b.classList.toggle('on',b.dataset.v===(S.ttsAuto?'on':'off')));
   document.querySelectorAll('[data-act=skin]').forEach(b=>{b.classList.toggle('on',b.dataset.v===S.skin);b.setAttribute('aria-pressed',b.dataset.v===S.skin)});
   if(document.activeElement!==$('#setName'))$('#setName').value=S.name;
   let ic='light';try{ic=localStorage.getItem('excelsior-icon')||'light'}catch(e){}applyIcon(ic);
@@ -1394,6 +1406,10 @@ document.addEventListener('click',e=>{
   else if(a==='del-debt'){removeWith('debts',id,'Repayment')}
   else if(a==='icon'){try{localStorage.setItem('excelsior-icon',b.dataset.v)}catch(e){}renderSettings();toast('Icon chosen for this device · reloading…');setTimeout(()=>location.reload(),900)}
   else if(a==='skin'){S.skin=b.dataset.v;commit()}
+  else if(a==='tts'){S.tts=b.dataset.v==='on';commit();if(S.tts)say(lang==='fr'?'bonjour':'ciao',lang)}
+  else if(a==='ttsauto'){S.ttsAuto=b.dataset.v==='on';commit()}
+  else if(a==='say'){say(b.dataset.t,b.dataset.l||lang,true)}
+  else if(a==='wdict'){S.wDict=b.dataset.v==='on';commit();renderWrite()}
   else if(a==='auth'){authDo(b.dataset.v)}
   else if(a==='sync-now'){if(uid){flush();toast('Syncing…')}}
   else if(a==='finish-link'){finishLink()}
@@ -1444,7 +1460,7 @@ document.addEventListener('click',e=>{
   else if(a==='do-import'){if(!pending)return;const old=S;S=Object.assign(defaults(),pending);S.mt={};const now=Date.now();scalarKeys(S).forEach(k=>S.mt[k]=now);snapNow();pending=null;$('#impConfirm').hidden=true;commit();toast('Backup restored',()=>{S=old;commit()})}
   else if(a==='lang'){lang=b.dataset.v;queue=[];cur=null;sessionDone=0;renderLang()}
   else if(a==='start-rev'){startReview(!!b.dataset.x)}
-  else if(a==='show-ans'){shown=true;renderReview()}
+  else if(a==='show-ans'){shown=true;renderReview();if(cur&&S.ttsAuto&&S.langDir==='b')say(cur.f,cur.lang)}
   else if(a==='rate'){rate(b.dataset.v)}
   else if(a==='lmode'){lmode=b.dataset.v;wcur=null;wq=[];wDone=0;renderLang()}
   else if(a==='w-start'){startWrite()}
