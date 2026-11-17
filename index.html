@@ -517,7 +517,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v1.4.3 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v1.5 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1372,6 +1372,22 @@ document.addEventListener('submit',e=>{
   }
 });
 window.addEventListener('hashchange',show);
+/* ---------- auto-update: reload when a newer version is published ---------- */
+const APP_VER=((document.body.innerHTML.match(/Excelsior · v([0-9.]+)/)||[])[1])||'';
+let lastCheck=0;
+async function checkUpdate(){
+  if(location.protocol==='file:'||!APP_VER||Date.now()-lastCheck<60000)return;lastCheck=Date.now();
+  try{
+    const r=await fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'});const t=await r.text();
+    const v=(t.match(/Excelsior · v([0-9.]+)/)||[])[1];
+    if(v&&v!==APP_VER){let tried='';try{tried=sessionStorage.getItem('excelsior-upd')||''}catch(e){}
+      if(tried===v)return;try{sessionStorage.setItem('excelsior-upd',v)}catch(e){}
+      if(writing||timer){await new Promise(r=>setTimeout(r,1500))}
+      location.replace(location.pathname+'?v='+v+location.hash);}
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkUpdate()});
+setTimeout(checkUpdate,3000);
 
 $('#expDate').value=today();
 resetForm();$('#evDate').value=today();renderAll();show();
