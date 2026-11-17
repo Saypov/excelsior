@@ -430,6 +430,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <button data-act="lmode" data-v="flash" role="tab">Flashcards</button>
       <button data-act="lmode" data-v="write" role="tab">Write test</button>
     </div>
+    <div id="packWrap" style="margin-bottom:12px"><label for="lPack">Words to practise</label><select id="lPack"></select></div>
     <div id="review"></div>
     <div id="writeBox" hidden></div>
     <div id="dirWrap"><label for="lDir">Practice direction</label>
@@ -564,7 +565,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v2.3 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v2.4 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -997,6 +998,14 @@ const XPACKS={it:[],fr:[{id:'onizuka',name:'Onizuka (PNL)',w:[["grailler", "to e
 let lang='it',queue=[],cur=null,shown=false,sessionDone=0;
 const addDays=(s,n)=>{const d=pd(s);d.setDate(d.getDate()+Math.round(n));return iso(d)};
 const dueCards=l=>S.cards.filter(c=>c.lang===l&&c.due<=today());
+function packOf(c){const f=c.f.toLowerCase();if((PACKS[c.lang]||[]).some(p=>p[0].toLowerCase()===f))return 'starter';const x=(XPACKS[c.lang]||[]).find(x=>x.w.some(p=>p[0].toLowerCase()===f));return x?x.id:'mine'}
+const curPack=()=>(S.lpack&&S.lpack[lang])||'all';
+const poolCards=()=>{const pk=curPack();return S.cards.filter(c=>c.lang===lang&&(pk==='all'||packOf(c)===pk))};
+const poolDue=()=>poolCards().filter(c=>c.due<=today());
+function renderPackSel(){const mine=S.cards.filter(c=>c.lang===lang),cnt={};mine.forEach(c=>{const k=packOf(c);cnt[k]=(cnt[k]||0)+1});
+  const opts=[['all','All words',mine.length],['starter','Starter pack',cnt.starter]].concat(XPACKS[lang].map(x=>[x.id,x.name,cnt[x.id]]),[['mine','My own words',cnt.mine]]).filter(o=>o[0]==='all'||o[2]);
+  let v=curPack();if(!opts.some(o=>o[0]===v))v='all';
+  $('#lPack').innerHTML=opts.map(o=>`<option value="${o[0]}">${esc(o[1])} (${o[2]||0})</option>`).join('');$('#lPack').value=v;$('#packWrap').hidden=opts.length<3}
 const LSPLIT='2026-11-17';
 function practised(L,k){return (S['rev_'+L]||{})[k]||(k<=LSPLIT&&S.revLog[k])}
 function streak(L){let n=0;const d=new Date();if(!practised(L,iso(d)))d.setDate(d.getDate()-1);while(practised(L,iso(d))){n++;d.setDate(d.getDate()-1)}return n}
@@ -1009,8 +1018,8 @@ function nextInt(c,r){
 }
 const ivl=n=>n<1?'<1d':n<30?Math.round(n)+'d':Math.round(n/30)+'mo';
 function startReview(extra){
-  let pool=dueCards(lang);
-  if(extra||!pool.length)pool=S.cards.filter(c=>c.lang===lang).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,10);
+  let pool=poolDue();
+  if(extra||!pool.length)pool=poolCards().sort((a,b)=>a.due.localeCompare(b.due)).slice(0,10);
   queue=pool.slice(0,20).map(c=>c.id).sort(()=>Math.random()-.5);
   sessionDone=0;nextCard();
 }
@@ -1028,7 +1037,7 @@ function rate(r){
 function renderReview(){
   const box=$('#review'),dir=S.langDir;
   if(!cur){
-    const due=dueCards(lang).length,total=S.cards.filter(c=>c.lang===lang).length;
+    const due=poolDue().length,total=poolCards().length;
     box.innerHTML=!total?`<div class="empty" style="margin-top:12px">No ${LN[lang]} words yet. Add your own below, or load the starter pack.</div>`
       :due?`<button class="btn" data-act="start-rev">Start review · ${due} card${due>1?'s':''}</button>`
       :`<div class="flash"><p class="small muted">${sessionDone?'Session complete · +'+sessionDone+' XP':'All caught up for today'}</p><div class="w" style="font-size:24px">Bravo. Come back tomorrow.</div><button class="ghost" data-act="start-rev" data-x="1" style="margin-top:8px">Practise 10 more anyway</button></div>`;
@@ -1056,7 +1065,7 @@ function renderLang(){
   $('#wlSum').textContent='Your '+LN[lang]+' words ('+mine.length+')';
   document.querySelectorAll('[data-act=lmode]').forEach(b=>{b.classList.toggle('on',b.dataset.v===lmode);b.setAttribute('aria-selected',b.dataset.v===lmode)});
   $('#review').hidden=lmode!=='flash';$('#dirWrap').hidden=lmode!=='flash';$('#writeBox').hidden=lmode!=='write';
-  renderReview();renderWords();if(lmode==='write'&&!(document.activeElement&&document.activeElement.id==='wIn'))renderWrite();
+  renderPackSel();renderReview();renderWords();if(lmode==='write'&&!(document.activeElement&&document.activeElement.id==='wIn'))renderWrite();
   const all=dueCards('it').length+dueCards('fr').length,si=streak('it'),sf=streak('fr'),st=si||sf?' · streaks IT '+si+' · FR '+sf:'';
   $('#langToday').textContent=(S.cards.length?(all?all+' card'+(all>1?'s':'')+' due today':'All caught up today'):'Italian & French flashcards')+st;
 }
@@ -1139,8 +1148,8 @@ function diffHtml(input,target){ // mark letters of the correct answer that you 
   const shown=normW(bRaw);return shown.split('').map((ch,k)=>bad.has(k)?`<u style="color:var(--hot);text-decoration-thickness:2px">${esc(ch)}</u>`:esc(ch)).join('');
 }
 function startWrite(){
-  const mine=S.cards.filter(c=>c.lang===lang);if(!mine.length)return;
-  const due=new Set(dueCards(lang).map(c=>c.id));
+  const mine=poolCards();if(!mine.length)return;
+  const due=new Set(poolDue().map(c=>c.id));
   const wt=c=>{const sc=c.wS==null?5:c.wS;return (1+Math.pow(10-sc,1.5))*(due.has(c.id)?1.5:1)};
   wq=mine.map(c=>({id:c.id,k:-Math.log(Math.random()||1e-9)/wt(c)})).sort((a,b)=>a.k-b.k).slice(0,10).map(x=>x.id);
   wScore=0;wDone=0;wMax=wq.length*10;wres=null;nextWrite();
@@ -1159,7 +1168,7 @@ function checkWrite(){
 function renderWrite(){
   const box=$('#writeBox');if(!box)return;
   if(!wcur){
-    const mine=S.cards.filter(c=>c.lang===lang).length,best=(S.writeBest||{})[lang];
+    const mine=poolCards().length,best=(S.writeBest||{})[lang];
     box.innerHTML=!mine?`<div class="empty" style="margin-top:12px">Add some ${LN[lang]} words first, then test yourself here.</div>`
       :wDone?`<div class="flash"><p class="small muted">Test complete</p><div class="w">${wScore} / ${wMax}</div><p class="small muted">${Math.round(wScore/wMax*100)}% · best ${best??'—'}% · +${Math.round(wScore/5)+wDone} XP</p><button class="btn" data-act="w-start">Another round</button></div>`
       :`<div class="flash"><p class="small muted">Write mode · ${LN[lang]}</p><div class="w" style="font-size:22px">See the English, type the ${LN[lang]}</div><p class="small muted" style="margin-top:6px">10 words · up to 10 points each for spelling${best!=null?' · best '+best+'%':''}</p><button class="btn" data-act="w-start">Start test</button></div>`;
@@ -1474,6 +1483,7 @@ document.addEventListener('change',e=>{
   if(e.target.dataset&&e.target.dataset.holdcost){const h=(S.holdings||[]).find(x=>x.id===e.target.dataset.holdcost),v=e.target.value.trim(),n=num(v);if(h){if(v===''){h.cost=null;commit()}else if(n>0){h.cost=n;commit()}else e.target.value=h.cost??''}}
   if(e.target.dataset&&e.target.dataset.holdqty){const h=(S.holdings||[]).find(x=>x.id===e.target.dataset.holdqty),n=num(e.target.value);if(h&&n>=0){h.qty=n;commit()}}
   if(e.target.id==='lDir'){S.langDir=e.target.value;commit()}
+  if(e.target.id==='lPack'){S.lpack=Object.assign({},S.lpack||{},{[lang]:e.target.value});queue=[];cur=null;sessionDone=0;if(typeof wq!=='undefined'){wq=[];wcur=null;wres=null}commit();renderLang()}
   if(e.target.id==='setName'){S.name=e.target.value.trim()||'Rasul';commit()}
   if(e.target.id==='budget'){const n=num(e.target.value);if(n>=0){S.budget=n;S.budgets=S.budgets||{};S.budgets[ym(today())]=n;commit()}else e.target.value=budgetFor(ym(today()))}
 });
