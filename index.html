@@ -479,6 +479,15 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <p class="msg" id="authMsg"></p>
         <button class="btn" data-act="auth" data-v="in">Sign in</button>
         <div class="grid2" style="margin-top:8px"><button class="ghost" data-act="auth" data-v="up">Create account</button><button class="ghost" data-act="auth" data-v="reset">Forgot password</button></div>
+        <p class="small muted" style="margin-top:10px">New here? Enter your email and tap <b>Create account</b>. We'll email you a link, and your account is only created once you open it.</p>
+      </div>
+      <div id="acFinish" hidden>
+        <p><b>Finish creating your account</b></p>
+        <p class="small muted" style="margin-top:4px">Your email link worked. Confirm your email and choose a password for signing in on your other devices.</p>
+        <label for="fEmail">Email</label><input id="fEmail" type="email" autocomplete="username" inputmode="email">
+        <label for="fPass">Choose a password (at least 6 characters)</label><input id="fPass" type="password" autocomplete="new-password">
+        <p class="msg" id="fMsg"></p>
+        <button class="btn" data-act="finish-link">Create account</button>
       </div>
       <div id="acIn" hidden>
         <p>Signed in as <b id="acWho"></b></p>
@@ -523,7 +532,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v1.6 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v1.7 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -663,15 +672,37 @@ function onUser(u){
 function startCloud(){
   if(cloud||!window.saroCloud)return;
   cloud=window.saroCloud;cloud.onUser(onUser);
+  if(cloud.isLink&&cloud.isLink()){
+    let em='';try{em=localStorage.getItem('excelsior-signup-email')||''}catch(e){}
+    $('#acFinish').hidden=false;$('#acOut').hidden=true;$('#fEmail').value=em;
+    if(location.hash!=='#settings')location.hash='#settings';
+  }
+}
+async function finishLink(){
+  const em=$('#fEmail').value.trim(),pw=$('#fPass').value;
+  if(!em){$('#fMsg').textContent='Enter the email the link was sent to.';return}
+  if(pw.length<6){$('#fMsg').textContent='Choose a password of at least 6 characters.';return}
+  $('#fMsg').textContent='One moment…';
+  try{
+    await cloud.finishLink(em);await cloud.setPassword(pw);
+    try{localStorage.removeItem('excelsior-signup-email')}catch(e){}
+    history.replaceState(null,'',location.pathname+'#settings');
+    $('#acFinish').hidden=true;$('#fPass').value='';$('#fMsg').textContent='';renderAccount();
+    toast('Account created and email verified');
+  }catch(e){
+    const c=e&&e.code;
+    $('#fMsg').textContent=c==='auth/invalid-action-code'||c==='auth/expired-action-code'?'This link has expired or was already used. Request a new one with Create account.':c==='auth/invalid-email'?'That email doesn\'t match the one the link was sent to.':c==='auth/weak-password'?'Use at least 6 characters.':'Something went wrong ('+(c||'error')+'). Try again.';
+  }
 }
 window.addEventListener('saro-cloud',startCloud);
 setTimeout(()=>{if(!cloud)setSync('Offline · saved on this device')},12000);
 
 /* ---------- account ---------- */
 const authMsg=t=>{$('#authMsg').textContent=t||''};
-const AUTH_ERR={'auth/invalid-credential':'Wrong email or password.','auth/wrong-password':'Wrong email or password.','auth/user-not-found':'No account with that email yet. Tap Create account.','auth/email-already-in-use':'That email already has an account. Tap Sign in.','auth/weak-password':'Use at least 6 characters.','auth/invalid-email':'That email doesn\'t look right.','auth/too-many-requests':'Too many tries. Wait a minute and try again.','auth/network-request-failed':'No connection. Try again when you\'re online.','auth/operation-not-allowed':'Email sign-in isn\'t switched on in Firebase yet.','auth/admin-restricted-operation':'New accounts are switched off for this app.'};
+const AUTH_ERR={'auth/invalid-credential':'Wrong email or password.','auth/wrong-password':'Wrong email or password.','auth/user-not-found':'No account with that email yet. Tap Create account.','auth/email-already-in-use':'That email already has an account. Tap Sign in.','auth/weak-password':'Use at least 6 characters.','auth/invalid-email':'That email doesn\'t look right.','auth/too-many-requests':'Too many tries. Wait a minute and try again.','auth/network-request-failed':'No connection. Try again when you\'re online.','auth/operation-not-allowed':'Email sign-in isn\'t switched on in Firebase yet.','auth/admin-restricted-operation':'New accounts are switched off for this app.','auth/missing-email':'Enter your email.','auth/unauthorized-continue-uri':'This web address isn\'t allowed yet in Firebase (Authorized domains).'};
 function renderAccount(){
   const on=!!user;
+  if(!$('#acFinish').hidden&&!on)return;
   $('#acOut').hidden=on;$('#acIn').hidden=!on;
   if(on)$('#acWho').textContent=user.email||'your account';
   $('#verifyBox').hidden=!on||!!user.emailVerified;$('#verifiedOk').hidden=!on||!user.emailVerified;
@@ -681,11 +712,11 @@ async function authDo(kind){
   if(!cloud){authMsg('Can\'t reach the sync service right now. Check your connection.');return}
   const em=$('#acEmail').value.trim(),pw=$('#acPass').value;
   if(!em){authMsg('Enter your email.');return}
-  if(kind!=='reset'&&!pw){authMsg('Enter your password.');return}
+  if(kind==='in'&&!pw){authMsg('Enter your password.');return}
   authMsg('One moment…');
   try{
     if(kind==='in')await cloud.signIn(em,pw);
-    else if(kind==='up')await cloud.signUp(em,pw);
+    else if(kind==='up'){await cloud.sendLink(em);try{localStorage.setItem('excelsior-signup-email',em)}catch(e){}authMsg('');$('#acPass').value='';toast('Link sent');$('#authMsg').textContent='Check '+em+' for a link from us (look in spam too). Open it to finish creating your account.';return}
     else{await cloud.reset(em);authMsg('Reset email sent. Check your inbox.');return}
     authMsg('');$('#acPass').value='';toast('Signed in · syncing on');
   }catch(e){authMsg(AUTH_ERR[e&&e.code]||'Something went wrong. Try again.')}
@@ -1230,6 +1261,7 @@ document.addEventListener('click',e=>{
   else if(a==='skin'){S.skin=b.dataset.v;commit()}
   else if(a==='auth'){authDo(b.dataset.v)}
   else if(a==='sync-now'){if(uid){flush();toast('Syncing…')}}
+  else if(a==='finish-link'){finishLink()}
   else if(a==='verify-send'){if(cloud&&cloud.sendVerify)cloud.sendVerify().then(()=>toast('Verification email sent · check your inbox (and spam)')).catch(e=>toast(e&&e.code==='auth/too-many-requests'?'Too many tries, wait a few minutes':'Couldn\'t send. Try again.'))}
   else if(a==='verify-check'){if(cloud&&cloud.recheck)cloud.recheck().then(ok=>{if(ok){user=Object.assign({},user,{emailVerified:true});renderAccount();toast('Email verified');flush()}else toast('Not verified yet · tap the link in the email first')}).catch(()=>toast('Couldn\'t check. Try again.'))}
   else if(a==='signout'){if(cloud)cloud.signOut();toast('Signed out · data stays on this device')}
@@ -1385,7 +1417,7 @@ window.addEventListener('hashchange',show);
 const APP_VER=((document.body.innerHTML.match(/Excelsior · v([0-9.]+)/)||[])[1])||'';
 let lastCheck=0;
 async function checkUpdate(){
-  if(location.protocol==='file:'||!APP_VER||Date.now()-lastCheck<60000)return;lastCheck=Date.now();
+  if(location.protocol==='file:'||!APP_VER||Date.now()-lastCheck<60000||/oobCode|finishSignUp/.test(location.search))return;lastCheck=Date.now();
   try{
     const r=await fetch(location.pathname+'?check='+Date.now(),{cache:'no-store'});const t=await r.text();
     const v=(t.match(/Excelsior · v([0-9.]+)/)||[])[1];
@@ -1404,7 +1436,7 @@ resetForm();$('#evDate').value=today();renderAll();show();
 </script>
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,signOut,sendEmailVerification} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,signOut,sendEmailVerification,sendSignInLinkToEmail,isSignInWithEmailLink,signInWithEmailLink,updatePassword} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {initializeFirestore,persistentLocalCache,doc,onSnapshot,setDoc,collection,deleteDoc,getDocs,getDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 const app=initializeApp({
   apiKey:"AIzaSyCRKIUDzNOP29jfY1k4ymVTyw3nk2ZXI-w",
@@ -1421,6 +1453,10 @@ window.saroCloud={
   onUser:cb=>onAuthStateChanged(auth,cb),
   signIn:(e,p)=>signInWithEmailAndPassword(auth,e,p),
   signUp:async(e,p)=>{const c=await createUserWithEmailAndPassword(auth,e,p);try{await sendEmailVerification(c.user)}catch(x){}return c},
+  sendLink:e=>sendSignInLinkToEmail(auth,e,{url:location.origin+location.pathname+'?finishSignUp=1',handleCodeInApp:true}),
+  isLink:()=>isSignInWithEmailLink(auth,location.href),
+  finishLink:e=>signInWithEmailLink(auth,e,location.href),
+  setPassword:p=>updatePassword(auth.currentUser,p),
   sendVerify:()=>auth.currentUser?sendEmailVerification(auth.currentUser):Promise.reject(new Error('not signed in')),
   recheck:async()=>{const u=auth.currentUser;if(!u)return false;await u.reload();await u.getIdToken(true);return auth.currentUser.emailVerified},
   reset:e=>sendPasswordResetEmail(auth,e),
