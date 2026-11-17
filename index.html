@@ -483,6 +483,11 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <div id="acIn" hidden>
         <p>Signed in as <b id="acWho"></b></p>
         <p class="small muted" style="margin-top:4px">Your data syncs automatically to every device where you're signed in.</p>
+        <div id="verifyBox" hidden style="margin-top:12px;padding:12px;border-radius:12px;background:color-mix(in srgb,var(--hot) 12%,transparent)">
+          <p class="small"><b>Email not verified yet.</b> Confirm you own this email to keep your account secure.</p>
+          <div class="grid2" style="margin-top:8px"><button class="ghost" data-act="verify-send">Send email</button><button class="ghost" data-act="verify-check">I've verified</button></div>
+        </div>
+        <p class="small muted" id="verifiedOk" hidden style="margin-top:6px">✓ Email verified</p>
         <p class="msg" id="syncErr" hidden></p>
         <button class="ghost" style="width:100%;margin-top:12px" data-act="sync-now">Sync now</button>
         <button class="ghost" style="width:100%;margin-top:12px" data-act="signout">Sign out</button>
@@ -518,7 +523,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v1.5.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v1.6 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -669,6 +674,7 @@ function renderAccount(){
   const on=!!user;
   $('#acOut').hidden=on;$('#acIn').hidden=!on;
   if(on)$('#acWho').textContent=user.email||'your account';
+  $('#verifyBox').hidden=!on||!!user.emailVerified;$('#verifiedOk').hidden=!on||!user.emailVerified;
   $('#syncBanner').hidden=on||!cloud;
 }
 async function authDo(kind){
@@ -1224,6 +1230,8 @@ document.addEventListener('click',e=>{
   else if(a==='skin'){S.skin=b.dataset.v;commit()}
   else if(a==='auth'){authDo(b.dataset.v)}
   else if(a==='sync-now'){if(uid){flush();toast('Syncing…')}}
+  else if(a==='verify-send'){if(cloud&&cloud.sendVerify)cloud.sendVerify().then(()=>toast('Verification email sent · check your inbox (and spam)')).catch(e=>toast(e&&e.code==='auth/too-many-requests'?'Too many tries, wait a few minutes':'Couldn\'t send. Try again.'))}
+  else if(a==='verify-check'){if(cloud&&cloud.recheck)cloud.recheck().then(ok=>{if(ok){user=Object.assign({},user,{emailVerified:true});renderAccount();toast('Email verified');flush()}else toast('Not verified yet · tap the link in the email first')}).catch(()=>toast('Couldn\'t check. Try again.'))}
   else if(a==='signout'){if(cloud)cloud.signOut();toast('Signed out · data stays on this device')}
   else if(a==='export'){
     const blob=new Blob([JSON.stringify(S,null,1)],{type:'application/json'}),u=URL.createObjectURL(blob),l=document.createElement('a');
@@ -1396,7 +1404,7 @@ resetForm();$('#evDate').value=today();renderAll();show();
 </script>
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,sendPasswordResetEmail,signOut,sendEmailVerification} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {initializeFirestore,persistentLocalCache,doc,onSnapshot,setDoc,collection,deleteDoc,getDocs,getDoc} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 const app=initializeApp({
   apiKey:"AIzaSyCRKIUDzNOP29jfY1k4ymVTyw3nk2ZXI-w",
@@ -1412,7 +1420,9 @@ const ref=uid=>doc(db,'users',uid,'app','state');
 window.saroCloud={
   onUser:cb=>onAuthStateChanged(auth,cb),
   signIn:(e,p)=>signInWithEmailAndPassword(auth,e,p),
-  signUp:(e,p)=>createUserWithEmailAndPassword(auth,e,p),
+  signUp:async(e,p)=>{const c=await createUserWithEmailAndPassword(auth,e,p);try{await sendEmailVerification(c.user)}catch(x){}return c},
+  sendVerify:()=>auth.currentUser?sendEmailVerification(auth.currentUser):Promise.reject(new Error('not signed in')),
+  recheck:async()=>{const u=auth.currentUser;if(!u)return false;await u.reload();await u.getIdToken(true);return auth.currentUser.emailVerified},
   reset:e=>sendPasswordResetEmail(auth,e),
   signOut:()=>signOut(auth),
   save:(uid,data)=>setDoc(ref(uid),data),
