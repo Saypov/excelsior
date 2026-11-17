@@ -426,9 +426,14 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <div><b id="lTotal">0</b><span>words</span></div>
       <div><b id="lStreak">0</b><span>day streak</span></div>
     </div>
+    <div class="subtabs" style="grid-template-columns:1fr 1fr;margin-top:14px" role="tablist">
+      <button data-act="lmode" data-v="flash" role="tab">Flashcards</button>
+      <button data-act="lmode" data-v="write" role="tab">Write test</button>
+    </div>
     <div id="review"></div>
-    <label for="lDir">Practice direction</label>
-    <select id="lDir"><option value="f">Foreign word → English</option><option value="b">English → foreign word</option></select>
+    <div id="writeBox" hidden></div>
+    <div id="dirWrap"><label for="lDir">Practice direction</label>
+    <select id="lDir"><option value="f">Foreign word → English</option><option value="b">English → foreign word</option></select></div>
 
     <form data-form="card" class="card" style="margin-top:20px">
       <h2 style="margin-top:0" id="addTitle">Add a word</h2>
@@ -559,7 +564,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v1.9.2 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v2.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -624,7 +629,7 @@ function commit(){
 /* Merge two copies so nothing is ever lost: keep every item either side has, unless it was deleted on purpose. */
 const LISTS=['workouts','expenses','plans','debts','cards','holdings','events','potAdj'];
 /* Settings (budget, theme, keys…) carry a per-setting 'last changed' time, so a fresh device's defaults never overwrite real values. */
-const NOSCALAR=new Set(['updated','mt','del','revLog'].concat(LISTS));
+const NOSCALAR=new Set(['updated','mt','del','revLog','writeLog'].concat(LISTS));
 const scalarKeys=o=>Object.keys(o||{}).filter(k=>!NOSCALAR.has(k));
 let baseSnap={};const snapNow=()=>{baseSnap={};scalarKeys(S).forEach(k=>baseSnap[k]=JSON.stringify(S[k]))};
 let everSynced=false;try{everSynced=!!localStorage.getItem('excelsior-synced')}catch(e){}
@@ -644,8 +649,7 @@ function mergeState(o,n,cloudIs){
     (o[k]||[]).forEach(x=>{if(x&&!have.has(x.id)&&!s.del[x.id]){s[k].push(x);changed++}});
     const before=s[k].length;s[k]=s[k].filter(x=>!s.del[x.id]);changed+=before-s[k].length;
   });
-  s.revLog=s.revLog||{};
-  Object.entries(o.revLog||{}).forEach(([k,v])=>{if(!(s.revLog[k]>=v)){s.revLog[k]=v;changed++}});
+  ['revLog','writeLog'].forEach(L=>{s[L]=s[L]||{};Object.entries(o[L]||{}).forEach(([k,v])=>{if(!(s[L][k]>=v)){s[L][k]=v;changed++}})});
   return {s,changed};
 }
 let lastBk='';try{lastBk=localStorage.getItem('excelsior-lastbk')||''}catch(e){}
@@ -819,7 +823,7 @@ function debtInfo(x){
   return {paid,left,done:left<=0.004,dl:x.due?days(today(),x.due):null};
 }
 function xpInfo(){
-  const xp=S.workouts.length*25+S.expenses.length*2+sum(Object.values(S.revLog))+sum(S.plans,p=>p.contribs.length*10)+sum(S.debts,d=>d.pays.length*10+(debtInfo(d).done?30:0));
+  const xp=S.workouts.length*25+S.expenses.length*2+sum(Object.values(S.revLog))+Math.round(sum(Object.values(S.writeLog||{}))/5)+sum(S.plans,p=>p.contribs.length*10)+sum(S.debts,d=>d.pays.length*10+(debtInfo(d).done?30:0));
   const lvl=Math.floor(Math.sqrt(xp/40))+1,lo=40*(lvl-1)**2,hi=40*lvl**2;
   return {xp,lvl,name:LV[Math.min(lvl-1,LV.length-1)],pct:(xp-lo)/(hi-lo)*100,toNext:hi-xp};
 }
@@ -1046,7 +1050,9 @@ function renderLang(){
   const have=new Set(mine.map(c=>c.f.toLowerCase())),missing=PACKS[lang].filter(p=>!have.has(p[0].toLowerCase())).length;
   $('#packBox').innerHTML=missing?`<button class="ghost" style="width:100%;margin-bottom:10px" data-act="add-pack">Add ${LN[lang]} starter pack · ${missing} words</button>`:'';
   $('#wlSum').textContent='Your '+LN[lang]+' words ('+mine.length+')';
-  renderReview();renderWords();
+  document.querySelectorAll('[data-act=lmode]').forEach(b=>{b.classList.toggle('on',b.dataset.v===lmode);b.setAttribute('aria-selected',b.dataset.v===lmode)});
+  $('#review').hidden=lmode!=='flash';$('#dirWrap').hidden=lmode!=='flash';$('#writeBox').hidden=lmode!=='write';
+  renderReview();renderWords();if(lmode==='write'&&!(document.activeElement&&document.activeElement.id==='wIn'))renderWrite();
   const all=dueCards('it').length+dueCards('fr').length,st=streak();
   $('#langToday').textContent=(S.cards.length?(all?all+' card'+(all>1?'s':'')+' due today':'All caught up today'):'Italian & French flashcards')+(st?' · '+st+'-day streak':'');
 }
@@ -1099,6 +1105,73 @@ function icsFor(e){
   if(e.time){const tm=e.time.replace(':','')+'00';start='DTSTART:'+dt+'T'+tm;const d2=new Date(e.d+'T'+e.time);d2.setHours(d2.getHours()+1);end='DTEND:'+iso(d2).replace(/-/g,'')+'T'+pad(d2.getHours())+pad(d2.getMinutes())+'00';alarm='-PT1H'}
   else{start='DTSTART;VALUE=DATE:'+dt;end='DTEND;VALUE=DATE:'+addDays(e.d,1).replace(/-/g,'');alarm='-PT15H'}
   return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Excelsior//EN','BEGIN:VEVENT','UID:'+e.id+'@excelsior','DTSTAMP:'+st,start,end,'SUMMARY:'+z(e.title),e.note?'DESCRIPTION:'+z(e.note):'','BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+z(e.title),'TRIGGER:'+alarm,'END:VALARM','END:VEVENT','END:VCALENDAR'].filter(Boolean).join('\r\n');
+}
+
+/* ---------- Lingue: Write mode (type the word, scored by spelling) ---------- */
+let lmode='flash',wq=[],wcur=null,wres=null,wScore=0,wDone=0,wMax=0;
+const ACC={it:['à','è','é','ì','ò','ù'],fr:['é','è','ê','à','â','ç','ô','û','î','ï','ë','œ']};
+const ART=/^(il|lo|la|i|gli|le|l'|un|uno|una|un'|les|l'|une|des|du|de la)\s*/i;
+const normW=s=>String(s||'').toLowerCase().replace(/[’`]/g,"'").replace(/…|\.\.\./g,'').replace(/[!?¿¡.,;:"]/g,'').replace(/\s+/g,' ').trim();
+const noAcc=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/œ/g,'oe');
+function lev(a,b){const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>{const r=new Array(n+1).fill(0);r[0]=i;return r});for(let j=0;j<=n;j++)d[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d}
+function gradeWrite(input,target){
+  const u=normW(input),t=normW(target);
+  if(!u)return {pts:0,v:'No answer',cls:'bad'};
+  if(u===t)return {pts:10,v:'Perfetto! Exactly right',cls:'good'};
+  if(noAcc(u)===noAcc(t))return {pts:8,v:'Right, but check the accents',cls:'ok'};
+  const ua=u.replace(ART,''),ta=t.replace(ART,'');
+  if(ua===ta||noAcc(ua)===noAcc(ta))return {pts:ua===ta?9:7,v:'Right word, but mind the article',cls:'ok'};
+  const A=noAcc(u),B=noAcc(t),dd=lev(A,B)[A.length][B.length],sim=1-dd/Math.max(A.length,B.length);
+  if(sim>=.85)return {pts:6,v:'Almost: a small spelling slip',cls:'ok'};
+  if(sim>=.65)return {pts:3,v:'Close, but a few letters off',cls:'ok'};
+  return {pts:0,v:'Not quite',cls:'bad'};
+}
+function diffHtml(input,target){ // mark letters of the correct answer that you missed or got wrong
+  const a=noAcc(normW(input)),bRaw=String(target),b=noAcc(normW(target));
+  if(!a)return esc(bRaw);
+  const d=lev(a,b);let i=a.length,j=b.length;const bad=new Set();
+  while(i>0||j>0){if(i>0&&j>0&&d[i][j]===d[i-1][j-1]+(a[i-1]===b[j-1]?0:1)){if(a[i-1]!==b[j-1])bad.add(j-1);i--;j--}else if(j>0&&d[i][j]===d[i][j-1]+1){bad.add(j-1);j--}else i--}
+  const shown=normW(bRaw);return shown.split('').map((ch,k)=>bad.has(k)?`<u style="color:var(--hot);text-decoration-thickness:2px">${esc(ch)}</u>`:esc(ch)).join('');
+}
+function startWrite(){
+  const mine=S.cards.filter(c=>c.lang===lang);if(!mine.length)return;
+  const due=dueCards(lang),rest=mine.filter(c=>!due.includes(c)).sort(()=>Math.random()-.5);
+  wq=due.sort(()=>Math.random()-.5).concat(rest).slice(0,10).map(c=>c.id);
+  wScore=0;wDone=0;wMax=wq.length*10;wres=null;nextWrite();
+}
+function nextWrite(){const id=wq.shift();wcur=id?S.cards.find(c=>c.id===id)||null:null;wres=null;renderWrite();if(wcur)setTimeout(()=>{const i=$('#wIn');if(i)i.focus()},50)}
+function checkWrite(){
+  if(!wcur||wres)return;const val=$('#wIn').value;const g=gradeWrite(val,wcur.f);wres={val,g};
+  wScore+=g.pts;wDone++;
+  const c=wcur,r=g.pts>=8?'good':g.pts>=3?'hard':'again',n=nextInt(c,r);
+  c.ease=Math.max(1.3,(c.ease||2.5)+({again:-.2,hard:-.15,good:0})[r]);c.int=n;c.reps=(c.reps||0)+1;c.due=addDays(today(),n<1?0:n);
+  const t=today();S.revLog[t]=(S.revLog[t]||0)+1;S.writeLog=S.writeLog||{};S.writeLog[t]=(S.writeLog[t]||0)+g.pts;
+  const ks=Object.keys(S.writeLog).sort();while(ks.length>120)delete S.writeLog[ks.shift()];
+  if(!wq.length){S.writeBest=S.writeBest||{};const pct=Math.round(wScore/wMax*100);if(!(S.writeBest[lang]>=pct))S.writeBest[lang]=pct}
+  commit();renderWrite();
+}
+function renderWrite(){
+  const box=$('#writeBox');if(!box)return;
+  if(!wcur){
+    const mine=S.cards.filter(c=>c.lang===lang).length,best=(S.writeBest||{})[lang];
+    box.innerHTML=!mine?`<div class="empty" style="margin-top:12px">Add some ${LN[lang]} words first, then test yourself here.</div>`
+      :wDone?`<div class="flash"><p class="small muted">Test complete</p><div class="w">${wScore} / ${wMax}</div><p class="small muted">${Math.round(wScore/wMax*100)}% · best ${best??'—'}% · +${Math.round(wScore/5)+wDone} XP</p><button class="btn" data-act="w-start">Another round</button></div>`
+      :`<div class="flash"><p class="small muted">Write mode · ${LN[lang]}</p><div class="w" style="font-size:22px">See the English, type the ${LN[lang]}</div><p class="small muted" style="margin-top:6px">10 words · up to 10 points each for spelling${best!=null?' · best '+best+'%':''}</p><button class="btn" data-act="w-start">Start test</button></div>`;
+    return;
+  }
+  const n=wDone+(wres?0:1),total=wDone+wq.length+(wres?0:1);
+  box.innerHTML=`<div class="flash" style="text-align:left">
+    <div class="row small muted"><span>Word ${n} of ${total}</span><span>Score ${wScore}</span></div>
+    <p class="small muted" style="margin-top:12px">Write in ${LN[lang]}:</p>
+    <div class="w" style="text-align:left">${esc(wcur.b)}</div>
+    <form data-form="write"><input id="wIn" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Type the ${LN[lang]} word" ${wres?'disabled':''} value="${wres?esc(wres.val):''}" style="font-size:18px">
+    <div class="chips" style="margin-top:8px">${ACC[lang].map(a=>`<button type="button" data-act="w-acc" data-v="${a}" ${wres?'disabled':''} style="min-width:40px">${a}</button>`).join('')}</div>
+    ${wres?`<div style="margin-top:14px"><p style="font-weight:600;color:${wres.g.cls==='good'?'var(--good)':wres.g.cls==='bad'?'var(--bad)':'var(--ink)'}">${wres.g.v} · +${wres.g.pts}</p>
+      ${wres.g.pts<10?`<p class="small muted" style="margin-top:4px">Correct: <b style="font-size:17px;color:var(--ink)">${diffHtml(wres.val,wcur.f)}</b></p>`:''}
+      ${wcur.ex?`<p class="small muted" style="margin-top:4px">${esc(wcur.ex)}</p>`:''}</div>
+      <button type="button" class="btn" data-act="w-next">${wq.length?'Next word':'See result'}</button>`
+    :`<button class="btn" type="submit">Check</button>`}</form></div>`;
 }
 
 /* ---------- Invest ---------- */
@@ -1359,6 +1432,10 @@ document.addEventListener('click',e=>{
   else if(a==='start-rev'){startReview(!!b.dataset.x)}
   else if(a==='show-ans'){shown=true;renderReview()}
   else if(a==='rate'){rate(b.dataset.v)}
+  else if(a==='lmode'){lmode=b.dataset.v;wcur=null;wq=[];wDone=0;renderLang()}
+  else if(a==='w-start'){startWrite()}
+  else if(a==='w-next'){nextWrite()}
+  else if(a==='w-acc'){const i=$('#wIn');if(i&&!i.disabled){const st=i.selectionStart??i.value.length,en=i.selectionEnd??st;i.value=i.value.slice(0,st)+b.dataset.v+i.value.slice(en);i.focus();i.setSelectionRange(st+1,st+1)}}
   else if(a==='add-pack'){const have=new Set(S.cards.filter(c=>c.lang===lang).map(c=>c.f.toLowerCase()));let n=0;PACKS[lang].forEach(p=>{if(!have.has(p[0].toLowerCase())){S.cards.push(newCard(p[0],p[1]));n++}});commit();toast(n+' '+LN[lang]+' words added')}
   else if(a==='del-card'){if(cur&&cur.id===id){cur=null}queue=queue.filter(q=>q!==id);removeWith('cards',id,'Word')}
 });
@@ -1453,6 +1530,7 @@ document.addEventListener('submit',e=>{
     if(evEdit){const i=S.events.findIndex(x=>x.id===evEdit);if(i>=0){o.done=S.events[i].done;S.events[i]=o}else S.events.push(o)}else S.events.push(o);
     const was=!!evEdit;evView=d.slice(0,7);evReset();commit();toast(was?'Event updated':'Event added');
   }
+  else if(k==='write'){checkWrite()}
   else if(k==='debt'){
     const who=$('#dWho').value.trim(),amt=num($('#dAmt').value);
     if(!who||!(amt>0)){$('#dMsg').textContent='Add the person and the amount.';return}
