@@ -574,7 +574,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v2.8 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v2.9 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1181,7 +1181,7 @@ function checkWrite(){
 }
 /* ---------- Grammar: verb conjugation ---------- */
 const GP={it:['io','tu','lui/lei','noi','voi','loro'],fr:['je','tu','il/elle','nous','vous','ils/elles']};
-const GT={it:[['pres','Presente','present'],['pp','Passato prossimo','perfect past'],['imp','Imperfetto','imperfect past'],['fut','Futuro semplice','future'],['cond','Condizionale','conditional']],
+const GT={it:[['pres','Presente','present'],['pp','Passato prossimo','perfect past'],['imp','Imperfetto','imperfect past'],['fut','Futuro semplice','future'],['cond','Condizionale presente','conditional: would'],['condp','Condizionale passato','would have'],['cpres','Congiuntivo presente','subjunctive present'],['cpass','Congiuntivo passato','subjunctive past'],['cimp','Congiuntivo imperfetto','subjunctive imperfect'],['imper','Imperativo','commands']],
   fr:[['pres','Présent','present'],['pc','Passé composé','perfect past'],['imp','Imparfait','imperfect past'],['fut','Futur simple','future'],['cond','Conditionnel','conditional']]};
 const GV={it:[
  ['essere','to be','sono sei è siamo siete sono','E','stato','ero eri era eravamo eravate erano','sar'],
@@ -1210,20 +1210,38 @@ fr:[
  ['prendre','to take','prends prends prend prenons prenez prennent','A','pris','pren','prendr'],
  ['parler','to speak (regular -er)','parle parles parle parlons parlez parlent','A','parlé','parl','parler'],
  ['finir','to finish (regular -ir)','finis finis finit finissons finissez finissent','A','fini','finiss','finir']]};
+const GX={it:{
+ essere:{cp:'sia sia sia siamo siate siano',ci:'fossi fossi fosse fossimo foste fossero',im:'- sii sia siamo siate siano'},
+ avere:{cp:'abbia abbia abbia abbiamo abbiate abbiano',im:'- abbi abbia abbiamo abbiate abbiano'},
+ fare:{cp:'faccia faccia faccia facciamo facciate facciano',im:"- fa'/fai/fa faccia facciamo fate facciano"},
+ andare:{cp:'vada vada vada andiamo andiate vadano',im:"- va'/vai/va vada andiamo andate vadano"},
+ venire:{cp:'venga venga venga veniamo veniate vengano',im:'- vieni venga veniamo venite vengano'},
+ dire:{cp:'dica dica dica diciamo diciate dicano',im:"- di'/di dica diciamo dite dicano"},
+ potere:{cp:'possa possa possa possiamo possiate possano'},
+ volere:{cp:'voglia voglia voglia vogliamo vogliate vogliano'},
+ dovere:{cp:'debba debba debba dobbiamo dobbiate debbano'},
+ parlare:{cp:'parli parli parli parliamo parliate parlino',im:'- parla parli parliamo parlate parlino'},
+ credere:{cp:'creda creda creda crediamo crediate credano',im:'- credi creda crediamo credete credano'},
+ dormire:{cp:'dorma dorma dorma dormiamo dormiate dormano',im:'- dormi dorma dormiamo dormite dormano'},
+ finire:{cp:'finisca finisca finisca finiamo finiate finiscano',im:'- finisci finisca finiamo finite finiscano'}},fr:{}};
+const GCAUX={cpass:{A:'abbia abbia abbia abbiamo abbiate abbiano',E:'sia sia sia siamo siate siano'},condp:{A:'avrei avresti avrebbe avremmo avreste avrebbero',E:'sarei saresti sarebbe saremmo sareste sarebbero'}};
 const GAUX={it:{A:'ho hai ha abbiamo avete hanno',E:'sono sei è siamo siete sono'},fr:{A:'ai as a avons avez ont',E:'suis es est sommes êtes sont'}};
 const GEND={it:{imp:['vo','vi','va','vamo','vate','vano'],fut:['ò','ai','à','emo','ete','anno'],cond:['ei','esti','ebbe','emmo','este','ebbero']},
   fr:{imp:['ais','ais','ait','ions','iez','aient'],fut:['ai','as','a','ons','ez','ont'],cond:['ais','ais','ait','ions','iez','aient']}};
 // returns list of accepted answers (first = main) for verb row v, tense t, person p
-function conj(L,v,t,p){const [inf,,pres,aux,part,imp,fut]=v;
+function conj(L,v,t,p){const [inf,,pres,aux,part,imp,fut]=v,x=(GX[L]||{})[inf]||{};
   if(t==='pres')return [pres.split(' ')[p]];
-  if(t==='pp'||t==='pc'){const a=GAUX[L][aux].split(' ')[p];
+  if(t==='cpres')return x.cp?[x.cp.split(' ')[p]]:[];
+  if(t==='imper'){const f=x.im&&x.im.split(' ')[p];return f&&f!=='-'?f.split('/'):[]}
+  if(t==='cimp'){if(x.ci)return [x.ci.split(' ')[p]];const st=imp.includes(' ')?null:imp;return st?[st+['ssi','ssi','sse','ssimo','ste','ssero'][p]]:[]}
+  if(t==='pp'||t==='pc'||t==='cpass'||t==='condp'){const a=(GCAUX[t]?GCAUX[t][aux]:GAUX[L][aux]).split(' ')[p];
     if(aux==='A')return [a+' '+part];
     if(L==='it'){const b=part.slice(0,-1);return p<3?[a+' '+b+'o',a+' '+b+'a']:[a+' '+b+'i',a+' '+b+'e']}
     return p<3?[a+' '+part,a+' '+part+'e']:[a+' '+part+'s',a+' '+part+'es']}
   if(t==='imp'){if(imp.includes(' '))return [imp.split(' ')[p]];return [imp+GEND[L].imp[p]]}
   return [fut+GEND[L][t][p]]}
-function gPron(L,p,form){if(L==='fr'&&p===0&&/^[aeiouéèêhâ]/i.test(form))return "j'";return GP[L][p]}
-const stripPron=(L,s)=>{let x=normW(s);const P=L==='it'?/^(io|tu|lui|lei|lui\/lei|noi|voi|loro)\s+/:/^(je|j'|tu|il|elle|on|il\/elle|nous|vous|ils|elles|ils\/elles)\s*/;return x.replace(P,'')};
+function gPron(L,p,form,t){if(t==='cpres'||t==='cpass'||t==='cimp')return 'che '+GP[L][p];if(t==='imper')return ['','tu','Lei','noi','voi','loro'][p];if(L==='fr'&&p===0&&/^[aeiouéèêhâ]/i.test(form))return "j'";return GP[L][p]}
+const stripPron=(L,s)=>{let x=normW(s);x=x.replace(/^che\s+/,'');const P=L==='it'?/^(io|tu|lui|lei|lui\/lei|noi|voi|loro)\s+/:/^(je|j'|tu|il|elle|on|il\/elle|nous|vous|ils|elles|ils\/elles)\s*/;return x.replace(P,'')};
 function gradeConj(L,input,answers){const u=stripPron(L,input);if(!u)return {pts:0,v:'No answer',cls:'bad'};
   let best={pts:0,v:'Not quite',cls:'bad'};
   for(const t0 of answers){const t=normW(t0);let g;
@@ -1235,7 +1253,7 @@ function gradeConj(L,input,answers){const u=stripPron(L,input);if(!u)return {pts
 let gq=[],gcur=null,gres=null,gScore=0,gDone=0,gMax=0,gView='drill';
 const gSel=()=>{const o=(S.gram&&S.gram[lang])||{};return {v:o.v||'all',t:o.t||'all'}};
 function startGram(){const sel=gSel(),V=GV[lang].filter(v=>sel.v==='all'||v[0]===sel.v),T=GT[lang].filter(t=>sel.t==='all'||t[0]===sel.t),items=[];
-  V.forEach(v=>T.forEach(t=>GP[lang].forEach((_,p)=>items.push({v:v[0],t:t[0],p}))));
+  V.forEach(v=>T.forEach(t=>GP[lang].forEach((_,p)=>{if(conj(lang,v,t[0],p).length)items.push({v:v[0],t:t[0],p})})));if(!items.length){toast('No forms for that verb and tense (e.g. potere has no imperative)');return}
   const gs=S.gramS||{},wt=it=>{const k=lang+'|'+it.v+'|'+it.t+'|'+it.p,sc=gs[k]==null?5:gs[k];return 1+Math.pow(10-sc,1.5)};
   gq=items.map(it=>({it,k:-Math.log(Math.random()||1e-9)/wt(it)})).sort((a,b)=>a.k-b.k).slice(0,10).map(x=>x.it);
   gScore=0;gDone=0;gMax=gq.length*10;nextGram()}
@@ -1245,7 +1263,9 @@ function checkGram(){if(!gcur||gres)return;const v=GV[lang].find(x=>x[0]===gcur.
   logRev(lang);const t=today();S.revLog[t]=(S.revLog[t]||0)+1;S.writeLog=S.writeLog||{};S.writeLog[t]=(S.writeLog[t]||0)+g.pts;
   if(!gq.length){S.gramBest=Object.assign({},S.gramBest||{});const pct=Math.round(gScore/gMax*100);if(!(S.gramBest[lang]>=pct))S.gramBest[lang]=pct}
   commit();renderGram();if(S.ttsAuto)say(ans[0],lang)}
-function gTable(L,v,t){return `<table class="gtab">${GP[L].map((_,p)=>{const a=conj(L,v,t,p),f=a[0];return `<tr><td class="muted">${esc(gPron(L,p,f))}</td><td><b>${esc(f)}</b>${a[1]?` <span class="small muted">/ ${esc(a[1].split(' ').pop())}</span>`:''}</td><td>${spk(gPron(L,p,f).replace('/elle','').replace('/elles','').replace('/lei','')+(gPron(L,p,f).endsWith("'")?'':' ')+f,L)}</td></tr>`}).join('')}</table>`}
+function gTable(L,v,t){const rows=GP[L].map((_,p)=>{const a=conj(L,v,t,p);if(!a.length)return t==='imper'&&p===0?'':`<tr><td class="muted">${esc(gPron(L,p,'',t))}</td><td class="muted">—</td><td></td></tr>`;const f=a[0],pr=gPron(L,p,f,t),alt=a[1]?(t==='imper'?a.slice(1).filter(z=>z.length>1&&!a[0].startsWith(z+"'")).join(' / '):a[1].split(' ').pop()):'';
+  return `<tr><td class="muted">${esc(pr)}</td><td><b>${esc(f)}</b>${alt?` <span class="small muted">/ ${esc(alt)}</span>`:''}</td><td>${spk((t==='imper'?'':pr.replace('/elle','').replace('/elles','').replace('/lei','')+(pr.endsWith("'")?'':' '))+f,L)}</td></tr>`}).join('');
+  return GP[L].some((_,p)=>conj(L,v,t,p).length)?`<table class="gtab">${rows}</table>`:`<p class="small muted">${esc(v[0])} isn't used in this tense.</p>`}
 function renderGram(){const box=$('#gramBox');if(!box)return;const sel=gSel(),TN=Object.fromEntries(GT[lang].map(t=>[t[0],t]));
   const selHtml=`<div class="row" style="gap:8px;align-items:flex-end"><div style="flex:1"><label for="gVerb">Verb</label><select id="gVerb"><option value="all">All verbs</option>${GV[lang].map(v=>`<option value="${v[0]}" ${sel.v===v[0]?'selected':''}>${v[0]} · ${esc(v[1])}</option>`).join('')}</select></div>
     <div style="flex:1"><label for="gTense">Tense</label><select id="gTense"><option value="all">All tenses</option>${GT[lang].map(t=>`<option value="${t[0]}" ${sel.t===t[0]?'selected':''}>${t[1]}</option>`).join('')}</select></div></div>`;
@@ -1256,13 +1276,13 @@ function renderGram(){const box=$('#gramBox');if(!box)return;const sel=gSel(),TN
     (gView==='table'?(v?(sel.t==='all'?GT[lang]:[TN[sel.t]]).map(t=>`<h3 style="margin:16px 0 6px">${t[1]} <span class="small muted" style="font-weight:400">· ${t[2]}</span></h3>${gTable(lang,v,t[0])}`).join(''):`<div class="empty" style="margin-top:12px">Pick a verb above to see its tables.</div>`)
     :`<div class="flash"><p class="small muted">Conjugation · ${LN[lang]}</p><div class="w" style="font-size:22px">See the verb, tense and person. Type the form.</div><p class="small muted" style="margin-top:6px">10 questions · up to 10 points each · your weak forms come up more${best!=null?' · best '+best+'%':''}</p><button class="btn" data-act="g-start">Start practice</button></div>`);
     return}
-  const v=GV[lang].find(x=>x[0]===gcur.v),t=TN[gcur.t],n=gDone+(gres?0:1),total=gDone+gq.length+(gres?0:1),pr=gPron(lang,gcur.p,conj(lang,v,gcur.t,gcur.p)[0]);
+  const v=GV[lang].find(x=>x[0]===gcur.v),t=TN[gcur.t],n=gDone+(gres?0:1),total=gDone+gq.length+(gres?0:1),pr=gPron(lang,gcur.p,conj(lang,v,gcur.t,gcur.p)[0],gcur.t);
   box.innerHTML=`<div class="flash" style="text-align:left"><div class="row small muted"><span>Question ${n} of ${total}</span><span>Score ${gScore}</span></div>
     <p class="small muted" style="margin-top:12px">${t[1]} · ${t[2]}</p><div class="w" style="text-align:left">${esc(v[0])} <span class="small muted" style="font-weight:400">· ${esc(v[1])}</span></div>
     <form data-form="gram"><div style="display:flex;align-items:center;gap:10px"><b style="font-size:18px;white-space:nowrap">${esc(pr)}</b><input id="gIn" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="…" ${gres?'disabled':''} value="${gres?esc(gres.val):''}" style="font-size:18px;flex:1"></div>
     <div class="chips" style="margin-top:8px">${ACC[lang].map(a=>`<button type="button" data-act="g-acc" data-v="${a}" ${gres?'disabled':''} style="min-width:40px">${a}</button>`).join('')}</div>
     ${gres?`<div style="margin-top:14px"><p style="font-weight:600;color:${gres.g.cls==='good'?'var(--good)':gres.g.cls==='bad'?'var(--bad)':'var(--ink)'}">${gres.g.v} · +${gres.g.pts}</p>
-      ${gres.g.pts<10?`<p class="small muted" style="margin-top:4px">Correct: <b style="font-size:17px;color:var(--ink)">${esc(pr)} ${diffHtml(stripPron(lang,gres.val),gres.ans[0])}</b>${gres.ans[1]?` <span class="small">(or ${esc(gres.ans[1])})</span>`:''}</p>`:''}
+      ${gres.g.pts<10?`<p class="small muted" style="margin-top:4px">Correct: <b style="font-size:17px;color:var(--ink)">${esc(pr)} ${diffHtml(stripPron(lang,gres.val),gres.ans[0])}</b>${gres.ans[1]?` <span class="small">(or ${esc(gres.ans.slice(1).join(' / '))})</span>`:''}</p>`:''}
       <details style="margin-top:10px"><summary class="small">Full ${esc(t[1])} table for ${esc(v[0])}</summary>${gTable(lang,v,gcur.t)}</details></div>
       <button type="button" class="btn" data-act="g-next">${gq.length?'Next':'See result'}</button>`:`<button class="btn" type="submit">Check</button>`}</form></div>`}
 
