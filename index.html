@@ -574,7 +574,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v2.9.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v3.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1224,12 +1224,44 @@ const GX={it:{
  credere:{cp:'creda creda creda crediamo crediate credano',im:'- credi creda crediamo credete credano'},
  dormire:{cp:'dorma dorma dorma dormiamo dormiate dormano',im:'- dormi dorma dormiamo dormite dormano'},
  finire:{cp:'finisca finisca finisca finiamo finiate finiscano',im:'- finisci finisca finiamo finite finiscano'}},fr:{}};
+function regIt(inf,eng,o){o=o||{};const refl=/rsi$/.test(inf),base=refl?inf.replace(/rsi$/,'re'):inf,c=base.slice(-3),st=base.slice(0,-3),
+  H=(e)=>c==='are'&&/[cg]$/.test(st)&&/^[ie]/.test(e)?st+'h'+e:st.endsWith('i')&&e.startsWith('i')?st+e.slice(1):st+e;
+  let pr,cp,im,part,fut;
+  if(c==='are'){pr=['o','i','a','iamo','ate','ano'];cp=['i','i','i','iamo','iate','ino'];im=['a','i','iamo','ate','ino'];part=st+'ato';fut=/[cg]i$/.test(st)?st.slice(0,-1)+'er':/[cg]$/.test(st)?st+'her':st+'er'}
+  else if(c==='ere'){pr=['o','i','e','iamo','ete','ono'];cp=['a','a','a','iamo','iate','ano'];im=['i','a','iamo','ete','ano'];part=st+'uto';fut=st+'er'}
+  else if(o.isc){pr=['isco','isci','isce','iamo','ite','iscono'];cp=['isca','isca','isca','iamo','iate','iscano'];im=['isci','isca','iamo','ite','iscano'];part=st+'ito';fut=st+'ir'}
+  else{pr=['o','i','e','iamo','ite','ono'];cp=['a','a','a','iamo','iate','ano'];im=['i','a','iamo','ite','ano'];part=st+'ito';fut=st+'ir'}
+  GV.it.push([inf,eng,o.pres||pr.map(H).join(' '),refl?'E':(o.aux||'A'),o.part||part,o.imp||base.slice(0,-2),o.fut||fut]);
+  GX.it[inf]={cp:o.cp||cp.map(H).join(' '),im:o.im||('- '+im.map(H).join(' ')),ci:o.ci,refl}}
+[['vedere','to see',{part:'visto',fut:'vedr'}],['trovare','to find'],['sentire','to hear, to feel'],['pensare','to think'],['prendere','to take',{part:'preso'}],['mettere','to put',{part:'messo'}],
+ ['lasciare','to leave, to let'],['conoscere','to know (people, places)',{part:'conosciuto'}],['passare','to pass, to spend (time)',{aux:'B'}],['chiamare','to call'],['guardare','to look at, to watch'],
+ ['portare','to bring, to carry, to wear'],['arrivare','to arrive',{aux:'E'}],['mangiare','to eat'],['lavorare','to work'],['studiare','to study'],['capire','to understand',{isc:1}],
+ ['aspettare','to wait'],['cercare','to look for'],['chiedere','to ask',{part:'chiesto'}],['rispondere','to answer',{part:'risposto'}],['scrivere','to write',{part:'scritto'}],
+ ['leggere','to read',{part:'letto'}],['aprire','to open',{part:'aperto'}],['chiudere','to close',{part:'chiuso'}],['comprare','to buy'],['pagare','to pay'],['sembrare','to seem',{aux:'E'}],
+ ['succedere','to happen',{aux:'E',part:'successo'}],
+ ['sapere','to know (facts, how to)',{pres:'so sai sa sappiamo sapete sanno',fut:'sapr',cp:'sappia sappia sappia sappiamo sappiate sappiano',im:'- sappi sappia sappiamo sappiate sappiano'}],
+ ['stare','to stay, to be (sto bene)',{pres:'sto stai sta stiamo state stanno',aux:'E',fut:'star',cp:'stia stia stia stiamo stiate stiano',ci:'stessi stessi stesse stessimo steste stessero',im:"- sta'/stai/sta stia stiamo state stiano"}],
+ ['dare','to give',{pres:'do dai dà diamo date danno',fut:'dar',cp:'dia dia dia diamo diate diano',ci:'dessi dessi desse dessimo deste dessero',im:"- da'/dai/da dia diamo date diano"}],
+ ['uscire','to go out',{pres:'esco esci esce usciamo uscite escono',aux:'E',cp:'esca esca esca usciamo usciate escano',im:'- esci esca usciamo uscite escano'}],
+ ['rimanere','to remain, to stay',{pres:'rimango rimani rimane rimaniamo rimanete rimangono',aux:'E',part:'rimasto',fut:'rimarr',cp:'rimanga rimanga rimanga rimaniamo rimaniate rimangano',im:'- rimani rimanga rimaniamo rimanete rimangano'}],
+ ['tenere','to hold, to keep',{pres:'tengo tieni tiene teniamo tenete tengono',fut:'terr',cp:'tenga tenga tenga teniamo teniate tengano',im:'- tieni tenga teniamo tenete tengano'}],
+ ['bere','to drink',{pres:'bevo bevi beve beviamo bevete bevono',part:'bevuto',imp:'beve',fut:'berr',cp:'beva beva beva beviamo beviate bevano',im:'- bevi beva beviamo bevete bevano'}],
+ ['piacere','to please (mi piace = I like)',{pres:'piaccio piaci piace piacciamo piacete piacciono',aux:'E',part:'piaciuto',cp:'piaccia piaccia piaccia piacciamo piacciate piacciano',im:'- piaci piaccia piacciamo piacete piacciano'}],
+ ['chiamarsi','to be called (mi chiamo…)'],['alzarsi','to get up'],['svegliarsi','to wake up'],['sentirsi','to feel (mi sento bene)'],['ricordarsi','to remember'],['divertirsi','to have fun']
+].forEach(a=>regIt(a[0],a[1],a[2]));
+GV.it.sort((a,b)=>a[0].localeCompare(b[0]));
 const GCAUX={cpass:{A:'abbia abbia abbia abbiamo abbiate abbiano',E:'sia sia sia siamo siate siano'},condp:{A:'avrei avresti avrebbe avremmo avreste avrebbero',E:'sarei saresti sarebbe saremmo sareste sarebbero'}};
 const GAUX={it:{A:'ho hai ha abbiamo avete hanno',E:'sono sei è siamo siete sono'},fr:{A:'ai as a avons avez ont',E:'suis es est sommes êtes sont'}};
 const GEND={it:{imp:['vo','vi','va','vamo','vate','vano'],fut:['ò','ai','à','emo','ete','anno'],cond:['ei','esti','ebbe','emmo','este','ebbero']},
   fr:{imp:['ais','ais','ait','ions','iez','aient'],fut:['ai','as','a','ons','ez','ont'],cond:['ais','ais','ait','ions','iez','aient']}};
 // returns list of accepted answers (first = main) for verb row v, tense t, person p
-function conj(L,v,t,p){const [inf,,pres,aux,part,imp,fut]=v,x=(GX[L]||{})[inf]||{};
+const RP=['mi','ti','si','ci','vi','si'];
+function conj(L,v,t,p){const x=(GX[L]||{})[v[0]]||{};
+  if(v[3]==='B'&&/^(pp|pc|cpass|condp)$/.test(t))return conj0(L,v.map((z,i)=>i===3?'A':z),t,p).concat(conj0(L,v.map((z,i)=>i===3?'E':z),t,p));
+  const r=conj0(L,v,t,p);if(!x.refl||!r.length)return r;
+  if(t==='imper'){const f=r[0];return p===2||p===5?['si '+f]:[f+['','ti','','ci','vi',''][p]]}
+  return r.map(f=>RP[p]+' '+f)}
+function conj0(L,v,t,p){const [inf,,pres,aux,part,imp,fut]=v,x=(GX[L]||{})[inf]||{};
   if(t==='pres')return [pres.split(' ')[p]];
   if(t==='cpres')return x.cp?[x.cp.split(' ')[p]]:[];
   if(t==='imper'){const f=x.im&&x.im.split(' ')[p];return f&&f!=='-'?f.split('/'):[]}
@@ -1263,7 +1295,7 @@ function checkGram(){if(!gcur||gres)return;const v=GV[lang].find(x=>x[0]===gcur.
   logRev(lang);const t=today();S.revLog[t]=(S.revLog[t]||0)+1;S.writeLog=S.writeLog||{};S.writeLog[t]=(S.writeLog[t]||0)+g.pts;
   if(!gq.length){S.gramBest=Object.assign({},S.gramBest||{});const pct=Math.round(gScore/gMax*100);if(!(S.gramBest[lang]>=pct))S.gramBest[lang]=pct}
   commit();renderGram();if(S.ttsAuto)say(ans[0],lang)}
-function gTable(L,v,t){const rows=GP[L].map((_,p)=>{const a=conj(L,v,t,p);if(!a.length)return t==='imper'&&p===0?'':`<tr><td class="muted">${esc(gPron(L,p,'',t))}</td><td class="muted">—</td><td></td></tr>`;const f=a[0],pr=gPron(L,p,f,t),alt=a[1]?(t==='imper'?a.slice(1).filter(z=>z.length>1&&!a[0].startsWith(z+"'")).join(' / '):a[1].split(' ').pop()):'';
+function gTable(L,v,t){const rows=GP[L].map((_,p)=>{const a=conj(L,v,t,p);if(!a.length)return t==='imper'&&p===0?'':`<tr><td class="muted">${esc(gPron(L,p,'',t))}</td><td class="muted">—</td><td></td></tr>`;const f=a[0],pr=gPron(L,p,f,t),alt=a[1]?(t==='imper'?a.slice(1).filter(z=>z.length>1&&!a[0].startsWith(z+"'")).join(' / '):(a[1].split(' ')[0]!==a[0].split(' ')[0]?a[1]:a[1].split(' ').pop())):'';
   return `<tr><td class="muted">${esc(pr)}</td><td><b>${esc(f)}</b>${alt?` <span class="small muted">/ ${esc(alt)}</span>`:''}</td><td>${spk((t==='imper'?'':pr.replace('/elle','').replace('/elles','').replace('/lei','')+(pr.endsWith("'")?'':' '))+f,L)}</td></tr>`}).join('');
   return GP[L].some((_,p)=>conj(L,v,t,p).length)?`<table class="gtab">${rows}</table>`:`<p class="small muted">${esc(v[0])} isn't used in this tense.</p>`}
 function renderGram(){const box=$('#gramBox');if(!box)return;const sel=gSel(),TN=Object.fromEntries(GT[lang].map(t=>[t[0],t]));
