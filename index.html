@@ -55,7 +55,7 @@ main{max-width:600px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom) 
 .day.done b{background:#fff;border-color:#fff}
 .day.now{color:#fff;font-weight:600}
 .lvl{margin-top:18px}
-.big.pos{color:var(--good)}.big.neg,.hero2 .side b.neg{color:var(--bad)}
+.big.pos{color:var(--good)}.hero2 .side b.neg{color:var(--bad)}.big.neg{color:#d92d20}
 :root{--good:light-dark(#0a8f4a,#3ddc84);--bad:light-dark(#d92d20,#ff6b6b)}
 .band{--good:#3ddc84;--bad:#ffb1a6}
 [data-skin=mono] .band{--good:light-dark(#0a8f4a,#3ddc84);--bad:light-dark(#d92d20,#ff6b6b)}
@@ -577,7 +577,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v3.0.3 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v3.1.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -660,7 +660,7 @@ function mergeState(o,n,cloudIs){
   s.del=Object.assign({},o.del||{},n.del||{});
   LISTS.forEach(k=>{
     s[k]=s[k]||[];const have=new Set(s[k].map(x=>x.id));
-    (o[k]||[]).forEach(x=>{if(x&&!have.has(x.id)&&!s.del[x.id]){s[k].push(x);changed++}});
+    (o[k]||[]).forEach(x=>{if(!x||s.del[x.id])return;if(!have.has(x.id)){s[k].push(x);changed++}else if((x.u||0)>0){const i=s[k].findIndex(y=>y.id===x.id);if(i>=0&&(x.u||0)>(s[k][i].u||0)){s[k][i]=JSON.parse(JSON.stringify(x));changed++}}});
     const before=s[k].length;s[k]=s[k].filter(x=>!s.del[x.id]);changed+=before-s[k].length;
   });
   ['revLog','writeLog','rev_it','rev_fr'].forEach(L=>{s[L]=s[L]||{};Object.entries(o[L]||{}).forEach(([k,v])=>{if(!(s[L][k]>=v)){s[L][k]=v;changed++}})});
@@ -960,6 +960,14 @@ function saveWo(){
 
 /* ---------- Money ---------- */
 let sub='spend',expCat='food';
+let editExp=null;
+function expEditHtml(e){return `<li class="li" style="display:block"><form data-form="expedit" data-id="${e.id}" style="padding:6px 0">
+  <div class="grid2"><div><label for="eeAmt">Amount (£)</label><input id="eeAmt" inputmode="decimal" value="${e.amt}" autocomplete="off"></div><div><label for="eeD">Date</label><input type="date" id="eeD" value="${e.d}"></div></div>
+  <label for="eeCat">Category</label><select id="eeCat">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>
+  <label for="eeNote">Note</label><input id="eeNote" value="${esc(e.note||'')}" autocomplete="off">
+  <label style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:12px"><input type="checkbox" id="eePot" ${e.fromPot?'checked':''} style="width:22px;min-height:22px;height:22px;flex:none"> Paid from savings pot</label>
+  <p class="msg" id="eeMsg"></p>
+  <div class="grid2" style="margin-top:10px"><button class="ghost" type="button" data-act="edit-exp-cancel">Cancel</button><button class="btn" type="submit" style="margin:0">Save</button></div></form></li>`}
 function renderMoney(){
   document.querySelectorAll('.subtabs button').forEach(b=>{b.classList.toggle('on',b.dataset.v===sub);b.setAttribute('aria-selected',b.dataset.v===sub)});
   ['spend','plans','debts','invest'].forEach(k=>$('#s-'+k).hidden=k!==sub);
@@ -981,7 +989,7 @@ function renderMoney(){
   const by={};mon.forEach(e=>by[e.cat]=(by[e.cat]||0)+e.amt);
   const ks=Object.keys(by).sort((a,b)=>by[b]-by[a]);
   $('#catBars').innerHTML=ks.length?ks.map(k=>`<div class="cat"><div class="row"><span>${CATN[k]||'Other'}</span><span class="amt">${money(by[k])}</span></div><div class="bar"><i style="width:${by[k]/spent*100}%"></i></div></div>`).join(''):'<div class="empty">Add an expense to see where your money goes.</div>';
-  $('#expList').innerHTML=mon.length?mon.map(e=>`<li class="li"><span><b>${esc(e.note||CATN[e.cat])}</b><br><span class="small muted">${e.fromPot?'<span class="tag">From pot</span> ':''}${e.auto?`<span class="tag">Apple Pay</span> <select data-catfor="${e.id}" aria-label="Category" style="width:auto;min-height:32px;padding:2px 24px 2px 8px;font-size:13px;display:inline-block;background-position:right 7px center;background-size:11px">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>`:(CATN[e.cat]||'Other')} · ${short(e.d)}</span></span><span style="display:flex;align-items:center;gap:4px"><span class="amt">${money(e.amt)}</span><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
+  $('#expList').innerHTML=mon.length?mon.map(e=>e.id===editExp?expEditHtml(e):`<li class="li"><span><b>${esc(e.note||CATN[e.cat])}</b><br><span class="small muted">${e.fromPot?'<span class="tag">From pot</span> ':''}${e.auto?`<span class="tag">Apple Pay</span> <select data-catfor="${e.id}" aria-label="Category" style="width:auto;min-height:32px;padding:2px 24px 2px 8px;font-size:13px;display:inline-block;background-position:right 7px center;background-size:11px">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>`:(CATN[e.cat]||'Other')} · ${short(e.d)}</span></span><span style="display:flex;align-items:center;gap:4px"><span class="amt">${money(e.amt)}</span><button class="x" data-act="edit-exp" data-id="${e.id}" aria-label="Edit expense" style="font-size:15px">✎</button><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
   const ps=S.plans.slice().sort((a,b)=>a.d.localeCompare(b.d));
   $('#planList').innerHTML=ps.length?ps.map(p=>{const i=planInfo(p);const full=i.left<=0.004;return `<div class="card${full&&i.dl<0?' done':''}">
     <div class="row"><b>${esc(p.name)}</b><span class="amt">${money(p.amt)}</span></div>
@@ -1557,7 +1565,9 @@ document.addEventListener('click',e=>{
   else if(a==='more-wo'){woShown+=15;renderFit()}
   else if(a==='sub'){sub=b.dataset.v;renderMoney();if(sub==='invest')refreshInv(false)}
   else if(a==='cat'){expCat=b.dataset.v;renderMoney()}
-  else if(a==='del-exp'){removeWith('expenses',id,'Expense')}
+  else if(a==='del-exp'){if(editExp===id)editExp=null;removeWith('expenses',id,'Expense')}
+  else if(a==='edit-exp'){editExp=id;renderMoney();setTimeout(()=>{const i=$('#eeAmt');if(i)i.focus()},50)}
+  else if(a==='edit-exp-cancel'){editExp=null;renderMoney()}
   else if(a==='del-plan'){removeWith('plans',id,'Planned payment')}
   else if(a==='del-debt'){removeWith('debts',id,'Repayment')}
   else if(a==='icon'){try{localStorage.setItem('excelsior-icon',b.dataset.v)}catch(e){}renderSettings();toast('Icon chosen for this device · reloading…');setTimeout(()=>location.reload(),900)}
@@ -1656,7 +1666,7 @@ document.addEventListener('change',e=>{
   onDraftInput(e);
   if(e.target.id==='weekGoal'){S.weekGoal=+e.target.value;commit()}
   if(e.target.id==='progSel'){progEx=e.target.value;renderFit()}
-  if(e.target.dataset&&e.target.dataset.catfor){const x=S.expenses.find(y=>y.id===e.target.dataset.catfor);if(x){x.cat=e.target.value;commit()}}
+  if(e.target.dataset&&e.target.dataset.catfor){const x=S.expenses.find(y=>y.id===e.target.dataset.catfor);if(x){x.cat=e.target.value;x.u=Date.now();commit()}}
   if(e.target.dataset&&e.target.dataset.holdcost){const h=(S.holdings||[]).find(x=>x.id===e.target.dataset.holdcost),v=e.target.value.trim(),n=num(v);if(h){if(v===''){h.cost=null;commit()}else if(n>0){h.cost=n;commit()}else e.target.value=h.cost??''}}
   if(e.target.dataset&&e.target.dataset.holdqty){const h=(S.holdings||[]).find(x=>x.id===e.target.dataset.holdqty),n=num(e.target.value);if(h&&n>=0){h.qty=n;commit()}}
   if(e.target.dataset&&e.target.dataset.voice){const L=e.target.dataset.voice;try{e.target.value?localStorage.setItem('excelsior-voice-'+L,e.target.value):localStorage.removeItem('excelsior-voice-'+L)}catch(x){}say(L==='fr'?'Bonjour, ça va ?':'Ciao, come va?',L)}
@@ -1727,6 +1737,11 @@ document.addEventListener('submit',e=>{
   }
   else if(k==='write'){checkWrite()}
   else if(k==='gram'){checkGram()}
+  else if(k==='expedit'){const x=S.expenses.find(y=>y.id===f.dataset.id);if(!x){editExp=null;renderMoney();return}
+    const amt=parseFloat(String($('#eeAmt').value).replace(',','.').replace(/[^0-9.]/g,'')),d=$('#eeD').value;
+    if(!(amt>0)){$('#eeMsg').textContent='Enter an amount above £0.';return}if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){$('#eeMsg').textContent='Pick a date.';return}
+    x.amt=Math.round(amt*100)/100;x.d=d;x.cat=$('#eeCat').value;x.note=$('#eeNote').value.trim().slice(0,60);x.fromPot=$('#eePot').checked||undefined;if(!x.fromPot)delete x.fromPot;x.u=Date.now();
+    editExp=null;commit();toast('Expense updated')}
   else if(k==='debt'){
     const who=$('#dWho').value.trim(),amt=num($('#dAmt').value);
     if(!who||!(amt>0)){$('#dMsg').textContent='Add the person and the amount.';return}
