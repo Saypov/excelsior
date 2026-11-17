@@ -140,8 +140,33 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
 .hdr{display:flex;align-items:center;gap:6px}
 .gear{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;color:var(--ink)}
 .gear svg{width:22px;height:22px}
-.skins{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+.skins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
 :root[data-skin][data-scheme=light]{color-scheme:light}:root[data-skin][data-scheme=dark]{color-scheme:dark}
+.sw-t{height:70px;border-radius:10px;padding:8px;background:#fbf4ea;color:#c2410c;border:1px solid #e8dccb;box-shadow:inset 0 -14px 0 #4d6b2f;font:700 18px Sora,sans-serif}
+/* ---------- Terracotta skin: warm cream, burnt orange accents, olive for progress ---------- */
+:root[data-skin=terra]{--bg:#fbf4ea;--ink:#2b2118;--muted:#6b5a45;--line:#e8dccb;--soft:#f3e7d6;--blue:#c2410c;--band:#f3e7d6;--on:#2b2118;--hot:#b42318;--acc:#4d6b2f;--good:#3d7a2a;--bad:#b42318;--olive:#4d6b2f}
+[data-skin=terra] .band{margin:12px 18px 0;border-radius:26px;padding:22px 18px;--good:#3d7a2a;--bad:#b42318}
+[data-skin=terra] .band .muted,[data-skin=terra] .day{color:var(--muted)}
+[data-skin=terra] .day.now{color:var(--ink)}
+[data-skin=terra] .day b{border-color:#dccdb6;background:var(--bg)}
+[data-skin=terra] .day.done b{background:var(--olive);border-color:var(--olive)}
+[data-skin=terra] .band .bar,[data-skin=terra] .bar{background:#eadfcd}
+[data-skin=terra] .bar>i,[data-skin=terra] .band .bar>i{background:var(--olive)}
+[data-skin=terra] .card{border:0;background:#f5ebdd;border-radius:22px}
+[data-skin=terra] .card input,[data-skin=terra] .card select,[data-skin=terra] .card textarea{background:var(--bg)}
+[data-skin=terra] input,[data-skin=terra] select,[data-skin=terra] textarea{background:#fffaf2;border-color:#e3d5c0}
+[data-skin=terra] .btn{background:#c2410c;border-color:#c2410c;color:#fff7ed;border-radius:14px}
+[data-skin=terra] .seg button.on,[data-skin=terra] .subtabs button.on{background:#c2410c;border-color:#c2410c;color:#fff7ed}
+[data-skin=terra] .chips button.on{background:#4d6b2f;border-color:#4d6b2f;color:#f4f8ee}
+[data-skin=terra] .tabs{background:#fbf4ea}
+[data-skin=terra] .tabs a.on{color:#c2410c;background:#f3e7d6}
+[data-skin=terra] .flash{border:0;border-radius:26px;background:#f5ebdd}
+[data-skin=terra] .flash .a{color:#c2410c}
+[data-skin=terra] .empty{border:0;background:#f5ebdd;border-radius:20px}
+[data-skin=terra] .link{color:#c2410c}
+[data-skin=terra] .top{border-bottom-color:#e8dccb}
+[data-skin=terra] .tag{background:#efe3d1;color:#6b5a45}
+[data-skin=terra] .ex{background:var(--bg)}
 .sw-d{height:70px;border-radius:10px;padding:8px;background:#000;color:#f5f5f5;border:1px solid #262626;box-shadow:inset 0 -14px 0 #161616;font:900 18px Archivo,sans-serif;font-stretch:125%}
 .skin{display:block;text-align:left;padding:10px;border-radius:16px;min-height:0;height:auto;font-weight:600}
 .skin.on{outline:3px solid var(--acc,var(--blue));outline-offset:1px}
@@ -459,6 +484,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <button class="skin ghost" data-act="skin" data-v="azzurro"><div class="sw-a" style="background:#1d4ed8">£840</div>Azzurro<div class="small muted" style="font-weight:400">Blue, bold, colourful</div></button>
       <button class="skin ghost" data-act="skin" data-v="mono"><div class="sw-m">£840</div>Mono White<div class="small muted" style="font-weight:400">White, always</div></button>
       <button class="skin ghost" data-act="skin" data-v="mono-dark"><div class="sw-d">£840</div>Mono Black<div class="small muted" style="font-weight:400">Black, always</div></button>
+      <button class="skin ghost" data-act="skin" data-v="terra"><div class="sw-t">£840</div>Terracotta<div class="small muted" style="font-weight:400">Cream, burnt orange, olive</div></button>
     </div>
     <p class="small muted" style="margin-top:8px">Azzurro follows your phone's light or dark mode. The Mono themes stay the same whatever your phone is set to.</p>
     <h2>App icon</h2>
@@ -532,7 +558,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v1.8.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v1.9 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -575,8 +601,8 @@ function applyIcon(v){const f=v==='dark'?'icon-dark.png':'icon.png',mf=v==='dark
 try{applyIcon(localStorage.getItem('excelsior-icon'))}catch(e){}
 function applySkin(k){
   const r=document.documentElement;
-  r.dataset.skin=k==='azzurro'?'azzurro':'mono';
-  if(k==='mono')r.dataset.scheme='light';else if(k==='mono-dark')r.dataset.scheme='dark';else delete r.dataset.scheme;
+  r.dataset.skin=k==='azzurro'?'azzurro':k==='terra'?'terra':'mono';
+  if(k==='mono'||k==='terra')r.dataset.scheme='light';else if(k==='mono-dark')r.dataset.scheme='dark';else delete r.dataset.scheme;
 }
 try{const k=localStorage.getItem('saro-skin');if(k)applySkin(k)}catch(e){}
 let S=defaults();
