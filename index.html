@@ -202,6 +202,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
 [data-skin=mono] .tabs a{font-size:13px;font-weight:500}
 [data-skin=mono] .tabs a.on{background:var(--soft);color:var(--ink);font-weight:600}
 [data-skin=mono] .empty{border:0;background:var(--soft);border-radius:20px}
+.gtab{width:100%;border-collapse:collapse;margin-top:6px}.gtab td{padding:7px 4px;border-bottom:1px solid var(--line,#8883);font-size:16px}.gtab td:first-child{width:30%}.gtab td:last-child{text-align:right;width:52px}
 .spk{background:none;border:1px solid var(--line,#8884);border-radius:999px;padding:4px 10px;font-size:16px;line-height:1;cursor:pointer;vertical-align:middle;margin-left:6px;color:inherit;min-height:0}
 </style>
 </head>
@@ -427,13 +428,15 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <div><b id="lTotal">0</b><span>words</span></div>
       <div><b id="lStreak">0</b><span id="lStreakL">day streak</span></div>
     </div>
-    <div class="subtabs" style="grid-template-columns:1fr 1fr;margin-top:14px" role="tablist">
+    <div class="subtabs" style="grid-template-columns:1fr 1fr 1fr;margin-top:14px" role="tablist">
       <button data-act="lmode" data-v="flash" role="tab">Flashcards</button>
       <button data-act="lmode" data-v="write" role="tab">Write test</button>
+      <button data-act="lmode" data-v="gram" role="tab">Grammar</button>
     </div>
     <div id="packWrap" style="margin-bottom:12px"><label for="lPack">Words to practise</label><select id="lPack"></select></div>
     <div id="review"></div>
     <div id="writeBox" hidden></div>
+    <div id="gramBox" hidden></div>
     <div id="dirWrap"><label for="lDir">Practice direction</label>
     <select id="lDir"><option value="f">Foreign word → English</option><option value="b">English → foreign word</option></select></div>
 
@@ -571,7 +574,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v2.7 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v2.8 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1075,8 +1078,8 @@ function renderLang(){
   $('#packBox').innerHTML=(missing?`<button class="ghost" style="width:100%;margin-bottom:10px" data-act="add-pack">Add ${LN[lang]} starter pack · ${missing} words</button>`:'')+XPACKS[lang].map(x=>{const m=x.w.filter(p=>!have.has(p[0].toLowerCase())).length;return m?`<button class="ghost" style="width:100%;margin-bottom:10px" data-act="add-xpack" data-v="${x.id}">Add ${esc(x.name)} pack · ${m} words</button>`:''}).join('');
   $('#wlSum').textContent='Your '+LN[lang]+' words ('+mine.length+')';
   document.querySelectorAll('[data-act=lmode]').forEach(b=>{b.classList.toggle('on',b.dataset.v===lmode);b.setAttribute('aria-selected',b.dataset.v===lmode)});
-  $('#review').hidden=lmode!=='flash';$('#dirWrap').hidden=lmode!=='flash';$('#writeBox').hidden=lmode!=='write';
-  renderPackSel();renderReview();renderWords();if(lmode==='write'&&!(document.activeElement&&document.activeElement.id==='wIn'))renderWrite();
+  $('#review').hidden=lmode!=='flash';$('#dirWrap').hidden=lmode!=='flash';$('#writeBox').hidden=lmode!=='write';$('#gramBox').hidden=lmode!=='gram';if(lmode==='gram')$('#packWrap').hidden=true;
+  renderPackSel();renderReview();renderWords();if(lmode==='write'&&!(document.activeElement&&document.activeElement.id==='wIn'))renderWrite();if(lmode==='gram'&&!(document.activeElement&&/^g(In|Verb|Tense)$/.test(document.activeElement.id)))renderGram();
   const all=dueCards('it').length+dueCards('fr').length,si=streak('it'),sf=streak('fr'),st=si||sf?' · streaks IT '+si+' · FR '+sf:'';
   $('#langToday').textContent=(S.cards.length?(all?all+' card'+(all>1?'s':'')+' due today':'All caught up today'):'Italian & French flashcards')+st;
 }
@@ -1176,6 +1179,93 @@ function checkWrite(){
   if(!wq.length){S.writeBest=S.writeBest||{};const pct=Math.round(wScore/wMax*100);if(!(S.writeBest[lang]>=pct))S.writeBest[lang]=pct}
   commit();renderWrite();if(S.ttsAuto&&!S.wDict)say(wcur.f,wcur.lang);
 }
+/* ---------- Grammar: verb conjugation ---------- */
+const GP={it:['io','tu','lui/lei','noi','voi','loro'],fr:['je','tu','il/elle','nous','vous','ils/elles']};
+const GT={it:[['pres','Presente','present'],['pp','Passato prossimo','perfect past'],['imp','Imperfetto','imperfect past'],['fut','Futuro semplice','future'],['cond','Condizionale','conditional']],
+  fr:[['pres','Présent','present'],['pc','Passé composé','perfect past'],['imp','Imparfait','imperfect past'],['fut','Futur simple','future'],['cond','Conditionnel','conditional']]};
+const GV={it:[
+ ['essere','to be','sono sei è siamo siete sono','E','stato','ero eri era eravamo eravate erano','sar'],
+ ['avere','to have','ho hai ha abbiamo avete hanno','A','avuto','ave','avr'],
+ ['fare','to do, to make','faccio fai fa facciamo fate fanno','A','fatto','face','far'],
+ ['andare','to go','vado vai va andiamo andate vanno','E','andato','anda','andr'],
+ ['venire','to come','vengo vieni viene veniamo venite vengono','E','venuto','veni','verr'],
+ ['dire','to say','dico dici dice diciamo dite dicono','A','detto','dice','dir'],
+ ['potere','can, to be able to','posso puoi può possiamo potete possono','A','potuto','pote','potr'],
+ ['volere','to want','voglio vuoi vuole vogliamo volete vogliono','A','voluto','vole','vorr'],
+ ['dovere','must, to have to','devo devi deve dobbiamo dovete devono','A','dovuto','dove','dovr'],
+ ['parlare','to speak (regular -are)','parlo parli parla parliamo parlate parlano','A','parlato','parla','parler'],
+ ['credere','to believe (regular -ere)','credo credi crede crediamo credete credono','A','creduto','crede','creder'],
+ ['dormire','to sleep (regular -ire)','dormo dormi dorme dormiamo dormite dormono','A','dormito','dormi','dormir'],
+ ['finire','to finish (-isc- verb)','finisco finisci finisce finiamo finite finiscono','A','finito','fini','finir']],
+fr:[
+ ['être','to be','suis es est sommes êtes sont','A','été','ét','ser'],
+ ['avoir','to have','ai as a avons avez ont','A','eu','av','aur'],
+ ['aller','to go','vais vas va allons allez vont','E','allé','all','ir'],
+ ['faire','to do, to make','fais fais fait faisons faites font','A','fait','fais','fer'],
+ ['venir','to come','viens viens vient venons venez viennent','E','venu','ven','viendr'],
+ ['pouvoir','can, to be able to','peux peux peut pouvons pouvez peuvent','A','pu','pouv','pourr'],
+ ['vouloir','to want','veux veux veut voulons voulez veulent','A','voulu','voul','voudr'],
+ ['devoir','must, to have to','dois dois doit devons devez doivent','A','dû','dev','devr'],
+ ['dire','to say','dis dis dit disons dites disent','A','dit','dis','dir'],
+ ['prendre','to take','prends prends prend prenons prenez prennent','A','pris','pren','prendr'],
+ ['parler','to speak (regular -er)','parle parles parle parlons parlez parlent','A','parlé','parl','parler'],
+ ['finir','to finish (regular -ir)','finis finis finit finissons finissez finissent','A','fini','finiss','finir']]};
+const GAUX={it:{A:'ho hai ha abbiamo avete hanno',E:'sono sei è siamo siete sono'},fr:{A:'ai as a avons avez ont',E:'suis es est sommes êtes sont'}};
+const GEND={it:{imp:['vo','vi','va','vamo','vate','vano'],fut:['ò','ai','à','emo','ete','anno'],cond:['ei','esti','ebbe','emmo','este','ebbero']},
+  fr:{imp:['ais','ais','ait','ions','iez','aient'],fut:['ai','as','a','ons','ez','ont'],cond:['ais','ais','ait','ions','iez','aient']}};
+// returns list of accepted answers (first = main) for verb row v, tense t, person p
+function conj(L,v,t,p){const [inf,,pres,aux,part,imp,fut]=v;
+  if(t==='pres')return [pres.split(' ')[p]];
+  if(t==='pp'||t==='pc'){const a=GAUX[L][aux].split(' ')[p];
+    if(aux==='A')return [a+' '+part];
+    if(L==='it'){const b=part.slice(0,-1);return p<3?[a+' '+b+'o',a+' '+b+'a']:[a+' '+b+'i',a+' '+b+'e']}
+    return p<3?[a+' '+part,a+' '+part+'e']:[a+' '+part+'s',a+' '+part+'es']}
+  if(t==='imp'){if(imp.includes(' '))return [imp.split(' ')[p]];return [imp+GEND[L].imp[p]]}
+  return [fut+GEND[L][t][p]]}
+function gPron(L,p,form){if(L==='fr'&&p===0&&/^[aeiouéèêhâ]/i.test(form))return "j'";return GP[L][p]}
+const stripPron=(L,s)=>{let x=normW(s);const P=L==='it'?/^(io|tu|lui|lei|lui\/lei|noi|voi|loro)\s+/:/^(je|j'|tu|il|elle|on|il\/elle|nous|vous|ils|elles|ils\/elles)\s*/;return x.replace(P,'')};
+function gradeConj(L,input,answers){const u=stripPron(L,input);if(!u)return {pts:0,v:'No answer',cls:'bad'};
+  let best={pts:0,v:'Not quite',cls:'bad'};
+  for(const t0 of answers){const t=normW(t0);let g;
+    if(u===t)g={pts:10,v:'Perfetto! Exactly right',cls:'good'};
+    else if(noAcc(u)===noAcc(t))g={pts:8,v:'Right form, but check the accents',cls:'ok'};
+    else{const A=noAcc(u),B=noAcc(t),dd=lev(A,B)[A.length][B.length],sim=1-dd/Math.max(A.length,B.length);g=sim>=.85?{pts:5,v:'Almost: a small slip',cls:'ok'}:{pts:0,v:'Not quite',cls:'bad'}}
+    if(g.pts>best.pts)best=g}
+  return best}
+let gq=[],gcur=null,gres=null,gScore=0,gDone=0,gMax=0,gView='drill';
+const gSel=()=>{const o=(S.gram&&S.gram[lang])||{};return {v:o.v||'all',t:o.t||'all'}};
+function startGram(){const sel=gSel(),V=GV[lang].filter(v=>sel.v==='all'||v[0]===sel.v),T=GT[lang].filter(t=>sel.t==='all'||t[0]===sel.t),items=[];
+  V.forEach(v=>T.forEach(t=>GP[lang].forEach((_,p)=>items.push({v:v[0],t:t[0],p}))));
+  const gs=S.gramS||{},wt=it=>{const k=lang+'|'+it.v+'|'+it.t+'|'+it.p,sc=gs[k]==null?5:gs[k];return 1+Math.pow(10-sc,1.5)};
+  gq=items.map(it=>({it,k:-Math.log(Math.random()||1e-9)/wt(it)})).sort((a,b)=>a.k-b.k).slice(0,10).map(x=>x.it);
+  gScore=0;gDone=0;gMax=gq.length*10;nextGram()}
+function nextGram(){gcur=gq.shift()||null;gres=null;renderGram();if(gcur)setTimeout(()=>{const i=$('#gIn');if(i)i.focus()},50)}
+function checkGram(){if(!gcur||gres)return;const v=GV[lang].find(x=>x[0]===gcur.v),ans=conj(lang,v,gcur.t,gcur.p),val=$('#gIn').value,g=gradeConj(lang,val,ans);gres={val,g,ans};
+  gScore+=g.pts;gDone++;S.gramS=Object.assign({},S.gramS||{});const k=lang+'|'+gcur.v+'|'+gcur.t+'|'+gcur.p;S.gramS[k]=S.gramS[k]==null?g.pts:Math.round((S.gramS[k]+g.pts)*5)/10;
+  logRev(lang);const t=today();S.revLog[t]=(S.revLog[t]||0)+1;S.writeLog=S.writeLog||{};S.writeLog[t]=(S.writeLog[t]||0)+g.pts;
+  if(!gq.length){S.gramBest=Object.assign({},S.gramBest||{});const pct=Math.round(gScore/gMax*100);if(!(S.gramBest[lang]>=pct))S.gramBest[lang]=pct}
+  commit();renderGram();if(S.ttsAuto)say(ans[0],lang)}
+function gTable(L,v,t){return `<table class="gtab">${GP[L].map((_,p)=>{const a=conj(L,v,t,p),f=a[0];return `<tr><td class="muted">${esc(gPron(L,p,f))}</td><td><b>${esc(f)}</b>${a[1]?` <span class="small muted">/ ${esc(a[1].split(' ').pop())}</span>`:''}</td><td>${spk(gPron(L,p,f).replace('/elle','').replace('/elles','').replace('/lei','')+(gPron(L,p,f).endsWith("'")?'':' ')+f,L)}</td></tr>`}).join('')}</table>`}
+function renderGram(){const box=$('#gramBox');if(!box)return;const sel=gSel(),TN=Object.fromEntries(GT[lang].map(t=>[t[0],t]));
+  const selHtml=`<div class="row" style="gap:8px;align-items:flex-end"><div style="flex:1"><label for="gVerb">Verb</label><select id="gVerb"><option value="all">All verbs</option>${GV[lang].map(v=>`<option value="${v[0]}" ${sel.v===v[0]?'selected':''}>${v[0]} · ${esc(v[1])}</option>`).join('')}</select></div>
+    <div style="flex:1"><label for="gTense">Tense</label><select id="gTense"><option value="all">All tenses</option>${GT[lang].map(t=>`<option value="${t[0]}" ${sel.t===t[0]?'selected':''}>${t[1]}</option>`).join('')}</select></div></div>`;
+  if(!gcur){const best=(S.gramBest||{})[lang];
+    if(gDone){box.innerHTML=`<div class="flash"><p class="small muted">Round complete</p><div class="w">${gScore} / ${gMax}</div><p class="small muted">${Math.round(gScore/gMax*100)}% · best ${best??'—'}%</p><button class="btn" data-act="g-start">Another round</button><button class="ghost" data-act="g-home" style="margin-top:8px">Change verb or tense</button></div>`;return}
+    const v=GV[lang].find(x=>x[0]===sel.v);
+    box.innerHTML=selHtml+`<div class="subtabs" style="grid-template-columns:1fr 1fr;margin-top:12px" role="tablist"><button data-act="g-view" data-v="drill" class="${gView==='drill'?'on':''}">Practise</button><button data-act="g-view" data-v="table" class="${gView==='table'?'on':''}">Study tables</button></div>`+
+    (gView==='table'?(v?(sel.t==='all'?GT[lang]:[TN[sel.t]]).map(t=>`<h3 style="margin:16px 0 6px">${t[1]} <span class="small muted" style="font-weight:400">· ${t[2]}</span></h3>${gTable(lang,v,t[0])}`).join(''):`<div class="empty" style="margin-top:12px">Pick a verb above to see its tables.</div>`)
+    :`<div class="flash"><p class="small muted">Conjugation · ${LN[lang]}</p><div class="w" style="font-size:22px">See the verb, tense and person. Type the form.</div><p class="small muted" style="margin-top:6px">10 questions · up to 10 points each · your weak forms come up more${best!=null?' · best '+best+'%':''}</p><button class="btn" data-act="g-start">Start practice</button></div>`);
+    return}
+  const v=GV[lang].find(x=>x[0]===gcur.v),t=TN[gcur.t],n=gDone+(gres?0:1),total=gDone+gq.length+(gres?0:1),pr=gPron(lang,gcur.p,conj(lang,v,gcur.t,gcur.p)[0]);
+  box.innerHTML=`<div class="flash" style="text-align:left"><div class="row small muted"><span>Question ${n} of ${total}</span><span>Score ${gScore}</span></div>
+    <p class="small muted" style="margin-top:12px">${t[1]} · ${t[2]}</p><div class="w" style="text-align:left">${esc(v[0])} <span class="small muted" style="font-weight:400">· ${esc(v[1])}</span></div>
+    <form data-form="gram"><div style="display:flex;align-items:center;gap:10px"><b style="font-size:18px;white-space:nowrap">${esc(pr)}</b><input id="gIn" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="…" ${gres?'disabled':''} value="${gres?esc(gres.val):''}" style="font-size:18px;flex:1"></div>
+    <div class="chips" style="margin-top:8px">${ACC[lang].map(a=>`<button type="button" data-act="g-acc" data-v="${a}" ${gres?'disabled':''} style="min-width:40px">${a}</button>`).join('')}</div>
+    ${gres?`<div style="margin-top:14px"><p style="font-weight:600;color:${gres.g.cls==='good'?'var(--good)':gres.g.cls==='bad'?'var(--bad)':'var(--ink)'}">${gres.g.v} · +${gres.g.pts}</p>
+      ${gres.g.pts<10?`<p class="small muted" style="margin-top:4px">Correct: <b style="font-size:17px;color:var(--ink)">${esc(pr)} ${diffHtml(stripPron(lang,gres.val),gres.ans[0])}</b>${gres.ans[1]?` <span class="small">(or ${esc(gres.ans[1])})</span>`:''}</p>`:''}
+      <details style="margin-top:10px"><summary class="small">Full ${esc(t[1])} table for ${esc(v[0])}</summary>${gTable(lang,v,gcur.t)}</details></div>
+      <button type="button" class="btn" data-act="g-next">${gq.length?'Next':'See result'}</button>`:`<button class="btn" type="submit">Check</button>`}</form></div>`}
+
 function renderWrite(){
   const box=$('#writeBox');if(!box)return;
   if(!wcur){
@@ -1464,11 +1554,16 @@ document.addEventListener('click',e=>{
   else if(a==='pick-import'){$('#impFile').value='';$('#impFile').click()}
   else if(a==='cancel-import'){pending=null;$('#impConfirm').hidden=true}
   else if(a==='do-import'){if(!pending)return;const old=S;S=Object.assign(defaults(),pending);S.mt={};const now=Date.now();scalarKeys(S).forEach(k=>S.mt[k]=now);snapNow();pending=null;$('#impConfirm').hidden=true;commit();toast('Backup restored',()=>{S=old;commit()})}
-  else if(a==='lang'){lang=b.dataset.v;queue=[];cur=null;sessionDone=0;renderLang()}
+  else if(a==='lang'){lang=b.dataset.v;queue=[];cur=null;sessionDone=0;gcur=null;gq=[];gDone=0;renderLang()}
   else if(a==='start-rev'){startReview(!!b.dataset.x)}
   else if(a==='show-ans'){shown=true;renderReview();if(cur&&S.ttsAuto&&S.langDir==='b')say(cur.f,cur.lang)}
   else if(a==='rate'){rate(b.dataset.v)}
-  else if(a==='lmode'){lmode=b.dataset.v;wcur=null;wq=[];wDone=0;renderLang()}
+  else if(a==='lmode'){lmode=b.dataset.v;wcur=null;wq=[];wDone=0;gcur=null;gq=[];gDone=0;renderLang()}
+  else if(a==='g-start'){startGram()}
+  else if(a==='g-next'){nextGram()}
+  else if(a==='g-home'){gDone=0;gcur=null;renderGram()}
+  else if(a==='g-view'){gView=b.dataset.v;renderGram()}
+  else if(a==='g-acc'){const i=$('#gIn');if(i&&!i.disabled){const st=i.selectionStart??i.value.length,en=i.selectionEnd??st;i.value=i.value.slice(0,st)+b.dataset.v+i.value.slice(en);i.focus();i.setSelectionRange(st+1,st+1)}}
   else if(a==='w-start'){startWrite()}
   else if(a==='w-next'){nextWrite()}
   else if(a==='w-acc'){const i=$('#wIn');if(i&&!i.disabled){const st=i.selectionStart??i.value.length,en=i.selectionEnd??st;i.value=i.value.slice(0,st)+b.dataset.v+i.value.slice(en);i.focus();i.setSelectionRange(st+1,st+1)}}
@@ -1505,6 +1600,7 @@ document.addEventListener('change',e=>{
   if(e.target.dataset&&e.target.dataset.holdcost){const h=(S.holdings||[]).find(x=>x.id===e.target.dataset.holdcost),v=e.target.value.trim(),n=num(v);if(h){if(v===''){h.cost=null;commit()}else if(n>0){h.cost=n;commit()}else e.target.value=h.cost??''}}
   if(e.target.dataset&&e.target.dataset.holdqty){const h=(S.holdings||[]).find(x=>x.id===e.target.dataset.holdqty),n=num(e.target.value);if(h&&n>=0){h.qty=n;commit()}}
   if(e.target.dataset&&e.target.dataset.voice){const L=e.target.dataset.voice;try{e.target.value?localStorage.setItem('excelsior-voice-'+L,e.target.value):localStorage.removeItem('excelsior-voice-'+L)}catch(x){}say(L==='fr'?'Bonjour, ça va ?':'Ciao, come va?',L)}
+  if(e.target.id==='gVerb'||e.target.id==='gTense'){const o=Object.assign({},gSel());o[e.target.id==='gVerb'?'v':'t']=e.target.value;S.gram=Object.assign({},S.gram||{},{[lang]:o});commit();renderGram()}
   if(e.target.id==='lDir'){S.langDir=e.target.value;commit()}
   if(e.target.id==='lPack'){S.lpack=Object.assign({},S.lpack||{},{[lang]:e.target.value});queue=[];cur=null;sessionDone=0;if(typeof wq!=='undefined'){wq=[];wcur=null;wres=null}commit();renderLang()}
   if(e.target.id==='setName'){S.name=e.target.value.trim()||'Rasul';commit()}
@@ -1570,6 +1666,7 @@ document.addEventListener('submit',e=>{
     const was=!!evEdit;evView=d.slice(0,7);evReset();commit();toast(was?'Event updated':'Event added');
   }
   else if(k==='write'){checkWrite()}
+  else if(k==='gram'){checkGram()}
   else if(k==='debt'){
     const who=$('#dWho').value.trim(),amt=num($('#dAmt').value);
     if(!who||!(amt>0)){$('#dMsg').textContent='Add the person and the amount.';return}
