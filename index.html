@@ -483,6 +483,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div><label for="evDate">Date</label><input type="date" id="evDate"></div>
         <div><label for="evTime">Time (optional)</label><input type="time" id="evTime"></div>
       </div>
+      <label for="evRem">Reminder</label><select id="evRem"></select>
       <label>Type</label><div class="chips" id="evCats"></div>
       <label for="evNote">Notes (place, link, details)</label><input id="evNote" autocomplete="off">
       <p class="msg" id="evMsg"></p>
@@ -510,6 +511,8 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <button class="skin ghost" data-act="icon" data-v="dark"><img src="icon-dark.png" alt="" style="width:64px;height:64px;border-radius:15px;display:block;margin-bottom:6px">Dark</button>
     </div>
     <p class="small muted" style="margin-top:8px">To apply it: remove Excelsior from your Home Screen, then open the link in Safari and tap Share → Add to Home Screen again. Your data stays safe. This choice is per device. On a computer (Edge/Chrome): choose the icon first, then install the app; if it's already installed, uninstall and install again.</p>
+    <h2>Notifications</h2>
+    <div id="pushBox"></div>
     <h2>Pronunciation</h2>
     <div class="subtabs" style="grid-template-columns:1fr 1fr" role="group"><button data-act="tts" data-v="on">Sound on</button><button data-act="tts" data-v="off">Sound off</button></div>
     <div class="subtabs" style="grid-template-columns:1fr 1fr;margin-top:8px" role="group"><button data-act="ttsauto" data-v="on">Auto-play</button><button data-act="ttsauto" data-v="off">Tap to play</button></div>
@@ -580,7 +583,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v3.2.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1166,7 +1169,9 @@ function renderEvents(){
   $('#evCats').innerHTML=EVC.map(c=>`<button type="button" data-act="ev-cat" data-v="${c[0]}" class="${evCat===c[0]?'on':''}">${c[1]}</button>`).join('');
   $('#evFormTitle').textContent=evEdit?'Edit event':'Add an event';$('#evSave').textContent=evEdit?'Save changes':'Add event';$('#evCancel').hidden=!evEdit;
 }
-function evReset(){evEdit=null;evCat='academic';['#evTitle','#evTime','#evNote'].forEach(x=>$(x).value='');$('#evDate').value=evDay||today();$('#evMsg').textContent='';renderEvents()}
+function evReset(){evEdit=null;evCat='academic';['#evTitle','#evTime','#evNote'].forEach(x=>$(x).value='');$('#evDate').value=evDay||today();$('#evMsg').textContent='';fillRem('');renderEvents()}
+const REM_T=[['none','No reminder'],['0','At start time'],['15','15 min before'],['30','30 min before'],['60','1 hour before'],['1440','1 day before'],['60+1440','1 day + 1 hour before']],REM_D=[['none','No reminder'],['am','On the day, 9:00'],['pm','Day before, 18:00'],['am+pm','Day before + on the day']];
+function fillRem(v){const sel=$('#evRem');if(!sel)return;const timed=!!$('#evTime').value,opts=timed?REM_T:REM_D;if(!v||!opts.some(o=>o[0]===v))v=timed?'60':'am';sel.innerHTML=opts.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');sel.value=v}
 function icsFor(e){
   const z=s=>String(s||'').replace(/[\\,;]/g,m=>'\\'+m).replace(/\n/g,'\\n'),dt=e.d.replace(/-/g,'');
   const st=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
@@ -1554,12 +1559,35 @@ function renderPay(){
   const on=!!S.dropKey;$('#payOff').hidden=on;$('#payOn').hidden=!on;
   if(on){$('#payUrl').value=DROP_URL(S.dropKey);$('#payBody').value='{"fields":{"amt":{"stringValue":"AMOUNT"},"merchant":{"stringValue":"MERCHANT"},"d":{"stringValue":"DATE"}}}'}
 }
+const VAPID_PUB='BCcHdmo8rR4moROkbMK0rxkCCrA5xdjc6r50SzrdDSdU_BCjFKPKS1VqCURkFxjZ7yxKWA9zm95skoHP6chfBIc';
+const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone;
+const pushOk=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+let pushOn=false;try{pushOn=localStorage.getItem('excelsior-push')==='1'}catch(e){}
+function b64u(s){const p='='.repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(b,c=>c.charCodeAt(0))}
+function renderPush(){const box=$('#pushBox');if(!box)return;let h='';
+  if(isIOS&&!standalone)h=`<p class="small muted">To get notifications on iPhone/iPad, open Excelsior from its <b>Home Screen icon</b> (not Safari), then turn them on here.</p>`;
+  else if(!pushOk())h=`<p class="small muted">This browser doesn't support notifications.</p>`;
+  else if(Notification.permission==='denied')h=`<p class="small muted">Notifications are blocked for Excelsior. Allow them in your device settings (iPhone: Settings → Notifications → Excelsior), then come back here.</p>`;
+  else if(!uid)h=`<p class="small muted">Sign in first (Account & sync below), so reminders know which events are yours.</p>`;
+  else if(pushOn&&Notification.permission==='granted')h=`<p class="small"><b>On for this device.</b> <span class="muted">Event reminders arrive even when the app is closed (they can be a few minutes late).</span></p><div class="grid2" style="margin-top:10px"><button class="ghost" data-act="push-test">Test</button><button class="ghost" data-act="push-off">Turn off</button></div>`;
+  else h=`<p class="small muted">Get reminders for your events on this device, even when the app is closed. Set the timing for each event when you add it.</p><button class="btn" data-act="push-on">Turn on notifications</button>`;
+  box.innerHTML=h+'<p class="msg" id="pushMsg"></p>'}
+async function pushEnable(){const m=$('#pushMsg');try{
+  const perm=await Notification.requestPermission();if(perm!=='granted'){m.textContent='Permission not given.';renderPush();return}
+  const reg=await navigator.serviceWorker.register('sw.js');await navigator.serviceWorker.ready;
+  let sub=await reg.pushManager.getSubscription();if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(VAPID_PUB)});
+  const j=sub.toJSON();await cloud.savePush(uid,devId,{endpoint:j.endpoint,keys:j.keys,tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'Europe/London',dev:navigator.userAgent.slice(0,80),t:Date.now()});
+  pushOn=true;try{localStorage.setItem('excelsior-push','1')}catch(e){}renderPush();toast('Notifications on');
+  reg.showNotification('Excelsior',{body:'Notifications are on. Event reminders will appear like this.',icon:'icon.png'})}
+  catch(e){m.textContent='Couldn\'t turn on: '+(e&&e.message||e)}}
+async function pushDisable(){try{const reg=await navigator.serviceWorker.getRegistration();const sub=reg&&await reg.pushManager.getSubscription();if(sub)await sub.unsubscribe()}catch(e){}
+  try{if(uid)await cloud.savePush(uid,devId,null)}catch(e){}pushOn=false;try{localStorage.removeItem('excelsior-push')}catch(e){}renderPush();toast('Notifications off')}
 function renderVoices(){const box=$('#voiceBox');if(!box)return;if(!('speechSynthesis' in window)||S.tts===false){box.innerHTML='';return}
   const all=speechSynthesis.getVoices();
   box.innerHTML=[['fr','French','Bonjour, je m\'appelle Rasul. On va grailler ?'],['it','Italian','Ciao, mi chiamo Rasul. Comunque, andiamo?']].map(([L,n,demo])=>{const main=L==='fr'?'fr-fr':'it-it',vs=goodVoices(L).sort((a,b)=>((a.lang.toLowerCase().replace('_','-')===main?0:1)-(b.lang.toLowerCase().replace('_','-')===main?0:1))||vQ(b)-vQ(a)||a.name.localeCompare(b.name));let cur='';try{cur=localStorage.getItem('excelsior-voice-'+L)||''}catch(e){}
     return `<label for="voice-${L}" style="margin-top:12px">${n} voice</label><div style="display:flex;gap:8px;align-items:center"><select id="voice-${L}" data-voice="${L}" style="flex:1">${'<option value="">Automatic</option>'+vs.map(v=>`<option value="${esc(v.voiceURI||v.name)}" ${(v.voiceURI||v.name)===cur?'selected':''}>${esc(v.name.replace(/\s*\((enhanced|premium|compact)\)/i,''))}${vQL(v)?' · '+vQL(v):''} · ${esc(v.lang)}</option>`).join('')}</select><button type="button" class="spk" style="margin:0;padding:10px 14px" data-act="say" data-t="${esc(demo)}" data-l="${L}" aria-label="Preview">▶</button></div>${vs.length?'':`<p class="small muted">No ${n} voices found on this device.</p>`}`}).join('')+`<p class="small muted" style="margin-top:6px">Downloaded a new voice? Fully close and reopen the app, then pick it here. This choice is per device.</p>`}
 if('speechSynthesis' in window)speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',()=>{if(!(document.activeElement&&document.activeElement.dataset&&document.activeElement.dataset.voice))renderVoices()});
-function renderSettings(){renderVoices();
+function renderSettings(){renderVoices();renderPush();
   let sk=S.skin;try{sk=localStorage.getItem('excelsior-skin')||localStorage.getItem('saro-skin')||S.skin;localStorage.setItem('excelsior-skin',sk)}catch(e){}
   applySkin(sk);
   document.querySelectorAll('[data-act=tts]').forEach(b=>b.classList.toggle('on',b.dataset.v===(S.tts===false?'off':'on')));
@@ -1600,6 +1628,9 @@ document.addEventListener('click',e=>{
   else if(a==='del-debt'){removeWith('debts',id,'Repayment')}
   else if(a==='icon'){try{localStorage.setItem('excelsior-icon',b.dataset.v)}catch(e){}renderSettings();toast('Icon chosen for this device · reloading…');setTimeout(()=>location.reload(),900)}
   else if(a==='skin'){try{localStorage.setItem('excelsior-skin',b.dataset.v)}catch(e){}S.skin=b.dataset.v;commit()}
+  else if(a==='push-on'){pushEnable()}
+  else if(a==='push-off'){pushDisable()}
+  else if(a==='push-test'){navigator.serviceWorker.getRegistration().then(reg=>reg&&reg.showNotification('Excelsior test',{body:'This is how your reminders will look.',icon:'icon.png'}))}
   else if(a==='tts'){S.tts=b.dataset.v==='on';commit();if(S.tts)say(lang==='fr'?'bonjour':'ciao',lang)}
   else if(a==='ttsauto'){S.ttsAuto=b.dataset.v==='on';commit()}
   else if(a==='say'){say(b.dataset.t,b.dataset.l||lang,true)}
@@ -1628,7 +1659,7 @@ document.addEventListener('click',e=>{
   else if(a==='ev-cancel'){evReset()}
   else if(a==='ev-done'){const e=(S.events||[]).find(x=>x.id===id);if(e){e.done=!e.done;commit();if(e.done)toast('Nice, done')}}
   else if(a==='ev-del'){if(evEdit===id)evReset();removeWith('events',id,'Event')}
-  else if(a==='ev-edit'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;evEdit=id;evCat=e.cat;$('#evTitle').value=e.title;$('#evDate').value=e.d;$('#evTime').value=e.time||'';$('#evNote').value=e.note||'';renderEvents();$('#evTitle').scrollIntoView({block:'center'});$('#evTitle').focus()}
+  else if(a==='ev-edit'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;evEdit=id;evCat=e.cat;$('#evTitle').value=e.title;$('#evDate').value=e.d;$('#evTime').value=e.time||'';$('#evNote').value=e.note||'';fillRem(e.rem||'');renderEvents();$('#evTitle').scrollIntoView({block:'center'});$('#evTitle').focus()}
   else if(a==='ev-ics'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;const l=document.createElement('a');l.href='data:text/calendar;charset=utf-8,'+encodeURIComponent(icsFor(e));l.download=(e.title.replace(/[^a-z0-9]+/gi,'-').slice(0,40)||'event')+'.ics';document.body.appendChild(l);l.click();l.remove()}
   else if(a==='inv-ccy'){S.invCcy=b.dataset.v;commit()}
   else if(a==='inv-refresh'){refreshInv(true)}
@@ -1763,7 +1794,7 @@ document.addEventListener('submit',e=>{
   else if(k==='ev'){
     const title=$('#evTitle').value.trim(),d=$('#evDate').value;
     if(!title||!d){$('#evMsg').textContent='Add a title and a date.';return}
-    S.events=S.events||[];const o={id:evEdit||newId(),title,d,time:$('#evTime').value||'',cat:evCat,note:$('#evNote').value.trim(),done:false};
+    S.events=S.events||[];const o={id:evEdit||newId(),title,d,time:$('#evTime').value||'',cat:evCat,note:$('#evNote').value.trim(),done:false,rem:$('#evRem').value,u:Date.now()};
     if(evEdit){const i=S.events.findIndex(x=>x.id===evEdit);if(i>=0){o.done=S.events[i].done;S.events[i]=o}else S.events.push(o)}else S.events.push(o);
     const was=!!evEdit;evView=d.slice(0,7);evReset();commit();toast(was?'Event updated':'Event added');
   }
@@ -1801,7 +1832,9 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 setTimeout(checkUpdate,3000);
 
 $('#expDate').value=today();
-resetForm();$('#evDate').value=today();snapNow();renderAll();show();
+resetForm();$('#evDate').value=today();fillRem('');snapNow();renderAll();show();
+$('#evTime').addEventListener('input',()=>fillRem($('#evRem').value));
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 </script>
 <script type="module">
@@ -1834,6 +1867,7 @@ window.saroCloud={
   save:(uid,data)=>setDoc(ref(uid),data),
   watchInbox:(uid,next)=>onSnapshot(collection(db,'users',uid,'inbox'),q=>next(q.docs.map(d=>({id:d.id,data:d.data()}))),()=>{}),
   getSecret:async uid=>{const s=await getDoc(doc(db,'users',uid,'app','secrets'));return s.exists()?s.data():null},
+  savePush:(uid,dev,sub)=>setDoc(doc(db,'users',uid,'app','push'),{subs:{[dev]:sub}},{merge:true}),
   setSecret:(uid,data)=>setDoc(doc(db,'users',uid,'app','secrets'),data,{merge:true}),
   backup:(uid,day,data)=>setDoc(doc(db,'users',uid,'backups',day),data),
   listBackups:async uid=>(await getDocs(collection(db,'users',uid,'backups'))).docs.map(d=>({id:d.id,data:d.data()})).sort((a,b)=>b.id.localeCompare(a.id)),
