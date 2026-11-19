@@ -586,7 +586,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.10 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.11 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -858,6 +858,11 @@ function weekDays(){
 
 /* ---------- Today ---------- */
 const evMs=(d,t)=>new Date(d+'T'+t+':00').getTime();
+// countdown label for a timed event: returns {cls,txt,over} or null when >24h away / untimed
+function evCount(e){if(!e.time)return null;const now=Date.now(),st=evMs(e.d,e.time),en=e.end&&e.end>e.time?evMs(e.d,e.end):st+3600e3;
+  if(now>=en)return {over:true};if(now>=st)return {cls:'hot',txt:'now'};const dm=st-now;
+  if(dm<3600e3)return {cls:dm<15*60000?'hot':'soon',txt:'in '+Math.max(1,Math.ceil(dm/60000))+' min'};
+  if(dm<864e5)return {cls:'soon',txt:'in '+Math.floor(dm/3600e3)+' h'};return null}
 function renderToday(){
   const t=today(),m=ym(t),spent=monthSpent(m);
   const di=dayInfo(),pi=potInfo();
@@ -891,9 +896,7 @@ function renderToday(){
   const nowMs=Date.now();
   (S.events||[]).forEach(e=>{const n=days(today(),e.d);if(n<0||n>7||e.done)return;const dlc=e.cat==='academic'||e.cat==='work';let tag=`<span class="tag${n<=1&&dlc?' hot':''}">${when(n)}</span>`,k=n;
     if(e.time){const st=evMs(e.d,e.time),en=e.end&&e.end>e.time?evMs(e.d,e.end):st+3600e3;k=n+(+e.time.slice(0,2)*60+ +e.time.slice(3,5)+1)/1441;
-      if(nowMs>=en){if(!dlc)return;tag='<span class="tag hot">passed</span>'}
-      else if(nowMs>=st)tag='<span class="tag hot">now</span>';
-      else{const dm=st-nowMs;if(dm<3600e3)tag=`<span class="tag ${dm<15*60000?'hot':'soon'}">in ${Math.max(1,Math.ceil(dm/60000))} min</span>`;else if(dm<864e5)tag=`<span class="tag soon">in ${Math.floor(dm/3600e3)} h</span>`}}
+      const c=evCount(e);if(c&&c.over){if(!dlc)return;tag='<span class="tag hot">passed</span>'}else if(c)tag=`<span class="tag ${c.cls}">${c.txt}</span>`}
     up.push({dl:k,h:`<span style="display:flex;gap:10px"><i style="flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;${evDot(e.cat)}"></i><span><b>${esc(e.title)}</b><br><span class="small muted">${dayLabel(e.d)}${e.time?' · '+e.time+(e.end?'–'+e.end:''):''}</span></span></span>${tag}`})});
   up.sort((a,b)=>a.dl-b.dl);
   $('#upcoming').innerHTML=up.length?up.slice(0,8).map(u=>`<li class="li">${u.h}</li>`).join(''):'<li class="empty">Nothing coming up this week. Add deadlines and plans in Events.</li>';
@@ -1153,7 +1156,7 @@ function evRow(e){
   return `<div class="li" style="align-items:flex-start${e.done?';opacity:.5':''}"><span style="display:flex;gap:10px;align-items:flex-start"><i style="flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;${evDot(e.cat)}"></i>
     <span><b style="${e.done?'text-decoration:line-through':''}">${esc(e.title)}</b><br><span class="small muted">${e.time?e.time+(e.end?'–'+e.end:'')+' · ':''}${(EVN[e.cat]||EVN.other)[1]}${e.note?' · '+esc(e.note):''}</span>
     <span class="evacts">${dl?`<button class="link" data-act="ev-done" data-id="${e.id}">${e.done?'Undo':'Done'}</button>`:''}<a class="link" href="${gcalUrl(e)}" target="_blank" rel="noopener" style="text-decoration:none">Add to GC</a><button class="link" data-act="ev-edit" data-id="${e.id}">Edit</button><button class="link" data-act="ev-del" data-id="${e.id}">Delete</button></span></span></span>
-    ${n>=0&&!e.done?`<span class="tag${n<=2&&dl?' hot':''}">${n===0?'today':n===1?'tomorrow':'in '+n+'d'}</span>`:''}</div>`;
+    ${n>=0&&!e.done?(()=>{const c=evCount(e);if(c&&c.over)return dl?'<span class="tag hot">passed</span>':'<span class="tag">ended</span>';if(c)return `<span class="tag ${c.cls}">${c.txt}</span>`;return `<span class="tag${n<=2&&dl?' hot':''}">${n===0?'today':n===1?'tomorrow':'in '+n+'d'}</span>`})():''}</div>`;
 }
 function renderEvents(){
   if(!$('#v-events'))return;
@@ -1847,7 +1850,7 @@ async function checkUpdate(){
   }catch(e){}
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){checkUpdate();try{renderToday()}catch(e){}}});
-setInterval(()=>{if(document.visibilityState==='visible')try{renderToday()}catch(e){}},60000);
+setInterval(()=>{if(document.visibilityState!=='visible')return;try{renderToday()}catch(e){}try{const a=document.activeElement;if(location.hash==='#events'&&!(a&&/^ev/.test(a.id||'')))renderEvents()}catch(e){}},60000);
 setTimeout(checkUpdate,3000);
 
 $('#expDate').value=today();
