@@ -615,7 +615,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.0.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.1.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1616,20 +1616,21 @@ function lvlOf(xp){let l=0;while(l<LVX.length-1&&xp>=LVX[l+1])l++;const lo=LVX[l
 const RANKS=[['Intern',0],['Analyst',300],['Associate',900],['Vice President',2000],['Director',3500],['Managing Director',5500],['Partner',8000]];
 const rankOf=xp=>{let r=RANKS[0];for(const x of RANKS)if(xp>=x[1])r=x;const i=RANKS.indexOf(r),nx=RANKS[i+1];return {name:r[0],next:nx?nx[0]:null,need:nx?nx[1]-xp:0}};
 function finStreak(){let n=0;const d=new Date();if(!fget('day|'+iso(d)))d.setDate(d.getDate()-1);while(fget('day|'+iso(d))){n++;d.setDate(d.getDate()-1)}return n}
-const missed=()=>Object.keys(FL()).filter(k=>k.startsWith('miss|')&&!k.startsWith('miss|bs:')).map(k=>k.slice(5)).filter(id=>fget('miss|'+id)>fget('fix|'+id)&&QT[id]);
+const missed=()=>Object.keys(FL()).filter(k=>k.startsWith('miss|')).map(k=>k.slice(5)).filter(id=>fget('miss|'+id)>fget('fix|'+id)&&QT[id]);
 const BOSS_AT=150;
 
+const QAB=['quick','adv','blitz'],QB=['quick','blitz'];
 const FIN=[
- {id:'t1',name:'Accruals, cash & where value comes from'},
- {id:'t2',name:'Strategy analysis'},
- {id:'t3',name:'Reformulating the statements',games:['sort','sortadv']},
- {id:'t4',name:'Free cash flow'},
- {id:'t5',name:'Advanced DuPont'},
- {id:'t6',name:'AOP and the balance sheet'},
- {id:'t7',name:'Disclosure & information environment'},
+ {id:'t1',name:'Accruals, cash & where value comes from',games:QAB},
+ {id:'t2',name:'Strategy analysis',games:QB},
+ {id:'t3',name:'Reformulating the statements',games:['sort','sortis','sortcf','sortadv','quick','adv','blitz']},
+ {id:'t4',name:'Free cash flow',games:QAB},
+ {id:'t5',name:'Advanced DuPont',games:['quick','adv','boss','blitz']},
+ {id:'t6',name:'AOP and the balance sheet',games:QAB},
+ {id:'t7',name:'Disclosure & information environment',games:QB},
  {id:'t8',name:'AOP = DCF valuation',games:['quick','adv','boss','blitz']},
- {id:'t9',name:'Growth, forecasting & reverse engineering'},
- {id:'t10',name:'Relative valuation'}];
+ {id:'t9',name:'Growth, forecasting & reverse engineering',games:QAB},
+ {id:'t10',name:'Relative valuation',games:QAB}];
 const TN=Object.fromEntries(FIN.map((t,i)=>[t.id,(i+1)+' · '+t.name]));
 
 /* numbers */
@@ -1701,12 +1702,6 @@ const QT={
  q8_pvcv:{t:'t8',k:'q',gen(){const s=scen(),c=s.cvA*s.df[2];
   return {stem:`The continuing value at the end of ${YR[2]} is ${fm(s.cvA)}. You are valuing the firm at the end of ${Y0}, with WACC ${pc(s.w)}. What is its present value?`,...opts(c,[s.cvA*s.df[1],s.cvA/Math.pow(1+s.w,4),s.cvA/(1+3*s.w)]),
   expl:`${YR[2]} is 3 years away, so PV = ${f2(s.cvA)} ÷ (1 + ${pc(s.w)})³ = ${f2(c)}.`}}},
- q8_eva:{t:'t8',k:'q',gen(){const s=scen(),c=s.evA,pv=s.pvA[0]+s.pvA[1]+s.pvA[2];
-  return {stem:`Using the AOP model, what is the enterprise value?`,table:scenTable(s),...opts(c,[c-s.noa[0],s.noa[0]+pv+s.cvA,s.noa[0]+pv+s.aop[2]/(s.w-s.g)*s.df[2]]),
-  expl:`Enterprise value = NOA₀ + PV of forecast AOP + PV of continuing value. Typical mistakes: leaving out NOA₀, or not discounting the continuing value.`,sol:solTable(s)}}},
- q8_evf:{t:'t8',k:'q',gen(){const s=scen(),c=s.evF,nd=s.nopat.reduce((a,n,i)=>a+n*s.df[i],0)+s.nopat[2]*(1+s.g)/(s.w-s.g)*s.df[2];
-  return {stem:`Using the DCF model, what is the enterprise value?`,table:scenTable(s),...opts(c,[c+s.noa[0],nd,s.pvF[0]+s.pvF[1]+s.pvF[2]+s.cvF]),
-  expl:`DCF value = PV of FCF + PV of continuing value, with FCF = NOPAT − ΔNOA. It matches the AOP value exactly when both use the same forecasts. Unlike the AOP model, you don't add NOA₀.`,sol:solTable(s,1)}}},
  q8_px:{t:'t8',k:'q',gen(){const s=scen(),c=s.px;
   return {stem:`Enterprise value at the end of ${Y0} is ${fm(s.evA)}, net debt is ${fm(s.nfo)} and there are ${s.sh}m shares. What is the value per share?`,...opts(c,[(s.evA+s.nfo)/s.sh,s.evA/s.sh,(s.evA-s.nfo)/s.sh/(1+s.w)],v=>'£'+f2(v)),
   expl:`Equity value = enterprise value − net debt = ${f2(s.evA)} − ${f2(s.nfo)} = ${f2(s.eq)}; per share = ${f2(s.eq)} ÷ ${s.sh} = £${f2(c)}.`}}},
@@ -1724,7 +1719,7 @@ const QT={
   expl:`AOP ${YR[2]} = ${f2(s.aop[2])}; CV = ${f2(s.aop[2])} × (1 + ${pc(s.g)}) ÷ (${pc(s.w)} − ${pc(s.g)}) = ${f2(s.cvA)}.`}}},
  a8_eva:{t:'t8',k:'a',gen(){const s=scen();return {stem:`What is the enterprise value using the AOP model?`,table:scenTable(s),c:s.evA,tol:.01,expl:'',sol:solTable(s)}}},
  a8_evf:{t:'t8',k:'a',gen(){const s=scen();return {stem:`What is the enterprise value using DCF?`,table:scenTable(s),c:s.evF,tol:.01,expl:'',sol:solTable(s,1)}}},
- a8_px:{t:'t8',k:'a',gen(){const s=scen();return {stem:`What is the equity value per share (in £)?`,table:scenTable(s,{nfo:1}),c:s.px,tol:.01,unit:'£',
+ a8_px:{t:'t8',k:'a',gen(){const s=scen();return {stem:`What is the equity value per share (in £)?`,table:scenTable(s,{nfo:1}),c:s.px,tol:.01,u:'£',
   expl:`Equity = enterprise value − net debt = ${f2(s.evA)} − ${f2(s.nfo)} = ${f2(s.eq)}; per share = £${f2(s.px)}.`,sol:solTable(s)}}}
 };
 /* Concept questions (first option is the correct one; options are shuffled when shown) */
@@ -1745,7 +1740,277 @@ const QT={
  ['Why might an analyst prefer the AOP model to DCF in practice?',['It uses accrual information and needs less forecasting of volatile capex','It always gives a higher value','It needs no WACC','It ignores the balance sheet'],'Accruals capture value creation in a timely way, while capex-driven FCF is lumpy and harder to forecast.']
 ].forEach((c,i)=>{QT['c8_'+(i+1)]={t:'t8',k:'q',c:1,gen(){const o=shuffle(c[1].map((t,j)=>({t,j})));return {stem:c[0],opts:o.map(x=>x.t),ans:o.findIndex(x=>x.j===0),expl:c[2]}}}});
 
-/* Balance-sheet items for "Sort the statement" (module conventions: Penman / Week 3) */
+/* ---------- FSA topics 1–7, 9–10: concept MCQs + light calcs (quick) + typed drills (advanced) ---------- */
+const conceptSet=(t,list)=>list.forEach((c,i)=>{QT['c'+t.slice(1)+'_'+(i+1)]={t,k:'q',c:1,gen(){const o=shuffle(c[1].map((x,j)=>({x,j})));return {stem:c[0],opts:o.map(y=>y.x),ans:o.findIndex(y=>y.j===0),expl:c[2]}}}});
+const fx=x=>(x<0?'−':'')+Math.abs(r2(x)).toLocaleString('en-GB',{maximumFractionDigits:2})+'×';
+const fu=(v,u)=>u==='%'?pc(v/100):u==='x'?fx(v):u==='£'?'£'+f2(v):fm(v);
+const tRate=()=>pick([.19,.2,.25,.27]);
+const add=(o)=>Object.assign(QT,o);
+
+/* Topic 1: accruals, cash and value */
+add({
+ q1_toy:{t:'t1',k:'q',gen(){const n=rnd(5,40)*10,c=rnd(4,30),p=c+rnd(3,25),prof=Math.random()<.5,ans=prof?n*(p-c):-n*c;
+  return {stem:`During the year a shop buys ${n} units at £${c} each, paying cash, and sells all of them on credit at £${p} each. No customer has paid by year-end. What is the year's ${prof?'<b>profit</b>':'<b>operating cash flow</b>'}?`,...opts(ans,prof?[-n*c,n*p,n*c]:[n*(p-c),n*p,0],v=>(v<0?'−£':'£')+Math.abs(v).toLocaleString('en-GB')),
+  expl:prof?`Profit = revenue − matched cost = ${n} × (£${p} − £${c}) = £${(n*(p-c)).toLocaleString('en-GB')}, even though no cash came in: the receivable carries the expected cash.`:`Cash flow = only the cash paid for stock: −£${(n*c).toLocaleString('en-GB')}. The sales are receivables, so the cash arrives next year (the accrual reverses).`}}},
+ q1_ddm:{t:'t1',k:'q',gen(){const d0=r2(rnd(50,400)/100),g=rnd(1,5)/100,r=rnd(7,12)/100,c=d0*(1+g)/(r-g);
+  return {stem:`A share has just paid a dividend of £${f2(d0)}. Dividends are expected to grow ${pc(g)} a year forever and the cost of equity is ${pc(r)}. Value per share?`,...opts(c,[d0/(r-g),d0*(1+g)/r,d0*(1+g)/(r+g)],v=>'£'+f2(v)),
+  expl:`Gordon growth: P₀ = D₁ ÷ (ρ − g) = £${f2(d0)} × ${(1+g).toFixed(2)} ÷ (${pc(r)} − ${pc(g)}) = £${f2(c)}. Use next year's dividend, D₁.`}}},
+ q1_npv:{t:'t1',k:'q',gen(){const I=rnd(5,40)*10,c1=r2(I*rnd(40,70)/100),c2=r2(I*rnd(45,75)/100),r=rnd(6,12)/100,c=-I+c1/(1+r)+c2/Math.pow(1+r,2);
+  return {stem:`A project costs £${I}m today and returns £${f2(c1)}m in one year and £${f2(c2)}m in two years. Discount rate ${pc(r)}. NPV?`,...opts(c,[-I+c1+c2,-I+(c1+c2)/(1+r),-I+c1/(1+r)+c2/(1+r)]),
+  expl:`NPV = −${I} + ${f2(c1)} ÷ ${(1+r).toFixed(2)} + ${f2(c2)} ÷ ${(1+r).toFixed(2)}² = ${f2(c)}.`}}},
+ a1_ddm:{t:'t1',k:'a',gen(){const d1=r2(rnd(50,400)/100),g=rnd(1,6)/100,r=rnd(7,13)/100;return {stem:`Next year's dividend is expected to be £${f2(d1)}, growing ${pc(g)} a year after that. Cost of equity ${pc(r)}. What is the value per share (£)?`,c:d1/(r-g),tol:.005,u:'£',expl:`P₀ = D₁ ÷ (ρ − g) = ${f2(d1)} ÷ ${pc(r-g)} = £${f2(d1/(r-g))}.`}}},
+ a1_npv:{t:'t1',k:'a',gen(){const I=rnd(10,60)*10,cf=[0,1,2].map(()=>r2(I*rnd(30,55)/100)),r=rnd(6,12)/100,c=-I+cf.reduce((a,x,i)=>a+x/Math.pow(1+r,i+1),0);
+  return {stem:`Investment £${I}m today; cash inflows of £${cf.map(f2).join('m, £')}m at the end of years 1, 2 and 3. Discount rate ${pc(r)}. NPV in £m?`,c,tol:.005,expl:`NPV = −${I} + ${cf.map((x,i)=>`${f2(x)} ÷ ${(1+r).toFixed(2)}${i?'^'+(i+1):''}`).join(' + ')} = ${f2(c)}.`}}}
+});
+conceptSet('t1',[
+ ['Over a going concern\'s whole life, how do total profits compare with total cash flows?',['They are equal: accruals only shift the timing','Profits are always higher','Cash flows are always higher','There is no link between them'],'ΣEarnings = ΣCash flows over the life of the firm. Accruals move recognition between periods but don\'t create extra value.'],
+ ['Why does the module treat profit (accrual) information as more informative for valuation than cash flows?',['It reflects business reality on a timely basis and carries managers\' expectations of future cash','Profit cannot be managed by management','Cash flows are not audited','Profit is always larger than cash flow'],'Accruals such as receivables record value created now that will turn into cash later, so profit tracks performance sooner than cash does.'],
+ ['What marks a good-quality accrual?',['It later turns into cash (the accrual reverses)','It increases reported profit','It is larger than the cash flow','It never reverses'],'Receivables collected, provisions that match actual payouts: good accruals realise in cash.'],
+ ['A trade receivable on the balance sheet represents…',['Cash expected from customers in the future','Cash already received from customers','A liability to customers','Money owed to suppliers'],'Revenue is recognised when control passes and cash is highly likely. The receivable carries that future cash.'],
+ ['When can revenue be recognised?',['When control transfers and receipt of cash is highly certain','Only when the cash is received','When the order is placed','At the end of the financial year'],'Recognition needs transfer of ownership or control plus high certainty of cash. Payment timing doesn\'t matter.'],
+ ['The matching principle says costs should be recognised…',['In the period of the revenue they help generate','When they are paid','When the invoice arrives','Evenly over the year'],'Cost of goods sold is matched to the sales it produced, so profit reflects the period\'s actual trading.'],
+ ['Under Modigliani-Miller dividend irrelevance, a bigger dividend today…',['Doesn\'t change firm value: it just moves value from the firm to shareholders','Increases the firm\'s value','Signals that value has been created','Lowers the cost of equity'],'Paying out cash reduces what\'s left in the firm one for one. Dividends distribute value; they don\'t create it.'],
+ ['Why are forecast dividends a weak starting point for finding where value comes from?',['Payout is a distribution decision and says little about value creation','Dividends are never paid','Dividends are too volatile to discount','The discount rate is unknown'],'Value is created in operations. Dividend policy can change without changing value, so the module looks at accounting fundamentals instead.'],
+ ['The dividend discount model values equity as…',['The present value of expected future dividends at the cost of equity','Book value plus dividends','Current dividend × P/E','Dividends discounted at WACC'],'P₀ = Σ Dₜ ÷ (1 + ρ)ᵗ. It is a DCF model where the cash flows are dividends to shareholders.'],
+ ['Because profit and cash add up to the same total over a firm\'s life, accounting-based and cash-based valuations…',['Are equivalent in theory, if forecasts are consistent','Always give different answers','Can only be used for mature firms','Ignore the balance sheet'],'That equivalence is why the AOP model and DCF give the same value in topic 8.']
+]);
+
+/* Topic 2: strategy analysis (concepts) */
+conceptSet('t2',[
+ ['What is the main purpose of strategy analysis in valuation?',['To understand the economic logic of where and how the firm competes, so ratios and forecasts rest on reality','To replace financial analysis','To calculate WACC','To pick the discount rate'],'Financial ratios only mean something when grounded in the firm\'s strategy and environment.'],
+ ['In what order does strategy analysis usually move?',['Country → industry → firm','Firm → industry → country','Industry → firm → country','Firm only'],'Start with broad external conditions (PESTEL), then the industry (Five Forces), then the firm (SWOT, competitive advantage).'],
+ ['Which of Porter\'s forces decide the degree of actual and potential competition?',['Rivalry, threat of new entrants and threat of substitutes','Buyer and supplier power','PESTEL factors','The firm\'s mission and values'],'These three decide whether above-normal profits are possible. Buyer and supplier power decide how much of that profit the firm keeps.'],
+ ['What does bargaining power in input and output markets determine?',['How much of the industry\'s potential profit firms actually keep','Whether the industry can grow','The cost of debt','The firm\'s tax rate'],'Strong suppliers or customers shift profit away from the firm through prices and terms.'],
+ ['In the UK supermarket example, how strong is suppliers\' bargaining power?',['Weak: big chains dominate negotiations and own-brands dilute famous brands','Strong: suppliers set prices','Moderate because of regulation','Irrelevant to supermarkets'],'Large chains buy in huge volumes and can switch to own-label products.'],
+ ['Why is the threat of new entrants low for big UK supermarkets?',['Scale economies, logistics networks and brand loyalty are high barriers','Government licences are required','Food is a luxury good','Customers never switch stores'],'Entry is possible mainly through acquisitions.'],
+ ['What is PESTEL best used for?',['Spotting the few macro forces that matter economically for the valuation','Listing every possible external factor','Measuring market share','Estimating beta'],'The point is relevance to future performance, not a long checklist.'],
+ ['SWOT combines…',['Internal strengths and weaknesses with external opportunities and threats','Five Forces with WACC','Mission with vision','Accounting ratios only'],'It pulls PESTEL and Five Forces insights together with firm-level capabilities.'],
+ ['To build a core competence a firm needs…',['Valuable firm-specific resources and the capabilities to manage them','Only a large cash balance','A low tax rate','High leverage'],'Resources (assets, brands, networks) plus capabilities (design, R&D, cost management) together create competitive advantage.'],
+ ['A cost leader typically shows which ratio pattern?',['Lower margin with higher asset turnover','Higher margin with lower asset turnover','High leverage','Negative RNOA'],'Lower prices squeeze NOPM, but efficient, asset-light operations push ATO up (think Choice Hotels).'],
+ ['A differentiator typically shows which ratio pattern?',['Higher margin from a price premium, often with lower asset turnover','Lower margin and higher turnover','Zero leverage','Low gross margin'],'Brand, quality and service allow premium pricing, but often need heavier assets (think Starwood).'],
+ ['If you expect an industry to become more competitive, how should your forecasts change?',['Lower profit margin forecasts, and so a lower value','Higher sales growth','A higher terminal growth rate','No change: competition isn\'t in the numbers'],'Penman: strategic judgements must translate into explicit forecast inputs.'],
+ ['Research links disclosure of strategic plans with…',['Stock price reactions and more accurate analyst earnings forecasts','Higher audit fees only','Lower trading volume','No measurable effect'],'Forward-looking strategy narratives help investors form better expectations about future fundamentals.'],
+ ['What is the difference between mission and vision?',['Mission is the firm\'s fundamental purpose; vision is the future position it wants to reach','They mean the same','Vision is the purpose; mission is the target','Mission covers values, vision covers costs'],'Values then describe the principles that constrain managers\' choices.']
+]);
+
+/* Topic 3: reformulation calcs */
+function isGen(){const t=tRate(),op=r2(rnd(80,900)),nfe=r2(op*rnd(5,25)/100),exc=Math.random()<.5?0:r2(op*rnd(10,30)/100);
+  const tax=r2(t*(op-exc-nfe));return {t,op,nfe,exc,tax,shield:t*nfe,taxOps:tax+t*nfe+t*exc,core:op*(1-t),excAT:exc*(1-t),nie:nfe*(1-t),np:op-exc-nfe-tax}}
+add({
+ q3_shield:{t:'t3',k:'q',gen(){const s=isGen();return {stem:`Net finance expense is ${fm(s.nfe)} and the tax rate is ${pc(s.t)}. What is the tax shield on interest?`,...opts(s.shield,[s.nie,s.nfe,s.tax*s.t]),expl:`Tax shield = net finance expense × tax rate = ${f2(s.nfe)} × ${pc(s.t)} = ${f2(s.shield)}.`}}},
+ q3_nie:{t:'t3',k:'q',gen(){const s=isGen();return {stem:`Net finance expense is ${fm(s.nfe)}; tax rate ${pc(s.t)}. What is net finance expense <b>after tax</b> (NIE)?`,...opts(s.nie,[s.shield,s.nfe*(1+s.t),s.nfe]),expl:`NIE = ${f2(s.nfe)} × (1 − ${pc(s.t)}) = ${f2(s.nie)}.`}}},
+ q3_taxops:{t:'t3',k:'q',gen(){const s=isGen();s.exc=0;s.tax=r2(s.t*(s.op-s.nfe));const c=s.tax+s.t*s.nfe;
+  return {stem:`Reported tax expense is ${fm(s.tax)}, net finance expense ${fm(s.nfe)}, tax rate ${pc(s.t)}. What is the tax on operations?`,...opts(c,[s.tax-s.t*s.nfe,s.tax,s.tax+s.nfe]),expl:`Tax on operations = reported tax + tax shield = ${f2(s.tax)} + ${f2(s.t*s.nfe)} = ${f2(c)}. Interest saved tax, so operations alone would have paid more.`}}},
+ q3_nopat:{t:'t3',k:'q',gen(){const s=isGen();s.exc=0;s.tax=r2(s.t*(s.op-s.nfe));const c=s.op-(s.tax+s.t*s.nfe);
+  return {stem:`Operating profit ${fm(s.op)}, net finance expense ${fm(s.nfe)}, reported tax ${fm(s.tax)}, tax rate ${pc(s.t)}. What is NOPAT?`,...opts(c,[s.op-s.tax,s.op-s.tax+s.t*s.nfe,s.op-s.tax-s.nfe]),expl:`NOPAT = operating profit − (reported tax + tax shield) = ${f2(s.op)} − (${f2(s.tax)} + ${f2(s.t*s.nfe)}) = ${f2(c)}. Check: NOPAT − NIE = ${f2(c-s.nie)} = profit for the year.`}}},
+ q3_noa:{t:'t3',k:'q',gen(){const oa=rnd(300,3000),ol=rnd(80,Math.round(oa*.6)),fa=rnd(20,400),fl=rnd(50,900);
+  return {stem:`Operating assets ${fm(oa)}, operating liabilities ${fm(ol)}, financial assets ${fm(fa)}, financial liabilities ${fm(fl)}. What is NOA?`,...opts(oa-ol,[oa+fa-ol,oa-ol-fl,oa-ol+fa-fl]),expl:`NOA = operating assets − operating liabilities = ${oa} − ${ol} = ${oa-ol}. Financial items go into net debt instead (here ${fl-fa}).`}}},
+ q3_nfo:{t:'t3',k:'q',gen(){const fa=rnd(20,900),fl=rnd(50,900),c=fl-fa;
+  return {stem:`Financial liabilities ${fm(fl)} (borrowings and lease liabilities); financial assets ${fm(fa)} (cash and investments). What is net debt (NFO)?`,...opts(c,[fl+fa,fa-fl,fl]),expl:`NFO = financial liabilities − financial assets = ${fl} − ${fa} = ${c}${c<0?': negative, so the firm has net financial assets (net cash)':''}.`}}},
+ a3_core:{t:'t3',k:'a',gen(){let s;do s=isGen();while(!s.exc);return {stem:`Operating profit before exceptional items ${fm(s.op)}; exceptional restructuring charge ${fm(s.exc)}; net finance expense ${fm(s.nfe)}; reported tax ${fm(s.tax)}; tax rate ${pc(s.t)}. What is <b>core</b> NOPAT (before exceptional items, after tax)?`,c:s.core,tol:.005,
+  expl:`Tax on core operations = reported tax + shield on interest + shield on exceptional = ${f2(s.tax)} + ${f2(s.t*s.nfe)} + ${f2(s.t*s.exc)} = ${f2(s.taxOps)}. Core NOPAT = ${f2(s.op)} − ${f2(s.taxOps)} = ${f2(s.core)}.`}}},
+ a3_np:{t:'t3',k:'a',gen(){let s;do s=isGen();while(!s.exc);const w=pick(['nie','exc','np']);const L={nie:['net finance expense after tax (NIE)',s.nie],exc:['the exceptional charge after tax',s.excAT],np:['profit for the year',s.np]}[w];
+  return {stem:`Operating profit before exceptional items ${fm(s.op)}; exceptional charge ${fm(s.exc)}; net finance expense ${fm(s.nfe)}; tax rate ${pc(s.t)} (reported tax ${fm(s.tax)}). What is ${L[0]}?`,c:L[1],tol:.005,
+  expl:`Core NOPAT ${f2(s.core)} − exceptional after tax ${f2(s.excAT)} − NIE ${f2(s.nie)} = profit for the year ${f2(s.np)}.`}}}
+});
+conceptSet('t3',[
+ ['Why does the module separate operating from financing items?',['By Modigliani-Miller, value comes from operations; financing just distributes it','To make the balance sheet balance','Because IFRS requires it','To calculate the tax rate'],'Capital structure is irrelevant to value, so analysis focuses on NOA and NOPAT, which create value.'],
+ ['Penman\'s test for a financing item is…',['A transaction with financial markets that is independent of the firm\'s trading','Anything that pays interest','Anything due after one year','Anything on the liabilities side'],'Trading with customers and suppliers is operating; raising or investing cash in financial markets is financing.'],
+ ['The reformulated balance sheet identity is…',['NOA = net debt (NFO) + equity','Total assets = equity','NOA = total assets − total liabilities','Net debt = NOA + equity'],'NOA is funded by net debt and shareholders\' equity, so equity = NOA − NFO.'],
+ ['How is the reported tax charge allocated to operations?',['Tax on operations = reported tax + tax rate × net interest expense','Tax on operations = reported tax − tax shield','All tax goes to financing','Tax on operations = tax rate × net profit'],'Interest saved tax. Adding that saving back gives the tax operations would bear if all-equity financed.'],
+ ['Net income in reformulated terms is…',['NOPAT − net interest expense after tax','NOPAT + net interest expense','Operating profit − tax','Sales − NOPAT'],'NI = NOPAT − NIE (plus any exceptional items after tax, if shown separately).'],
+ ['Apple\'s reformulated balance sheet showed negative net debt. That means…',['Financial assets exceed financial liabilities (net cash)','Apple has no debt','Apple\'s equity is negative','NOA is negative'],'Apple borrows, but its cash and investments are even larger, so NFO < 0.'],
+ ['Why do analysts strip out non-recurring items?',['To see sustainable core profit for forecasting','Because they are illegal','To lower reported profit','Because auditors require it'],'One-off gains and charges distort the "ordinary" result that drives future forecasts.'],
+ ['What is the main risk of non-GAAP (adjusted) profit figures?',['Managers may label recurring costs as one-off to flatter results','They are always lower than GAAP profit','They ignore revenue','They can\'t be compared over time'],'Black et al.: useful when honest, but open to opportunistic exclusions, so watch for "recurring one-offs".'],
+ ['A firm leases its stores. How are the items classified?',['Right-of-use asset operating; lease liability financing','Both operating','Both financing','Asset financing; liability operating'],'The store is used to trade; the lease obligation is debt-like financing.'],
+ ['A note payable to a supplier for goods versus a note issued to raise cash:',['Supplier note is operating; cash-raising note is financing','Both financing','Both operating','It depends only on the interest rate'],'The same legal instrument is classified by its purpose: trading versus raising finance.'],
+ ['Why is cash classified as a financial asset in the module?',['It is netted against debt: it could repay borrowings','It earns no return','IFRS says so','It is an operating necessity'],'Cash and investments reduce net debt; NFO = financial liabilities − financial assets.']
+]);
+
+/* Topic 4: free cash flow */
+add({
+ q4_ucfo:{t:'t4',k:'q',gen(){const t=tRate(),cfo=rnd(100,2000),int=rnd(10,Math.round(cfo*.2)),c=cfo+int*(1-t);
+  return {stem:`Net cash from operating activities is ${fm(cfo)}, after paying interest of ${fm(int)}. Tax rate ${pc(t)}. What is unlevered cash from operations (uCFO)?`,...opts(c,[cfo+int,cfo-int*(1-t),cfo+int*t]),expl:`uCFO = CFO + net interest paid after tax = ${cfo} + ${int} × (1 − ${pc(t)}) = ${f2(c)}. Interest is a payment to lenders, so it is removed from operations, net of the tax it saved.`}}},
+ q4_fcf:{t:'t4',k:'q',gen(){const u=rnd(200,3000),cap=rnd(50,Math.round(u*1.2)),c=u-cap;
+  return {stem:`Unlevered cash from operations is ${fm(u)} and net capital expenditure is ${fm(cap)}. Free cash flow?`,...opts(c,[u+cap,cap-u,u]),expl:`FCF = uCFO − net capex = ${u} − ${cap} = ${c}.`}}},
+ q4_F:{t:'t4',k:'q',gen(){const nie=rnd(5,80),n0=rnd(100,900),n1=n0+rnd(-150,150),c=nie-(n1-n0);
+  return {stem:`Net interest expense after tax is ${fm(nie)}. Net debt went from ${fm(n0)} to ${fm(n1)}. What is F, the net payment to debtholders?`,...opts(c,[nie+(n1-n0),(n1-n0)-nie,nie]),expl:`F = NIE − ΔNFO = ${nie} − (${n1} − ${n0}) = ${c}. Borrowing more (ΔNFO > 0) means lenders paid in, reducing F.`}}},
+ q4_d:{t:'t4',k:'q',gen(){const fcf=rnd(50,900),F=rnd(-100,300),c=fcf-F;
+  return {stem:`Free cash flow is ${fm(fcf)} and net payments to debtholders (F) are ${fm(F)}. What are net payments to shareholders (d)?`,...opts(c,[fcf+F,F-fcf,fcf]),expl:`FCF = d + F, so d = ${fcf} − (${F}) = ${c}.`}}},
+ q4_fcfnoa:{t:'t4',k:'q',gen(){const np=rnd(50,800),a0=rnd(300,3000),a1=a0+rnd(-100,400),c=np-(a1-a0);
+  return {stem:`Forecast NOPAT is ${fm(np)}; NOA rises from ${fm(a0)} to ${fm(a1)}. Forecast FCF?`,...opts(c,[np+(a1-a0),np-a1,np-a0]),expl:`FCF = NOPAT − ΔNOA = ${np} − ${a1-a0} = ${c}. In forecasts, FCF comes from projected NOPAT and NOA.`}}},
+ a4_fcf:{t:'t4',k:'a',gen(){const t=tRate(),cfo=rnd(200,3000),int=rnd(10,Math.round(cfo*.15)),capex=rnd(80,Math.round(cfo*.9)),disp=rnd(0,Math.round(capex*.3)),c=cfo+int*(1-t)-(capex-disp);
+  return {stem:`From the cash flow statement: net cash from operating activities ${fm(cfo)} (after interest paid of ${fm(int)}); purchases of PP&E ${fm(capex)}; proceeds from disposals of PP&E ${fm(disp)}. Tax rate ${pc(t)}. What is unlevered free cash flow?`,c,tol:.005,
+  expl:`uCFO = ${cfo} + ${int} × (1 − ${pc(t)}) = ${f2(cfo+int*(1-t))}; net capex = ${capex} − ${disp} = ${capex-disp}; FCF = ${f2(c)}.`}}},
+ a4_d:{t:'t4',k:'a',gen(){const np=rnd(60,700),a0=rnd(400,3000),a1=a0+rnd(-80,300),nie=rnd(5,60),n0=rnd(100,Math.round(a0*.5)),n1=n0+rnd(-100,120),F=nie-(n1-n0),fcf=np-(a1-a0),d=fcf-F;
+  return {stem:`NOPAT ${fm(np)}; NOA from ${fm(a0)} to ${fm(a1)}; NIE ${fm(nie)}; net debt from ${fm(n0)} to ${fm(n1)}. What were net payments to shareholders (d)?`,c:d,tol:.005,
+  expl:`FCF = ${np} − ${a1-a0} = ${fcf}; F = ${nie} − (${n1-n0}) = ${F}; d = FCF − F = ${d}. Check: d = net income − Δequity = ${np-nie} − (${(a1-n1)-(a0-n0)}) = ${(np-nie)-((a1-n1)-(a0-n0))}.`}}}
+});
+conceptSet('t4',[
+ ['Unlevered free cash flow is…',['Cash available to all capital providers after investment needs: uCFO − net capex','Net income + depreciation','Cash paid to shareholders','Operating cash flow before tax'],'Theoretically it can be paid out to debtholders and shareholders together.'],
+ ['Why add net interest paid (after tax) back to operating cash flow?',['Interest is a payment to lenders, a financing flow','Interest is not a real cost','IFRS requires it','To increase FCF'],'Removing it gives the cash generated by operations alone (unlevered).'],
+ ['Why is past FCF a poor measure of performance?',['Positive-NPV investment reduces FCF as if it were a cost','FCF is not audited','FCF ignores revenue','FCF is always positive'],'A firm investing heavily in good projects can show negative FCF while creating value.'],
+ ['A firm in the growth stage typically shows…',['Rising profits and CFO but negative FCF from heavy capex','Falling CFO and no capex','High FCF and no growth','Negative sales'],'Expansion ambitions mean investing cash flows outweigh operating inflows.'],
+ ['Coca-Cola 1999–2006 showed stable, rising CFO with modest capex. Which life-cycle stage is this?',['Mature','Start-up','Growth','Decline'],'A mature firm protects its position and only invests in strong NPV opportunities, so FCF is healthy.'],
+ ['Net income and CFO moving in tandem over years suggests…',['Good accrual quality: accruals keep turning into cash','Earnings manipulation','No capex','Rising leverage'],'Accruals reversing into cash shows the reported profit is backed by real cash.'],
+ ['Coke\'s FCF fell sharply in 2007 mainly because…',['Capital investment jumped, while operating cash flow kept rising','Operations collapsed','It stopped paying dividends','Interest rates fell'],'Low FCF can mean big investment rather than weak business, so read FCF with its components.'],
+ ['FCF = d + F means…',['Free cash flow equals net payments to shareholders plus net payments to debtholders','FCF equals dividends only','Debt equals equity','Free cash flow is always zero'],'From the accounting identities: C − I = d + F.'],
+ ['In forecasting, FCF is best derived as…',['Forecast NOPAT − forecast ΔNOA','Forecast CFO − forecast capex, each guessed separately','Forecast dividends','Forecast sales × margin'],'Forecasting uCFO and capex directly adds bias; NOPAT and NOA come from sales, margin and turnover.'],
+ ['A practical problem with valuing a growth firm by DCF is…',['FCF can be negative for years, pushing value into a distant terminal value','DCF ignores the discount rate','DCF needs no forecasts','FCF is always too high'],'You must forecast until steady state, and most value lands in the continuing value.']
+]);
+
+/* Topic 5: advanced DuPont */
+function dpGen(){for(;;){const a0=rnd(300,3000),a1=Math.round(a0*(1+rnd(-5,20)/100)),n0=Math.round(a0*rnd(-30,60)/100),n1=Math.round(n0+a0*rnd(-10,10)/100);
+  const A=(a0+a1)/2,N=(n0+n1)/2;if(Math.abs(N)<.12*A)continue;const B=A-N,sales=Math.round(A*rnd(8,30)/10),np=r2(sales*rnd(4,18)/100),nir=rnd(2,7)/100,nie=r2(N*nir),ni=np-nie;
+  return {a0,a1,n0,n1,b0:a0-n0,b1:a1-n1,A,N,B,sales,np,nie,ni,rnoa:np/A,nopm:np/sales,ato:sales/A,flev:N/B,nir:nie/N,spread:np/A-nie/N,roe:ni/B}}}
+function dpTable(s){return `<table class="ftab"><tr><th>£m</th><th>Start of year</th><th>End of year</th></tr><tr><th>Net operating assets</th><td>${f2(s.a0)}</td><td>${f2(s.a1)}</td></tr><tr><th>Net debt (NFO)</th><td>${f2(s.n0)}</td><td>${f2(s.n1)}</td></tr><tr><th>Equity (BVE)</th><td>${f2(s.b0)}</td><td>${f2(s.b1)}</td></tr></table>
+ <p class="small">Sales ${fm(s.sales)}; NOPAT ${fm(s.np)}; net financial expense after tax (NIE) ${fm(s.nie)}; net income ${fm(s.ni)}. Use <b>average</b> balances.</p>`}
+const DPW={rnoa:['RNOA','%',s=>s.rnoa*100,s=>`NOPAT ÷ average NOA = ${f2(s.np)} ÷ ${f2(s.A)}`],nopm:['NOPM','%',s=>s.nopm*100,s=>`NOPAT ÷ sales = ${f2(s.np)} ÷ ${f2(s.sales)}`],ato:['asset turnover (ATO)','x',s=>s.ato,s=>`sales ÷ average NOA = ${f2(s.sales)} ÷ ${f2(s.A)}`],
+ flev:['financial leverage (FLEV)','x',s=>s.flev,s=>`average NFO ÷ average BVE = ${f2(s.N)} ÷ ${f2(s.B)}`],nir:['net interest rate after tax (NIR)','%',s=>s.nir*100,s=>`NIE ÷ average NFO = ${f2(s.nie)} ÷ ${f2(s.N)}`],
+ spread:['spread (RNOA − NIR)','%',s=>s.spread*100,s=>`${pc(s.rnoa)} − ${pc(s.nir)}`],roe:['ROE','%',s=>s.roe*100,s=>`RNOA + FLEV × spread = ${pc(s.rnoa)} + (${f2(s.flev)}) × ${pc(s.spread)}; check: NI ÷ average BVE = ${f2(s.ni)} ÷ ${f2(s.B)}`]};
+add({
+ q5_rnoa:{t:'t5',k:'q',gen(){const s=dpGen();return {stem:`NOPAT ${fm(s.np)}. NOA was ${fm(s.a0)} at the start of the year and ${fm(s.a1)} at the end. RNOA on average NOA?`,...opts(s.rnoa,[s.np/s.a1,s.np/s.a0,s.ni/s.A],pc),expl:`RNOA = NOPAT ÷ average NOA = ${f2(s.np)} ÷ ${f2(s.A)} = ${pc(s.rnoa)}.`}}},
+ q5_flev:{t:'t5',k:'q',gen(){const s=dpGen();return {stem:`Average net debt (NFO) is ${fm(s.N)} and average equity is ${fm(s.B)} (average NOA ${fm(s.A)}). FLEV?`,...opts(s.flev,[s.N/s.A,s.B/s.N,s.A/s.B],fx),expl:`FLEV = NFO ÷ BVE = ${f2(s.N)} ÷ ${f2(s.B)} = ${fx(s.flev)}${s.flev<0?'. Negative means net financial assets':''}.`}}},
+ q5_nir:{t:'t5',k:'q',gen(){const s=dpGen();return {stem:`Net financial expense after tax is ${fm(s.nie)}; average net debt ${fm(s.N)}; average equity ${fm(s.B)}. Net interest rate (NIR)?`,...opts(s.nir,[s.nie/s.B,s.nie/s.A,s.nie/s.n1],pc),expl:`NIR = NIE ÷ average NFO = ${pc(s.nir)}.`}}},
+ q5_roe:{t:'t5',k:'q',gen(){const r=rnd(6,30)/100,f=pick([-.4,-.2,.2,.3,.5,.8,1.2]),n=rnd(2,7)/100,c=r+f*(r-n);
+  return {stem:`RNOA ${pc(r)}, FLEV ${fx(f)}, NIR ${pc(n)}. What is ROE?`,...opts(c,[r+f*r,r-f*(r-n),r+f*n],pc),expl:`ROE = RNOA + FLEV × (RNOA − NIR) = ${pc(r)} + ${fx(f)} × ${pc(r-n)} = ${pc(c)}.`}}},
+ q5_ato:{t:'t5',k:'q',gen(){const m=rnd(3,20)/100,a=pick([.6,.8,1.2,1.5,2,2.5,3]),c=m*a;return {stem:`NOPM ${pc(m)} and ATO ${a}. RNOA?`,...opts(c,[m/a,m+a/100,a/m/100],pc),expl:`RNOA = NOPM × ATO = ${pc(c)}.`}}},
+ a5_ratio:{t:'t5',k:'a',h:1,gen(){const s=dpGen(),k=pick(Object.keys(DPW)),W=DPW[k],c=W[2](s);return {stem:`What is ${W[0]}${W[1]==='%'?' (in %)':''}?`,table:dpTable(s),c,u:W[1],tol:.005,expl:`${W[0]} = ${W[3](s)} = ${fu(c,W[1])}.`}}}
+});
+conceptSet('t5',[
+ ['When is ROE above RNOA?',['When FLEV is positive and the spread (RNOA − NIR) is positive','Whenever the firm has debt','When NOPM is high','Never'],'ROE = RNOA + FLEV × spread. Leverage helps only while operations earn more than the cost of debt.'],
+ ['A negative FLEV means…',['The firm has net financial assets (net cash)','Equity is negative','The firm is insolvent','NOA is negative'],'NFO < 0 makes FLEV negative, and with a positive spread ROE falls below RNOA (Microsoft 2003).'],
+ ['Why is RNOA, not ROE, compared with WACC in valuation?',['RNOA is unaffected by leverage; ROE mixes operations with financing risk','ROE is harder to calculate','WACC is an equity rate','RNOA is always higher'],'Value comes from operations: RNOA > WACC means abnormal operating profit.'],
+ ['Microsoft\'s 2004 special dividend raised its ROE because…',['It cut net financial assets, raising leverage, not because operations improved','Profits rose sharply','Its tax rate fell','RNOA doubled'],'Paying out cash lowers BVE and net financial assets together: a distribution effect, not value creation.'],
+ ['Starwood: ROE 17.8%, RNOA 4.8%, WACC 9.5%, cost of equity 13%. Conclusion?',['Operations earn below WACC; the high ROE comes from leverage, so it\'s risk, not value','Starwood is creating lots of value','ROE above cost of equity proves value creation','RNOA is irrelevant'],'Don\'t buy risk: check RNOA against WACC.'],
+ ['Choice Hotels earned a far higher RNOA than Starwood mainly through…',['Much higher asset turnover from its asset-light franchise model','Higher room prices','More debt','Lower taxes'],'ATO ~1.95 versus ~0.6: franchising needs little NOA.'],
+ ['What is the benchmark for ROE in valuation?',['The cost of equity','WACC','The risk-free rate','NIR'],'ROE − cost of equity > 0 is needed for equity value above book, but check where it comes from.'],
+ ['Why use average balance sheet amounts for the ratios?',['Profit is earned over the year on capital that changed during the year','To make the ratios larger','Because year-end figures are unaudited','IFRS requires averages'],'Averages match a flow (profit) with the stock of capital actually used.'],
+ ['The main limitation of traditional DuPont (NI/Sales × Sales/TA × TA/Equity) is…',['It mixes operating and financing items, so it can\'t separate value creation from leverage','It ignores sales','It cannot be calculated','It uses market values'],'Total assets include financial assets, and assets/equity treats all liabilities as leverage. The advanced version fixes this.'],
+ ['Share buybacks financed by debt tend to…',['Raise FLEV and so ROE (if the spread is positive) without improving operations','Lower ROE','Raise RNOA','Reduce risk'],'Choice Hotels had bought back over a third of its shares, which left it with negative equity.'],
+ ['At level 3 of the framework, RNOA is broken down into…',['NOPM × ATO','FLEV × spread','ROE − NIR','Sales growth × NOPM'],'Margin reflects operating management; turnover reflects investment management.']
+]);
+
+/* Topic 6: AOP and the balance sheet */
+add({
+ q6_aop:{t:'t6',k:'q',gen(){const a=rnd(200,3000),r=rnd(5,30)/100,w=rnd(7,12)/100,c=(r-w)*a;
+  return {stem:`RNOA is ${pc(r)} on NOA of ${fm(a)} at the start of the year. WACC ${pc(w)}. Abnormal operating profit?`,...opts(c,[r*a-w,r*a,(r+w)*a]),expl:`AOP = (RNOA − WACC) × NOA = ${pc(r-w)} × ${a} = ${f2(c)}. Equivalent to NOPAT − WACC × NOA.`}}},
+ q6_aop2:{t:'t6',k:'q',gen(){const a0=rnd(200,3000),a1=Math.round(a0*(1+rnd(0,15)/100)),np=r2(a0*rnd(6,30)/100),w=rnd(7,12)/100,c=np-w*a0;
+  return {stem:`This year's NOPAT is ${fm(np)}. NOA was ${fm(a0)} at the start of the year and ${fm(a1)} at the end. WACC ${pc(w)}. AOP for the year?`,...opts(c,[np-w*a1,np-w*(a0+a1)/2,w*a0]),expl:`AOP₀ = NOPAT₀ − WACC × NOA₋₁ = ${f2(np)} − ${pc(w)} × ${a0} = ${f2(c)}.`}}},
+ q6_zero:{t:'t6',k:'q',gen(){const a=rnd(300,3000),n=Math.round(a*rnd(-20,60)/100),c=a-n;
+  return {stem:`NOA ${fm(a)}, net debt ${fm(n)}. If AOP is expected to be zero in every future year, what is the equity value?`,...opts(c,[a,a+n,0]),expl:`No abnormal profit means no value above book: equity value = BVE = NOA − NFO = ${c}. P/B = 1.`}}},
+ q6_const:{t:'t6',k:'q',gen(){const b=rnd(200,3000),aop=rnd(10,200),w=rnd(7,12)/100,c=b+aop/w;
+  return {stem:`Book value of equity is ${fm(b)}. AOP is expected to stay at ${fm(aop)} a year forever. WACC ${pc(w)}. Equity value?`,...opts(c,[aop/w,b+aop/(1+w),b+aop*w]),expl:`V = BVE + AOP ÷ WACC = ${b} + ${aop} ÷ ${pc(w)} = ${f2(c)}.`}}},
+ a6_val:{t:'t6',k:'a',gen(){const b=rnd(300,3000),A=[rnd(10,150),rnd(10,180)],w=rnd(7,12)/100,c=b+A[0]/(1+w)+A[1]/Math.pow(1+w,2)+A[1]/w/Math.pow(1+w,2);
+  return {stem:`Book value of equity today ${fm(b)}. Forecast AOP: ${fm(A[0])} next year and ${fm(A[1])} the year after, then constant at that level forever. WACC ${pc(w)}. Equity value in £m?`,c,tol:.005,
+  expl:`V = ${b} + ${A[0]} ÷ ${(1+w).toFixed(2)} + ${A[1]} ÷ ${(1+w).toFixed(2)}² + (${A[1]} ÷ ${pc(w)}) ÷ ${(1+w).toFixed(2)}² = ${f2(c)}. The continuing value has no growth, so it is AOP ÷ WACC at the end of year 2.`}}},
+ a6_req:{t:'t6',k:'a',gen(){const a=rnd(300,3000),w=rnd(7,12)/100,aop=rnd(10,250),c=(aop/a+w)*100;
+  return {stem:`NOA at the start of the year is ${fm(a)} and WACC is ${pc(w)}. What RNOA (in %) does the firm need to earn an AOP of ${fm(aop)}?`,c,u:'%',tol:.005,expl:`RNOA = WACC + AOP ÷ NOA = ${pc(w)} + ${aop} ÷ ${a} = ${pc(c/100)}.`}}}
+});
+conceptSet('t6',[
+ ['What does an impairment of goodwill tell an analyst?',['The asset\'s positive-NPV ability is gone, so future cash flow forecasts should fall','Nothing: it\'s only an accounting entry','The firm has more cash','The firm will grow faster'],'Value-in-use has dropped below book value. That is a strategic signal, not a meaningless event.'],
+ ['Why can historical cost on the balance sheet act as a floor in valuation?',['At purchase, value-in-use exceeds cost, and assets stay on the books only while that holds','Historical cost is always market value','Auditors guarantee it','It includes brand value'],'Book NOA is the conservative starting point of the AOP model.'],
+ ['A distinctive role of the balance sheet is to…',['Support lending decisions by showing liquidation values, and anchor valuation','Measure growth','Show cash flows','Value brands'],'Debt contracts and monitoring rely on it; valuation starts from it.'],
+ ['The income statement\'s main role in equity valuation is…',['Giving information about abnormal earnings opportunities','Showing liquidation values','Listing assets','Measuring leverage'],'Profit beyond the capital charge (AOP) is the extra value above book.'],
+ ['P/B equals 1 when…',['Expected AOP is zero: RNOA = WACC','ROE is zero','The firm has no debt','Sales stop growing'],'With no abnormal profit, value equals book value.'],
+ ['Equity value in the AOP model equals…',['BVE + PV of expected AOP (incl. continuing value)','NOA + net debt','PV of dividends only','Market cap − BVE'],'Extra value above book comes only from expected abnormal operating profit.'],
+ ['Overstating assets or understating liabilities will…',['Inflate reported profit, because profit = Δequity = ΔA − ΔL','Lower profit','Have no effect on profit','Only affect cash flow'],'That is why balance sheet quality matters for earnings quality.'],
+ ['Why do some firms earn persistently higher RNOA?',['Unrecognised assets (brands, know-how) and NOA working well together produce superior returns','They have more debt','They pay higher dividends','Their WACC is higher'],'NOPAT captures benefits the balance sheet doesn\'t record, so RNOA shows the true return.'],
+ ['Management asks you to add 20% to your £20bn valuation for their superior brands. Should you?',['No: the brand\'s value already shows up in forecast AOP/RNOA, so adding it double counts','Yes, brands are never in the numbers','Yes, if auditors agree','Only for listed firms'],'Unrecorded assets are valued through the superior profit they generate.'],
+ ['A firm\'s AOP is positive. Which statement must be true?',['NOPAT exceeds WACC × beginning NOA','ROE exceeds cost of equity','FCF is positive','Sales are growing'],'AOP = NOPAT − WACC × NOAₜ₋₁ > 0.']
+]);
+
+/* Topic 7: disclosure and the information environment (concepts) */
+conceptSet('t7',[
+ ['The ex-ante (valuation) role of accounting information is to…',['Help capital providers assess return potential and reduce information asymmetry','Monitor managers after the fact','Calculate tax','Set dividend policy'],'It addresses the lemons problem before capital is committed.'],
+ ['The ex-post (stewardship) role of accounting information is to…',['Let owners monitor how committed capital is used, reducing agency problems','Forecast earnings','Price IPOs','Replace audits'],'Separation of ownership and control needs accountability for resource use.'],
+ ['Akerlof\'s "lemons problem" in capital markets is that…',['Information asymmetry leads to mispricing and possible market failure','Bad firms always go bankrupt','Investors overpay for growth','Dividends are irrelevant'],'If investors can\'t tell good firms from bad, they discount everyone. Credible disclosure fixes this.'],
+ ['Which of these is a voluntary disclosure?',['Management earnings guidance','The annual report\'s financial statements','The audit report','The statement of cash flows'],'Annual reports are mandatory and regulated; guidance, calls and investor presentations are managers\' choice.'],
+ ['An earnings conference call has two parts:',['A scripted presentation and an interactive Q&A','An audit and a vote','A press release and a dividend','A forecast and a buyback'],'The Q&A is less rehearsed, so it often reveals more.'],
+ ['During Tesla\'s Q1 2018 call, the CEO dismissed analysts\' "boring" questions. What happened?',['The share price fell sharply despite better-than-expected results','The share price jumped','Nothing happened','Trading was suspended'],'Tone and conduct on calls carry information too.'],
+ ['Call et al. (2024) found that managers\' successful use of humour on calls…',['Leads to more positive stock reactions, especially with bad news, and milder analyst revisions','Always hurts the share price','Has no effect','Raises the cost of debt'],'Humour seems to signal confidence; firms using it had more favourable future surprises.'],
+ ['Athanasakou et al. (2020) found the link between annual report narrative length and cost of equity is…',['U-shaped: some disclosure lowers it, too much raises it again','Always negative','Always positive','Zero'],'Optimal narrative balances informativeness against clutter.'],
+ ['Palmon et al. (2023): after firms stop giving earnings guidance…',['Markets rely more on analysts, who produce more frequent, forward-looking research','Analysts stop following the firm','Volatility disappears','Prices stop reacting to news'],'The effect reverses when guidance resumes.'],
+ ['What is the main argument against quarterly earnings guidance (Buffett, CFA Institute)?',['It encourages short-termism','It is illegal in the UK','It is too expensive to audit','It reduces trading volume'],'Critics say it targets short-term traders rather than long-term value.'],
+ ['Liu and Moss (2024) on fake news found that…',['Fake news peaks before earnings announcements; strong disclosure reduces targeting and its price impact','Fake news has no market impact','Fake news rises after announcements','Only small firms are affected'],'Credible accounting information protects firm value.'],
+ ['The UK equivalent of the US Management\'s Discussion and Analysis (MD&A) is…',['The Strategic Report','The Directors\' Remuneration Report','The Auditor\'s Report','The Chairman\'s statement'],'Both give management\'s commentary on performance and prospects.']
+]);
+
+/* Topic 9: growth, forecasting and reverse engineering */
+add({
+ q9_daop:{t:'t9',k:'q',gen(){const dn=rnd(5,120),da=rnd(20,900),w=rnd(7,12)/100,c=dn-w*da;
+  return {stem:`Next year NOPAT rises by ${fm(dn)} while NOA rises by ${fm(da)}. WACC ${pc(w)}. Change in AOP?`,...opts(c,[dn-da,w*da-dn,dn]),expl:`ΔAOP = ΔNOPAT − WACC × ΔNOA = ${dn} − ${pc(w)} × ${da} = ${f2(c)}. ${c>0?'Positive: the new investment earns more than its capital charge.':'Negative: the growth earns less than WACC, so it destroys value.'}`}}},
+ q9_nopat1:{t:'t9',k:'q',gen(){const np=rnd(200,3000),am=rnd(2000,9000),a0=am+rnd(-900,900),w=rnd(7,11)/1000*10,c=np+w*(a0-am);
+  return {stem:`Zero-growth case (AOP stays constant). NOPAT this year ${fm(np)}; NOA went from ${fm(am)} to ${fm(a0)}; WACC ${pc(w)}. Next year's NOPAT?`,...opts(c,[np,np*(1+w),np-w*(a0-am)]),expl:`Constant AOP means ΔNOPAT = WACC × ΔNOA: NOPAT₁ = ${np} + ${pc(w)} × ${a0-am} = ${f2(c)}.`}}},
+ q9_cap:{t:'t9',k:'q',gen(){const n1=rnd(100,3000),w=rnd(7,12)/100,c=n1/w;
+  return {stem:`In a zero-growth case, next year's NOPAT is ${fm(n1)} and WACC is ${pc(w)}. Enterprise value?`,...opts(c,[n1/(1+w),n1*(1+w)/w,n1*w*100]),expl:`EV = capitalised NOPAT = ${n1} ÷ ${pc(w)} = ${f2(c)} (equal to NOA + AOP ÷ WACC).`}}},
+ q9_fc:{t:'t9',k:'q',gen(){const s0=rnd(200,5000),g=rnd(2,12)/100,m=rnd(5,18)/100,a=pick([1.5,2,2.5,3]),s1=s0*(1+g),w=pick(['nopat','noa']),c=w==='nopat'?s1*m:s1/a;
+  return {stem:`Sales this year ${fm(s0)}, forecast to grow ${pc(g)}. NOPM ${pc(m)}; ATO (on beginning NOA) ${a}. Forecast ${w==='nopat'?'NOPAT for next year':'NOA at the start of next year'}?`,...opts(c,w==='nopat'?[s0*m,s1*m*(1+g),s1/a]:[s0/a,s1*a,s1*m]),expl:w==='nopat'?`NOPAT₁ = sales₁ × NOPM = ${f2(s1)} × ${pc(m)} = ${f2(c)}.`:`NOA (start of next year) = sales₁ ÷ ATO = ${f2(s1)} ÷ ${a} = ${f2(c)}.`}}},
+ a9_nike:{t:'t9',k:'a',gen(){const np=rnd(500,4000),am=rnd(3000,9000),a0=am+rnd(-1000,800),w=rnd(80,110)/1000,nfa=rnd(-1500,5000),sh=rnd(200,2500),n1=np+w*(a0-am),c=(n1/w+nfa)/sh;
+  return {stem:`Zero-growth valuation (as in the Nike example). Core NOPAT this year ${fm(np)}; NOA last year ${fm(am)}, this year ${fm(a0)}; required return ${pc(w)}; net financial assets ${fm(nfa)}${nfa<0?' (i.e. net debt)':''}; ${sh}m shares. Value per share (£)?`,c,u:'£',tol:.01,
+  expl:`NOPAT₁ = ${np} + ${pc(w)} × (${a0} − ${am}) = ${f2(n1)}; EV = ${f2(n1)} ÷ ${pc(w)} = ${f2(n1/w)}; equity = EV + NFA = ${f2(n1/w+nfa)}; per share = £${f2(c)}.`}}},
+ a9_g:{t:'t9',k:'a',gen(){const a0=rnd(500,5000),w=rnd(8,12)/100,g=rnd(10,50)/1000,aop=rnd(20,300),ev=a0+aop/(w-g),nd=Math.round(a0*rnd(-10,50)/100),mc=r2(ev-nd),c=(w-aop/(mc+nd-a0))*100;
+  return {stem:`Reverse engineering. Market capitalisation ${fm(mc)}; net debt ${fm(nd)}; NOA ${fm(a0)}; next year's AOP forecast ${fm(aop)}; WACC ${pc(w)}. Assuming AOP grows at a constant rate forever from next year, what growth rate (in %) is the market pricing in?`,c,u:'%',tol:.01,
+  expl:`Market EV = ${f2(mc)} + ${f2(nd)} = ${f2(mc+nd)}. EV = NOA + AOP₁ ÷ (WACC − g), so g = WACC − AOP₁ ÷ (EV − NOA) = ${pc(w)} − ${aop} ÷ ${f2(mc+nd-a0)} = ${pc(c/100)}.`}}},
+ a9_aop:{t:'t9',k:'a',gen(){const s0=rnd(500,5000),g=rnd(2,12)/100,m=rnd(6,18)/100,a=pick([1.5,2,2.5,3]),w=rnd(8,12)/100,s1=s0*(1+g),c=s1*m-w*s1/a;
+  return {stem:`Sales this year ${fm(s0)}, growing ${pc(g)} next year. Forecast NOPM ${pc(m)}, ATO (on beginning NOA) ${a}, WACC ${pc(w)}. Next year's AOP in £m?`,c,tol:.005,expl:`Sales₁ = ${f2(s1)}; NOPAT₁ = ${f2(s1*m)}; NOA at start = ${f2(s1/a)}; AOP = ${f2(s1*m)} − ${pc(w)} × ${f2(s1/a)} = ${f2(c)}. Equivalently sales × (NOPM − WACC ÷ ATO).`}}}
+});
+conceptSet('t9',[
+ ['In fundamental valuation, "growth" means…',['Growth in abnormal operating profit (ΔAOP > 0)','Growth in sales','Growth in total assets','Growth in dividends'],'Growing sales or NOA only creates value if the new investment earns more than WACC.'],
+ ['What do studies of value drivers (sales growth, NOPM, RNOA) show over time?',['They mean-revert, settling within about 3–5 years','They grow without limit','They are random','They never change'],'That is why explicit forecasts run 3–5 years before a steady-state terminal value.'],
+ ['In a zero-growth case with positive AOP, enterprise value equals…',['NOA + AOP ÷ WACC, i.e. capitalised next-year NOPAT','NOA only','AOP only','Sales ÷ WACC'],'Constant AOP: ΔNOPAT = WACC × ΔNOA, and EV = NOPAT₁ ÷ WACC.'],
+ ['ΔNOPAT > WACC × ΔNOA means…',['New investment earns more than its cost of capital, so AOP grows','The firm is shrinking','Leverage is rising','Margins are falling'],'This is the condition for value-creating growth.'],
+ ['First screening step before forecasting anything:',['Compare share price with book value per share: a premium means the market expects AOP > 0','Compute WACC','Forecast dividends','Check the auditor'],'"Let the market speak": then check whether AOP is positive and growing.'],
+ ['The forecasting template runs in which order?',['Sales → NOPM (NOPAT) → ATO (NOA) → AOP → FCF','FCF → AOP → sales','NOA → dividends → sales','WACC → sales → tax'],'Top line first, then margin and efficiency drive profit and capital.'],
+ ['"Choices versus conditions" in forecasting distinguishes…',['Firm decisions (strategy, pricing, capex) from the external environment (economy, industry)','Debt from equity','Cash from accruals','Past from future'],'Changes driven by choices may persist; condition-driven changes may reverse.'],
+ ['In the terminal (steady) stage, which is true?',['Sales, NOA, NOPAT, AOP and FCF all grow at g, and RNOA is constant','Only sales grow','RNOA keeps rising','AOP falls to zero'],'Constant NOPM and ATO make every driver scale together.'],
+ ['Reverse engineering a share price means…',['Working out what growth or AOP the market price implies, then judging if it\'s plausible','Re-auditing the accounts','Copying analyst forecasts','Ignoring the market'],'E.g. solve EV = NOA + AOP₁ ÷ (WACC − g) for g.'],
+ ['If asset turnover stays constant, NOA grows at the same rate as…',['Sales','NOPAT margin','WACC','Dividends'],'NOA = sales ÷ ATO.'],
+ ['Analysts in Brown et al. (2014) said they watch outlier estimates mainly to…',['Double-check their own forecasts for something they might be missing','Copy the consensus','Ignore other analysts','Change their ratings'],'Being far from consensus without a reason is a red flag for an error.']
+]);
+
+/* Topic 10: relative valuation */
+const PEERS=['Alder','Birch','Cedar','Damson','Elm','Fir','Hazel','Juniper'];
+function peersGen(){const n=6,pe=[],evs=[];for(let i=0;i<n;i++){pe.push(r2(rnd(80,350)/10));evs.push(r2(rnd(6,50)/10))}if(Math.random()<.6)pe[rnd(0,n-1)]=r2(rnd(600,1500)/10);
+  const st=a=>{const s=a.slice().sort((x,y)=>x-y);return {mean:a.reduce((x,y)=>x+y,0)/a.length,med:(s[2]+s[3])/2}};return {names:shuffle(PEERS.slice()).slice(0,n),pe,evs,PE:st(pe),EVS:st(evs)}}
+add({
+ q10_pe:{t:'t10',k:'q',gen(){const eps=r2(rnd(20,400)/100),P=peersGen(),useMed=Math.random()<.5,m=useMed?P.PE.med:P.PE.mean,c=eps*m;
+  return {stem:`Peers trade on a mean P/E of ${fx(P.PE.mean)} and a median of ${fx(P.PE.med)}. Your firm's EPS is £${f2(eps)}. Implied share price using the <b>${useMed?'median':'mean'}</b>?`,...opts(c,[eps*(useMed?P.PE.mean:P.PE.med),eps/m*100,m],v=>'£'+f2(v)),expl:`Price = EPS × P/E = £${f2(eps)} × ${fx(m)} = £${f2(c)}.`}}},
+ q10_evs:{t:'t10',k:'q',gen(){const s=rnd(200,8000),m=r2(rnd(6,50)/10),nd=rnd(-500,2000),sh=rnd(50,900),c=(m*s-nd)/sh;
+  return {stem:`Peer EV/Sales is ${fx(m)}. Your firm has sales of ${fm(s)}, net debt of ${fm(nd)} and ${sh}m shares. Implied value per share?`,...opts(c,[m*s/sh,(m*s+nd)/sh,(m*s-nd)/sh/m],v=>'£'+f2(v)),expl:`EV = ${fx(m)} × ${s} = ${f2(m*s)}; equity = EV − net debt = ${f2(m*s-nd)}; per share = £${f2(c)}. EV multiples value the whole business, so net debt must come off.`}}},
+ q10_pe0:{t:'t10',k:'q',gen(){const r=rnd(6,14)/100,c=(1+r)/r;return {stem:`For a firm with no growth in abnormal earnings and no dividends, the trailing P/E equals (1 + ρ) ÷ ρ. If the cost of equity is ${pc(r)}, what is P/E?`,...opts(c,[1/r,1+r,(1+r)/r/2],fx),expl:`(1 + ${pc(r)}) ÷ ${pc(r)} = ${fx(c)}. Anything above this reflects expected growth in abnormal earnings.`}}},
+ q10_pb:{t:'t10',k:'q',gen(){const roe=rnd(8,45)/100,pe=r2(rnd(80,350)/10),c=roe*pe;return {stem:`ROE (earnings ÷ book equity) is ${pc(roe)} and P/E is ${fx(pe)}. What is P/B?`,...opts(c,[pe/roe/100,roe/pe*100,pe],fx),expl:`P/B = P/E × E/B = P/E × ROE = ${fx(pe)} × ${pc(roe)} = ${fx(c)}.`}}},
+ q10_blend:{t:'t10',k:'q',gen(){const f=r2(rnd(500,4000)/100),m=r2(f*rnd(70,140)/100),w=pick([.5,.6,.7,.8]),c=w*f+(1-w)*m;
+  return {stem:`Your fundamental value is £${f2(f)} per share and the multiples-based value is £${f2(m)}. Weighting fundamentals at ${Math.round(w*100)}%, final value?`,...opts(c,[(1-w)*f+w*m,(f+m)/2,f],v=>'£'+f2(v)),expl:`${Math.round(w*100)}% × ${f2(f)} + ${Math.round((1-w)*100)}% × ${f2(m)} = £${f2(c)}.`}}},
+ a10_peers:{t:'t10',k:'a',h:1,gen(){const P=peersGen(),eps=r2(rnd(20,400)/100),s=rnd(300,8000),nd=rnd(-500,2500),sh=rnd(50,900),k=pick(['pemed','pemean','evsmed','evsmean']);
+  const c={pemed:eps*P.PE.med,pemean:eps*P.PE.mean,evsmed:(P.EVS.med*s-nd)/sh,evsmean:(P.EVS.mean*s-nd)/sh}[k],lab={pemed:'the median P/E',pemean:'the mean P/E',evsmed:'the median EV/Sales',evsmean:'the mean EV/Sales'}[k];
+  const tab=`<table class="ftab"><tr><th>Peer</th><th>P/E</th><th>EV/Sales</th></tr>${P.names.map((n,i)=>`<tr><th>${n}</th><td>${fx(P.pe[i])}</td><td>${fx(P.evs[i])}</td></tr>`).join('')}</table><p class="small">Your firm: EPS £${f2(eps)}; sales ${fm(s)}; net debt ${fm(nd)}; ${sh}m shares.</p>`;
+  return {stem:`Using ${lab} of the peers, what is the implied value per share (£)?`,table:tab,c,u:'£',tol:.01,expl:k.startsWith('pe')?`${lab} = ${fx(k==='pemed'?P.PE.med:P.PE.mean)}; price = £${f2(eps)} × that = £${f2(c)}.${k==='pemean'?' Notice how an outlier pulls the mean up.':''}`:`${lab} = ${fx(k==='evsmed'?P.EVS.med:P.EVS.mean)}; EV = ${f2((k==='evsmed'?P.EVS.med:P.EVS.mean)*s)}; minus net debt ${nd} → ÷ ${sh}m shares = £${f2(c)}.`}}},
+ a10_blend:{t:'t10',k:'a',gen(){const f=r2(rnd(500,4000)/100),m=r2(f*rnd(70,140)/100),w=pick([.4,.5,.6,.7,.75,.8]),c=w*f+(1-w)*m;return {stem:`Fundamental value £${f2(f)}, market (multiples) value £${f2(m)}, weight on fundamentals ${Math.round(w*100)}%. Final value per share (£)?`,c,u:'£',tol:.005,expl:`${w} × ${f2(f)} + ${r2(1-w)} × ${f2(m)} = £${f2(c)}.`}}}
+});
+conceptSet('t10',[
+ ['A high P/E can reflect…',['High expected growth in abnormal earnings, low risk, low payout, or temporarily depressed earnings','Only overvaluation','Only high debt','A high cost of equity'],'P/E combines growth expectations, risk and accounting effects.'],
+ ['A P/B well above 1 tells you the market expects…',['ROE to exceed the cost of equity persistently','Losses','Book value to fall','No growth'],'P/B = 1 + PV of future abnormal returns on book.'],
+ ['What is the main weakness of relying only on relative valuation?',['It assumes peers are priced correctly and depends heavily on peer choice','It needs forecasts for 20 years','It ignores market prices','It can\'t be used for listed firms'],'If the whole sector is overvalued, multiples copy the error.'],
+ ['Why might you prefer the median peer multiple to the mean?',['It is less affected by outliers such as a 170× P/E','It is always higher','It is required by IFRS','It includes more peers'],'One extreme peer (Amazon or LinkedIn in the Facebook case) can drag the mean a long way.'],
+ ['Facebook\'s $38 IPO price matched which benchmark in the case?',['Mean peer P/E × 2013E EPS (57.6 × 0.66)','Median EV/Sales','Book value','DCF with zero growth'],'That put it at the high end of the peer range, consistent with the mean being inflated by outliers.'],
+ ['Inditex had the highest P/E of Burberry, Inditex and The Gap partly because…',['Low cost of equity (risk) and high growth expectations','The highest ROE','The highest leverage','The lowest growth'],'With zero growth assumed, its P/E would still rank first, so lower risk explains part of it.'],
+ ['How can fundamental and market valuations be combined?',['Final value = w × fundamental value + (1 − w) × market (multiples) value','Take whichever is higher','Multiply them','Use only the market value'],'The weight reflects your confidence in each approach.'],
+ ['An EV/Sales multiple gives…',['Enterprise value, so net debt must be subtracted to reach equity value','Equity value directly','Earnings per share','Dividend yield'],'Enterprise multiples value operations; equity multiples (P/E, P/B) value shares directly.'],
+ ['Lower interest rates tend to…',['Raise valuations, because future cash flows are discounted less','Lower all P/E ratios','Have no effect on DCF','Raise the cost of equity'],'The FT articles on "sky-high" valuations made this point.'],
+ ['With no growth in abnormal earnings and no dividends, P/E equals…',['(1 + ρ) ÷ ρ','1 ÷ ρ','ρ','ROE ÷ ρ'],'At ρ = 10% that\'s 11×. Higher P/Es reflect expected growth in abnormal earnings.']
+]);
+
+/* Boss rounds */
+const BOSS={
+ t8(){const s=scen();return {table:scenTable(s,{nfo:1}),steps:[['AOP for '+YR[0],s.aop[0],'£m',`${f2(s.nopat[0])} − ${pc(s.w)} × ${f2(s.noa[0])}`],['AOP for '+YR[2],s.aop[2],'£m',`${f2(s.nopat[2])} − ${pc(s.w)} × ${f2(s.noa[2])}`],['AOP continuing value at the end of '+YR[2]+' (undiscounted)',s.cvA,'£m',`${f2(s.aop[2])} × (1 + ${pc(s.g)}) ÷ (${pc(s.w)} − ${pc(s.g)})`],['Enterprise value with the AOP model',s.evA,'£m','NOA₀ + PV of AOP + PV of continuing value',solTable(s)],['FCF for '+YR[2],s.fcf[2],'£m',`${f2(s.nopat[2])} − ${f2(s.noa[2])} × ${pc(s.g)}: NOA keeps growing at g`],['Enterprise value with DCF (should match the AOP value)',s.evF,'£m','PV of FCF + PV of FCF continuing value',solTable(s,1)],['Equity value per share',s.px,'£',`(${f2(s.evA)} − ${f2(s.nfo)}) ÷ ${s.sh}`]]}},
+ t5(){const s=dpGen(),t=tRate(),op=r2(s.np/(1-t)),nfe=r2(s.nie/(1-t));s.np=op*(1-t);s.nie=nfe*(1-t);s.ni=s.np-s.nie;Object.assign(s,{rnoa:s.np/s.A,nopm:s.np/s.sales,nir:s.nie/s.N,spread:s.np/s.A-s.nie/s.N,roe:s.ni/s.B});
+  const tab=`<table class="ftab"><tr><th>£m</th><th>Start of year</th><th>End of year</th></tr><tr><th>Net operating assets</th><td>${f2(s.a0)}</td><td>${f2(s.a1)}</td></tr><tr><th>Net debt (NFO)</th><td>${f2(s.n0)}</td><td>${f2(s.n1)}</td></tr><tr><th>Equity (BVE)</th><td>${f2(s.b0)}</td><td>${f2(s.b1)}</td></tr></table>
+  <p class="small">Income statement: sales ${fm(s.sales)}; operating profit ${fm(op)}; net finance expense ${fm(nfe)}; reported tax ${fm(r2(t*(op-nfe)))}; tax rate ${pc(t)}. Use average balances.</p>`;
+  return {table:tab,steps:[['NOPAT',s.np,'£m',`${f2(op)} − tax on operations (reported ${f2(r2(t*(op-nfe)))} + shield ${f2(t*nfe)}) = ${f2(op)} × (1 − ${pc(t)})`],['Net finance expense after tax (NIE)',s.nie,'£m',`${f2(nfe)} × (1 − ${pc(t)})`],['RNOA (%)',s.rnoa*100,'%',DPW.rnoa[3](s)],['ATO',s.ato,'x',DPW.ato[3](s)],['FLEV',s.flev,'x',DPW.flev[3](s)],['NIR (%)',s.nir*100,'%',DPW.nir[3](s)],['ROE (%)',s.roe*100,'%',DPW.roe[3](s)]]}}
+};
+
+/* "Sort the statement": balance sheet, income statement, cash flow (module conventions: Penman / Week 3–4) */
 const BSI=[
  ['cash','A','fin','Cash and cash equivalents',[40,400],'Cash is a financial asset: it is netted against debt in net debt.'],
  ['sti','A','fin','Short-term investments',[10,200],'Investments in financial-market securities, not used to trade with customers.'],
@@ -1776,41 +2041,96 @@ const BSI=[
  ['aint','L','fin','Accrued interest payable',[2,30],'Interest owed on debt is part of the financing obligation.'],
  ['cnote','L','fin','Notes payable issued to raise cash',[10,200],'A note written to raise cash is financing (compare trade notes to suppliers).']
 ];
-const BSN=Object.fromEntries(BSI.map(x=>[x[0],x]));
+/* income statement: [id, sign, class, name, % of revenue range, reason] */
+const ISI=[
+ ['dist',-1,'op','Distribution costs',[3,9],'Getting goods to customers is part of trading.'],
+ ['adm',-1,'op','Administrative expenses',[4,10],'Running the business is operating.'],
+ ['rnd',-1,'op','Research and development',[2,7],'Developing products for customers is operating.'],
+ ['ooi',1,'op','Other operating income',[.5,2.5],'Income from the business\'s trading activities.'],
+ ['fxop',-1,'op','Foreign exchange loss on trade payables',[.2,1],'It arises from trading with overseas suppliers, so operating.'],
+ ['restr',-1,'one','Restructuring costs',[1,4],'A one-off charge: strip it out to see core profit.'],
+ ['imp',-1,'one','Impairment of goodwill',[1,5],'One-off write-down: non-recurring, though it signals lost value.'],
+ ['disp',1,'one','Profit on disposal of a property',[.5,2.5],'A one-off gain, not part of ordinary trading.'],
+ ['lit',-1,'one','Litigation settlement',[.5,2.5],'A non-recurring charge.'],
+ ['ibor',-1,'fin','Interest expense on borrowings',[.5,2.5],'The cost of debt is financing.'],
+ ['ilease',-1,'fin','Interest on lease liabilities',[.3,1.5],'Lease liabilities are financing, so their interest is too.'],
+ ['fininc',1,'fin','Finance income on cash deposits',[.1,.8],'Return on financial assets is financing.'],
+ ['fvfin',1,'fin','Fair value gain on financial investments',[.1,1.2],'Gains on financial-market investments are financing.']
+];
+/* cash flow statement: [id, sign, class, name, range (£m), reason] */
+const CFI=[
+ ['cgo',1,'op','Cash generated from operations',[300,3000],'Cash from trading with customers and suppliers.'],
+ ['taxp',-1,'op','Income tax paid',[20,300],'Tax paid on the business\'s profits is operating (only interest\'s tax saving belongs to financing).'],
+ ['ppe',-1,'inv','Purchase of property, plant and equipment',[50,900],'Capital expenditure: investment in operating assets.'],
+ ['dppe',1,'inv','Proceeds from disposal of PP&E',[5,120],'Selling operating assets reduces net capex.'],
+ ['pint',-1,'inv','Purchase of intangible assets',[10,250],'Investment in operating assets (software, licences).'],
+ ['acq',-1,'inv','Acquisition of a subsidiary, net of cash',[50,800],'Buying a business is investment in operations.'],
+ ['intp',-1,'fin','Interest paid',[10,150],'IFRS often shows it under operating, but it is a payment to lenders: financing.'],
+ ['intr',1,'fin','Interest received',[2,40],'Return on financial assets is financing.'],
+ ['sti',-1,'fin','Purchase of short-term investments',[20,400],'Buying financial assets is a financing move (like repaying debt), even though IFRS shows it under investing.'],
+ ['div',-1,'fin','Dividends paid',[20,500],'A payment to shareholders.'],
+ ['borr',1,'fin','Proceeds from borrowings',[50,800],'Raising debt is financing.'],
+ ['repay',-1,'fin','Repayment of borrowings',[50,800],'Repaying debt is financing.'],
+ ['lpr',-1,'fin','Repayment of lease liabilities (principal)',[20,300],'Lease liabilities are debt-like, so paying them down is financing.'],
+ ['buyb',-1,'fin','Share buyback',[20,600],'A payment to shareholders.'],
+ ['issue',1,'fin','Proceeds from issue of shares',[20,500],'Raising equity is financing.']
+];
+const SH={bs:{name:'balance sheet',cats:[['op','Operating'],['fin','Financial']]},is:{name:'income statement',cats:[['op','Operating'],['fin','Financial'],['one','One-off']]},cf:{name:'cash flow statement',cats:[['op','Operating'],['inv','Investment'],['fin','Financing']]}};
 const CO=['Northwind','Bramble','Halden','Corvo','Lumen','Ashby','Vela','Morrow','Pennant','Quarry','Saxon','Tamsin'];
-function sortGen(){
-  const w=x=>1+(fget('miss|bs:'+x[0])>fget('fix|bs:'+x[0])?3:0);
+function sortGen(kind){
+  const w=x=>1+(fget('miss|'+kind+':'+x[0])>fget('fix|'+kind+':'+x[0])?3:0);
   const take=(list,n)=>{const out=[],pool=list.slice();while(out.length<n&&pool.length){const tot=pool.reduce((a,x)=>a+w(x),0);let r=Math.random()*tot,i=0;for(;i<pool.length;i++){r-=w(pool[i]);if(r<=0)break}out.push(pool.splice(Math.min(i,pool.length-1),1)[0])}return out};
-  const A=BSI.filter(x=>x[1]==='A'),L=BSI.filter(x=>x[1]==='L');
-  const rows=take(A.filter(x=>x[2]==='fin'),2).concat(take(A.filter(x=>x[2]==='op'),5),take(L.filter(x=>x[2]==='fin'),3),take(L.filter(x=>x[2]==='op'),4))
-    .map(x=>({id:x[0],side:x[1],cls:x[2],name:x[3],amt:rnd(x[4][0],x[4][1]),why:x[5],pick:null}));
-  const ord=r=>(r.side==='A'?0:1);rows.sort((a,b)=>ord(a)-ord(b)||b.amt-a.amt);
-  let ta=rows.filter(r=>r.side==='A').reduce((a,r)=>a+r.amt,0),tl=rows.filter(r=>r.side==='L').reduce((a,r)=>a+r.amt,0);
-  if(tl>ta*.75){const f=ta*.75/tl;rows.forEach(r=>{if(r.side==='L')r.amt=Math.max(1,Math.round(r.amt*f))});tl=rows.filter(r=>r.side==='L').reduce((a,r)=>a+r.amt,0)}
-  const sum=(s,c)=>rows.filter(r=>r.side===s&&r.cls===c).reduce((a,r)=>a+r.amt,0);
-  return {co:pick(CO)+' plc',rows,eq:ta-tl,ta,tl,noa:sum('A','op')-sum('L','op'),nfo:sum('L','fin')-sum('A','fin')};
+  const co=pick(CO)+' plc';
+  if(kind==='bs'){
+    const A=BSI.filter(x=>x[1]==='A'),L=BSI.filter(x=>x[1]==='L');
+    const rows=take(A.filter(x=>x[2]==='fin'),2).concat(take(A.filter(x=>x[2]==='op'),5),take(L.filter(x=>x[2]==='fin'),3),take(L.filter(x=>x[2]==='op'),4))
+      .map(x=>({id:x[0],side:x[1],cls:x[2],name:x[3],amt:rnd(x[4][0],x[4][1]),why:x[5],pick:null}));
+    const ord=r=>(r.side==='A'?0:1);rows.sort((a,b)=>ord(a)-ord(b)||b.amt-a.amt);
+    let ta=rows.filter(r=>r.side==='A').reduce((a,r)=>a+r.amt,0),tl=rows.filter(r=>r.side==='L').reduce((a,r)=>a+r.amt,0);
+    if(tl>ta*.75){const f=ta*.75/tl;rows.forEach(r=>{if(r.side==='L')r.amt=Math.max(1,Math.round(r.amt*f))});tl=rows.filter(r=>r.side==='L').reduce((a,r)=>a+r.amt,0)}
+    const sum=(s,c)=>rows.filter(r=>r.side===s&&r.cls===c).reduce((a,r)=>a+r.amt,0),noa=sum('A','op')-sum('L','op'),nfo=sum('L','fin')-sum('A','fin');
+    return {kind,co,rows,foot:[['Total equity',ta-tl]],calc:[['Net operating assets (NOA)',noa],['Net debt (NFO), negative if net cash',nfo]],
+      calcExpl:`NOA = operating assets − operating liabilities = <b>${f2(noa)}</b>. Net debt = financial liabilities − financial assets = <b>${f2(nfo)}</b>. Check: NOA − net debt = ${f2(noa-nfo)} = total equity.`};
+  }
+  if(kind==='is'){
+    const R=rnd(50,500)*10,t=tRate();const mk=x=>({id:x[0],cls:x[2],name:x[3],amt:x[1]*Math.max(1,Math.round(R*(x[4][0]+Math.random()*(x[4][1]-x[4][0]))/100)),why:x[5],pick:null});
+    const opx=ISI.filter(x=>x[2]==='op'),one=ISI.filter(x=>x[2]==='one'),fin=ISI.filter(x=>x[2]==='fin');
+    const mid=shuffle(take(opx,2).concat(take(one,rnd(1,2)),take(fin,rnd(2,3))).map(mk));
+    const rows=[{id:'rev',cls:'op',name:'Revenue',amt:R,why:'Sales to customers.',pick:null},{id:'cos',cls:'op',name:'Cost of sales',amt:-Math.round(R*rnd(50,64)/100),why:'The cost of the goods sold to customers.',pick:null}].concat(mid);
+    const sum=c=>rows.filter(r=>r.cls===c).reduce((a,r)=>a+r.amt,0),pbt=rows.reduce((a,r)=>a+r.amt,0),tax=-Math.round(Math.max(0,pbt)*t);
+    return {kind,co,rows,foot:[['Income tax expense',tax],['Profit for the year',pbt+tax]],calc:[['Core operating profit before tax (operating lines only)',sum('op')],['Net finance expense before tax (positive if an expense)',-sum('fin')]],
+      calcExpl:`Core operating profit = sum of the operating lines = <b>${f2(sum('op'))}</b>. Net finance expense = −(sum of the financial lines) = <b>${f2(-sum('fin'))}</b>. One-off items (${f2(sum('one'))}) are kept separate so they don't distort core profitability.`};
+  }
+  const op=CFI.filter(x=>x[2]==='op'),inv=CFI.filter(x=>x[2]==='inv'),fin=CFI.filter(x=>x[2]==='fin');
+  const rows=shuffle(op.concat(take(inv,3),take(fin,5)).map(x=>({id:x[0],cls:x[2],name:x[3],amt:x[1]*rnd(x[4][0],x[4][1]),why:x[5],pick:null})));
+  const cgo=rows.find(r=>r.id==='cgo'),tx=rows.find(r=>r.id==='taxp');tx.amt=-Math.round(cgo.amt*rnd(8,20)/100);
+  const sum=c=>rows.filter(r=>r.cls===c).reduce((a,r)=>a+r.amt,0);
+  return {kind,co,rows,foot:[['Net change in cash',rows.reduce((a,r)=>a+r.amt,0)]],calc:[['Operating cash flow (operating lines)',sum('op')],['Free cash flow (operating + investment lines)',sum('op')+sum('inv')]],
+    calcExpl:`Operating cash flow = <b>${f2(sum('op'))}</b>; net investment = ${f2(sum('inv'))}; FCF = <b>${f2(sum('op')+sum('inv'))}</b>. Interest is excluded as financing (strictly, uCFO also adds back the tax saved by interest, ignored here).`};
 }
 
 /* ---------- session state ---------- */
 let F={v:'home'},fTimer=null;
 const QUICK=Object.keys(QT).filter(k=>QT[k].k==='q'),ADV=Object.keys(QT).filter(k=>QT[k].k==='a');
 function pickIds(pool,n){
-  const miss=new Set(missed()),seen={};const out=[];
+  const miss=new Set(missed()),seen={},out=[],cap=Math.max(2,Math.ceil(n/Math.max(1,pool.filter(id=>!QT[id].c).length))+1);
   const w=id=>(miss.has(id)?4:1)*(QT[id].c?1:1.4);
-  while(out.length<n){const cand=pool.filter(id=>(seen[id]||0)<(QT[id].c?1:2));if(!cand.length)break;const tot=cand.reduce((a,id)=>a+w(id),0);let r=Math.random()*tot,i=0;for(;i<cand.length;i++){r-=w(cand[i]);if(r<=0)break}const id=cand[Math.min(i,cand.length-1)];seen[id]=(seen[id]||0)+1;if(out[out.length-1]===id&&cand.length>1)continue;out.push(id)}
+  for(let guard=0;out.length<n&&guard<200;guard++){const cand=pool.filter(id=>(seen[id]||0)<(QT[id].c?1:cap)&&(out[out.length-1]!==id||pool.length===1));if(!cand.length)break;
+    const tot=cand.reduce((a,id)=>a+w(id),0);let r=Math.random()*tot,i=0;for(;i<cand.length;i++){r-=w(cand[i]);if(r<=0)break}const id=cand[Math.min(i,cand.length-1)];seen[id]=(seen[id]||0)+1;out.push(id)}
   return out;
 }
+
+const ABS={'%':.06,x:.011,'£':.011,'£m':.011};
+const okTyped=(q,v)=>Math.abs(v-q.c)<=Math.max(ABS[q.u||'£m'],Math.abs(q.c)*q.tol);
 function finStart(mode,tid){
-  clearInterval(fTimer);const pool=t=>k=>QT[k].t===t;
-  let ids=[];
-  if(mode==='quick')ids=pickIds(QUICK.filter(pool(tid)),10);
-  else if(mode==='adv')ids=pickIds(ADV.filter(pool(tid)),5);
-  else if(mode==='review')ids=shuffle(missed().slice()).slice(0,10);
-  else if(mode==='blitz')ids=[];
-  if(mode==='boss'){const s=scen();const B=[['AOP for '+YR[0],s.aop[0],.005,`${f2(s.nopat[0])} − ${pc(s.w)} × ${f2(s.noa[0])}`],['AOP for '+YR[2],s.aop[2],.005,`${f2(s.nopat[2])} − ${pc(s.w)} × ${f2(s.noa[2])}`],['AOP continuing value at the end of '+YR[2]+' (undiscounted)',s.cvA,.01,`${f2(s.aop[2])} × (1 + ${pc(s.g)}) ÷ (${pc(s.w)} − ${pc(s.g)})`],['Enterprise value with the AOP model',s.evA,.01,'NOA₀ + PV of AOP + PV of continuing value'],['FCF for '+YR[2],s.fcf[2],.005,`${f2(s.nopat[2])} − ${f2(s.noa[2])} × ${pc(s.g)}: NOA keeps growing at g`],['Enterprise value with DCF (should match the AOP value)',s.evF,.01,'PV of FCF + PV of FCF continuing value'],['Equity value per share (£)',s.px,.01,`(${f2(s.evA)} − ${f2(s.nfo)}) ÷ ${s.sh}`]];
-    F={v:'play',mode,tid,boss:B.map((b,i)=>({stem:`Boss round · step ${i+1} of ${B.length}: <b>${b[0]}</b>?`,table:scenTable(s,{nfo:1}),c:b[1],tol:b[2],unit:i===6?'£':'',expl:b[3]+' = '+f2(b[1])+'.',sol:i===3?solTable(s):i===5?solTable(s,1):''})),n:B.length,i:0,ok:0,xp:0,combo:0,best:0};
-  }else if(mode==='sort'||mode==='sortadv'){F={v:'sort',mode,tid,bs:sortGen(),checked:false,step:0}}
-  else F={v:'play',mode,tid,ids,n:mode==='blitz'?Infinity:ids.length,i:0,ok:0,xp:0,combo:0,best:0};
+  clearInterval(fTimer);const inT=k=>QT[k].t===tid;
+  if(mode==='boss'){const b=BOSS[tid]();F={v:'play',mode,tid,boss:b.steps.map((x,i)=>({stem:`Boss round · step ${i+1} of ${b.steps.length}: <b>${x[0]}</b>?`,table:b.table,c:x[1],u:x[2],tol:x[2]==='£m'||x[2]==='£'?.01:.005,expl:x[3]+' = '+fu(x[1],x[2])+'.',sol:x[4]||''})),n:b.steps.length,i:0,ok:0,xp:0,combo:0,best:0}}
+  else if(/^sort/.test(mode)){const kind=mode==='sortis'?'is':mode==='sortcf'?'cf':mode==='sortadv'?pick(['bs','is','cf']):'bs';F={v:'sort',mode,tid,bs:sortGen(kind),checked:false,step:0}}
+  else{let ids=[];
+    if(mode==='quick')ids=pickIds(QUICK.filter(inT),10);
+    else if(mode==='adv')ids=pickIds(ADV.filter(inT),5);
+    else if(mode==='review')ids=shuffle(missed().slice()).slice(0,10);
+    F={v:'play',mode,tid,ids,n:mode==='blitz'?Infinity:ids.length,i:0,ok:0,xp:0,combo:0,best:0}}
   if(mode==='blitz'){F.end=Date.now()+60000;fTimer=setInterval(()=>{const el=$('#fClock');const left=Math.max(0,Math.ceil((F.end-Date.now())/1000));if(el)el.textContent=left+'s';if(left<=0){clearInterval(fTimer);finDone()}},250)}
   if(F.v==='play')nextQ();else renderFin();
 }
@@ -1818,7 +2138,7 @@ function nextQ(){
   if(F.i>=F.n){finDone();return}
   let q;
   if(F.mode==='boss')q=Object.assign({k:'a',id:'boss'},F.boss[F.i]);
-  else{const id=F.mode==='blitz'?pick(QUICK.filter(k=>QT[k].t===F.tid&&!QT[k].gen.toString().includes('table:'))):F.ids[F.i];q=Object.assign({id,k:QT[id].k},QT[id].gen())}
+  else{const id=F.mode==='blitz'?pick(QUICK.filter(k=>QT[k].t===F.tid&&!QT[k].h)):F.ids[F.i];q=Object.assign({id,k:QT[id].k},QT[id].gen())}
   F.q=q;F.done=false;F.pick=null;F.val='';renderFin();
   if(q.k==='a')setTimeout(()=>{const el=$('#finIn');if(el)el.focus()},60);
 }
@@ -1835,18 +2155,18 @@ function saveQuiet(){S.updated=Date.now();try{localStorage.setItem(K,JSON.string
 function finDone(){clearInterval(fTimer);if(F.mode==='blitz'){flog('blitz|'+F.tid,F.ok);F.v='done';commit();return}if(F.mode==='boss'&&F.ok===F.n)flog('boss|'+F.tid,1);F.v='done';commit()}
 function checkTyped(){
   const q=F.q,el=$('#finIn');if(!el||F.done)return;const v=fnum(el.value);if(!isFinite(v)){$('#finMsg').textContent='Type a number, e.g. 123.45';return}
-  F.val=el.value;F.pick=v;answer(Math.abs(v-q.c)<=Math.max(.011,Math.abs(q.c)*q.tol));
+  F.val=el.value;F.pick=v;answer(okTyped(q,v));
 }
 function sortCheck(){
   const B=F.bs;if(B.rows.some(r=>!r.pick)){$('#finMsg').textContent='Label every line first.';return}
   B.checked=true;const ok=B.rows.filter(r=>r.pick===r.cls).length;B.ok=ok;
-  B.rows.forEach(r=>{if(r.pick===r.cls){if(fget('miss|bs:'+r.id)>fget('fix|bs:'+r.id))flog('fix|bs:'+r.id,Date.now())}else flog('miss|bs:'+r.id,Date.now())});
+  B.rows.forEach(r=>{const k=B.kind+':'+r.id;if(r.pick===r.cls){if(fget('miss|'+k)>fget('fix|'+k))flog('fix|'+k,Date.now())}else flog('miss|'+k,Date.now())});
   B.gain=ok*2+(ok===B.rows.length?10:0);addXP(F.tid,B.gain);flog('day|'+today(),1);
   if(F.mode==='sortadv')F.step=1;commit();
 }
 function sortCalc(){
   const B=F.bs,a=fnum(($('#fNoa')||{}).value),b=fnum(($('#fNfo')||{}).value);if(!isFinite(a)||!isFinite(b)){$('#finMsg').textContent='Fill in both figures.';return}
-  B.inNoa=a;B.inNfo=b;B.okNoa=Math.abs(a-B.noa)<.6;B.okNfo=Math.abs(b-B.nfo)<.6;const g=(B.okNoa?25:0)+(B.okNfo?25:0);B.gain+=g;addXP(F.tid,g);F.step=2;commit();
+  B.inA=a;B.inB=b;B.okA=Math.abs(a-B.calc[0][1])<.6;B.okB=Math.abs(b-B.calc[1][1])<.6;const g=(B.okA?25:0)+(B.okB?25:0);B.gain+=g;addXP(F.tid,g);F.step=2;commit();
 }
 
 /* ---------- rendering ---------- */
@@ -1871,8 +2191,8 @@ function renderFin(){
    const btn=(m,l,dis)=>`<button class="ghost" data-act="fin-play" data-m="${m}" data-t="${t.id}"${dis?' disabled':''}>${l}</button>`;
    return `<div class="card ftopic"><div class="row"><span><b>${i+1}</b> · ${esc(t.name)}</span><span class="small muted">Lv ${L.lv}${fget('boss|'+t.id)?' ★':''}</span></div>
    <div class="xpbar"><i style="width:${L.pct}%"></i></div><p class="small muted" style="margin:4px 0 8px">${xp} XP${L.hi?' · '+(L.hi-xp)+' to level '+(L.lv+1):' · max level'}</p>
-   <div class="fbtns">${g.includes('sort')?btn('sort','Sort the statement')+btn('sortadv','Sort + calculate'):''}${g.includes('quick')?btn('quick','Quick quiz')+btn('adv','Advanced'):''}${g.includes('boss')?btn('boss',bossOpen?'Boss round':'Boss · '+(BOSS_AT-xp)+' XP',!bossOpen):''}${g.includes('blitz')?btn('blitz','Blitz 60s'+(bb?' · best '+bb:'')):''}</div></div>`}).join('')}
-  <p class="small muted" style="margin:14px 2px 0">Questions are written for revision from the module's methods (Penman-style reformulation, AOP and DCF). Numbers change every time.</p>`;
+   <div class="fbtns">${g.includes('sort')?btn('sort','Sort balance sheet')+btn('sortis','Sort income statement')+btn('sortcf','Sort cash flow')+btn('sortadv','Sort + calculate'):''}${g.includes('quick')?btn('quick','Quick quiz'):''}${g.includes('adv')?btn('adv','Advanced'):''}${g.includes('boss')?btn('boss',bossOpen?'Boss round':'Boss · '+(BOSS_AT-xp)+' XP',!bossOpen):''}${g.includes('blitz')?btn('blitz','Blitz 60s'+(bb?' · best '+bb:'')):''}</div></div>`}).join('')}
+  <p class="small muted" style="margin:14px 2px 0">Questions are written for revision from the module's methods (Penman-style reformulation, DuPont, AOP and DCF). Numbers change every time.</p>`;
 }
 function playHead(){
   const label=F.mode==='review'?'Mistake review':F.mode==='boss'?'Boss round':F.mode==='blitz'?'Blitz':F.mode==='adv'?'Advanced':'Quick quiz';
@@ -1884,10 +2204,10 @@ function renderPlay(box){
   if(q.k==='q'){
     h+=`<div class="fopts">${q.opts.map((o,i)=>{let c='';if(F.done){if(i===q.ans)c=' right';else if(i===F.pick)c=' wrong'}return `<button class="fopt${c}" data-act="fin-opt" data-i="${i}"${F.done?' disabled':''}>${o}</button>`}).join('')}</div>`;
   }else{
-    h+=`<form id="finForm" class="fform"><button type="button" class="ghost pm" data-act="fin-neg" data-for="finIn" aria-label="Make negative"${F.done?' disabled':''}>±</button><input id="finIn" inputmode="decimal" autocomplete="off" placeholder="${q.unit==='£'?'£ per share':'£m'}, 2 decimals" value="${esc(F.val)}"${F.done?' disabled':''}><button class="btn" style="margin-top:0;width:auto" ${F.done?'disabled':''}>Check</button></form><p class="msg" id="finMsg"></p>`;
+    h+=`<form id="finForm" class="fform"><button type="button" class="ghost pm" data-act="fin-neg" data-for="finIn" aria-label="Make negative"${F.done?' disabled':''}>±</button><input id="finIn" inputmode="decimal" autocomplete="off" placeholder="${({'£':'£ per share','%':'in %, e.g. 12.34','x':'ratio, e.g. 1.25'})[q.u]||'£m, 2 decimals'}" value="${esc(F.val)}"${F.done?' disabled':''}><button class="btn" style="margin-top:0;width:auto" ${F.done?'disabled':''}>Check</button></form><p class="msg" id="finMsg"></p>`;
   }
-  if(F.done){const ok=q.k==='q'?F.pick===q.ans:Math.abs(F.pick-q.c)<=Math.max(.011,Math.abs(q.c)*q.tol);
-    h+=`<div class="ffb ${ok?'good':'bad'}"><b>${ok?'Correct! +'+F.gain+' XP':'Not quite'}</b>${!ok&&q.k==='a'?` · answer ${q.unit==='£'?'£'+f2(q.c):fm(q.c)}`:''}${q.expl?`<p>${q.expl}</p>`:''}${q.sol?`<details${ok?'':' open'}><summary>Worked solution</summary>${q.sol}</details>`:''}</div>
+  if(F.done){const ok=q.k==='q'?F.pick===q.ans:okTyped(q,F.pick);
+    h+=`<div class="ffb ${ok?'good':'bad'}"><b>${ok?'Correct! +'+F.gain+' XP':'Not quite'}</b>${!ok&&q.k==='a'?` · answer ${fu(q.c,q.u)}`:''}${q.expl?`<p>${q.expl}</p>`:''}${q.sol?`<details${ok?'':' open'}><summary>Worked solution</summary>${q.sol}</details>`:''}</div>
     <button class="btn" data-act="fin-next">${F.i+1>=F.n?'See results':'Next'}</button>`}
   box.innerHTML=h+'</div>';
 }
@@ -1899,20 +2219,22 @@ function renderDone(box){
   <div class="grid2" style="margin-top:14px"><button class="ghost" data-act="fin-home">Topics</button><button class="btn" style="margin-top:0" data-act="fin-play" data-m="${F.mode}" data-t="${F.tid}">Play again</button></div></div>`;
 }
 function renderSort(box){
-  const B=F.bs,row=r=>{const st=B.checked?(r.pick===r.cls?' right':' wrong'):'';
-    return `<div class="srow${st}"><div class="sname">${esc(r.name)}<span class="amt">${f2(r.amt).replace('.00','')}</span></div>
-    <div class="seg2">${['op','fin'].map(c=>`<button data-act="fin-sort" data-r="${r.id}" data-v="${c}" class="${r.pick===c?'on':''}${B.checked&&c===r.cls?' ans':''}"${B.checked?' disabled':''}>${c==='op'?'Operating':'Financial'}</button>`).join('')}</div>
+  const B=F.bs,cats=SH[B.kind].cats,sg=v=>v<0?'('+f2(-v).replace('.00','')+')':f2(v).replace('.00','');
+  const row=r=>{const st=B.checked?(r.pick===r.cls?' right':' wrong'):'';
+    return `<div class="srow${st}"><div class="sname">${esc(r.name)}<span class="amt">${sg(r.amt)}</span></div>
+    <div class="seg2" style="grid-template-columns:repeat(${cats.length},1fr)">${cats.map(c=>`<button data-act="fin-sort" data-r="${r.id}" data-v="${c[0]}" class="${r.pick===c[0]?'on':''}${B.checked&&c[0]===r.cls?' ans':''}"${B.checked?' disabled':''}>${c[1]}</button>`).join('')}</div>
     ${B.checked&&r.pick!==r.cls?`<p class="small swhy">${esc(r.why)}</p>`:''}</div>`};
-  const A=B.rows.filter(r=>r.side==='A'),L=B.rows.filter(r=>r.side==='L');
-  let h=`<div class="row fhead"><button class="link" data-act="fin-quit">‹ Quit</button><span class="small"><b>Sort the statement</b></span><span class="small">${B.checked?'<b>+'+B.gain+'</b> XP':B.rows.filter(r=>r.pick).length+' / '+B.rows.length}</span></div>
-  <div class="card fq"><p class="fstem" style="margin-top:0"><b>${esc(B.co)}</b>: balance sheet (£m). Mark each line as operating or financial.</p>
-  <p class="small muted sh">Assets</p>${A.map(row).join('')}<p class="small muted sh">Liabilities</p>${L.map(row).join('')}
-  <div class="srow eqrow"><div class="sname">Total equity<span class="amt">${f2(B.eq).replace('.00','')}</span></div><span class="small muted">Equity: not classified</span></div>`;
+  const body=B.kind==='bs'?`<p class="small muted sh">Assets</p>${B.rows.filter(r=>r.side==='A').map(row).join('')}<p class="small muted sh">Liabilities</p>${B.rows.filter(r=>r.side==='L').map(row).join('')}`:B.rows.map(row).join('');
+  const hint={bs:'Mark each line as operating or financial.',is:'Mark each line as operating, financial or one-off (non-recurring).',cf:'Mark each line by its role in valuation: operating, investment (capex) or financing. IFRS headings don\'t always match.'}[B.kind];
+  let h=`<div class="row fhead"><button class="link" data-act="fin-quit">‹ Quit</button><span class="small"><b>Sort the ${SH[B.kind].name}</b></span><span class="small">${B.checked?'<b>+'+B.gain+'</b> XP':B.rows.filter(r=>r.pick).length+' / '+B.rows.length}</span></div>
+  <div class="card fq"><p class="fstem" style="margin-top:0"><b>${esc(B.co)}</b>: ${SH[B.kind].name} (£m). ${hint}</p>${body}
+  ${B.foot.map(f=>`<div class="srow eqrow"><div class="sname">${f[0]}<span class="amt">${sg(f[1])}</span></div><span class="small muted">Not classified</span></div>`).join('')}`;
   if(!B.checked)h+=`<p class="msg" id="finMsg"></p><button class="btn" data-act="fin-check">Check</button>`;
-  else{h+=`<div class="ffb ${B.ok===B.rows.length?'good':'bad'}"><b>${B.ok} of ${B.rows.length} right${B.ok===B.rows.length?': perfect sheet! +10 bonus':''}</b>${B.ok<B.rows.length?'<p>The reasons are under the lines you missed. Those items will come up more often.</p>':''}</div>`;
-    if(F.mode==='sortadv'&&F.step===1)h+=`<form id="sortForm" class="card" style="margin-top:12px"><p class="fstem" style="margin-top:0">Now calculate, in £m:</p><label for="fNoa">Net operating assets (NOA)</label><div class="fform"><button type="button" class="ghost pm" data-act="fin-neg" data-for="fNoa" aria-label="Make negative">±</button><input id="fNoa" inputmode="decimal" autocomplete="off"></div><label for="fNfo">Net debt (NFO), negative if net cash</label><div class="fform"><button type="button" class="ghost pm" data-act="fin-neg" data-for="fNfo" aria-label="Make negative">±</button><input id="fNfo" inputmode="decimal" autocomplete="off"></div><p class="msg" id="finMsg"></p><button class="btn">Check figures</button></form>`;
-    if(F.mode==='sortadv'&&F.step===2)h+=`<div class="ffb ${B.okNoa&&B.okNfo?'good':'bad'}"><b>NOA ${B.okNoa?'✓':'✗'} · Net debt ${B.okNfo?'✓':'✗'}</b><p>NOA = operating assets − operating liabilities = <b>${f2(B.noa)}</b>. Net debt = financial liabilities − financial assets = <b>${f2(B.nfo)}</b>. Check: NOA − net debt = ${f2(B.noa-B.nfo)} = total equity.</p></div>`;
-    if(F.mode==='sort'||F.step===2)h+=`<div class="grid2" style="margin-top:12px"><button class="ghost" data-act="fin-home">Topics</button><button class="btn" style="margin-top:0" data-act="fin-play" data-m="${F.mode}" data-t="${F.tid}">Next sheet</button></div>`}
+  else{h+=`<div class="ffb ${B.ok===B.rows.length?'good':'bad'}"><b>${B.ok} of ${B.rows.length} right${B.ok===B.rows.length?': perfect! +10 bonus':''}</b>${B.ok<B.rows.length?'<p>The reasons are under the lines you missed. Those items will come up more often.</p>':''}</div>`;
+    const inp=(id,l)=>`<label for="${id}">${l}</label><div class="fform"><button type="button" class="ghost pm" data-act="fin-neg" data-for="${id}" aria-label="Make negative">±</button><input id="${id}" inputmode="decimal" autocomplete="off"></div>`;
+    if(F.mode==='sortadv'&&F.step===1)h+=`<form id="sortForm" class="card" style="margin-top:12px"><p class="fstem" style="margin-top:0">Now calculate, in £m:</p>${inp('fNoa',B.calc[0][0])}${inp('fNfo',B.calc[1][0])}<p class="msg" id="finMsg"></p><button class="btn">Check figures</button></form>`;
+    if(F.mode==='sortadv'&&F.step===2)h+=`<div class="ffb ${B.okA&&B.okB?'good':'bad'}"><b>${B.calc[0][0].replace(/ \(.*$/,'')} ${B.okA?'✓':'✗'} · ${B.calc[1][0].replace(/ \(.*$/,'').replace(/,.*$/,'')} ${B.okB?'✓':'✗'}</b><p>${B.calcExpl}</p></div>`;
+    if(F.mode!=='sortadv'||F.step===2)h+=`<div class="grid2" style="margin-top:12px"><button class="ghost" data-act="fin-home">Topics</button><button class="btn" style="margin-top:0" data-act="fin-play" data-m="${F.mode}" data-t="${F.tid}">Next sheet</button></div>`}
   box.innerHTML=h+'</div>';
   if(F.mode==='sortadv'&&F.step===1&&B.checked)setTimeout(()=>{const e=$('#fNoa');if(e&&!e.value)e.focus()},60);
 }
