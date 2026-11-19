@@ -615,7 +615,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.1.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.1.2 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -2376,7 +2376,7 @@ document.addEventListener('click',e=>{
   else if(a==='ev-cancel'){evReset()}
   else if(a==='ev-done'){const e=(S.events||[]).find(x=>x.id===id);if(e){e.done=!e.done;commit();if(e.done)toast('Nice, done')}}
   else if(a==='ev-del'){if(evEdit===id)evReset();removeWith('events',id,'Event')}
-  else if(a==='ev-edit'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;evEdit=id;evCat=e.cat;$('#evTitle').value=e.title;$('#evDate').value=e.d;$('#evTime').value=e.time||'';$('#evEnd').value=e.end||'';$('#evNote').value=e.note||'';fillRem(e.rem||'');renderEvents();$('#evTitle').scrollIntoView({block:'center'});$('#evTitle').focus()}
+  else if(a==='ev-edit'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;evEdit=id;evCat=e.cat;$('#evTitle').value=e.title;$('#evDate').value=e.d;$('#evTime').value=e.time||'';$('#evEnd').value=e.end||'';$('#evNote').value=e.note||'';fillRem(e.rem||'');renderEvents();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();const ef=$('#evTitle').closest('form')||$('#evTitle');ef.scrollIntoView({block:'start',behavior:'smooth'})}
   else if(a==='ev-ics'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;const l=document.createElement('a');l.href='data:text/calendar;charset=utf-8,'+encodeURIComponent(icsFor(e));l.download=(e.title.replace(/[^a-z0-9]+/gi,'-').slice(0,40)||'event')+'.ics';document.body.appendChild(l);l.click();l.remove()}
   else if(a==='inv-ccy'){S.invCcy=b.dataset.v;commit()}
   else if(a==='inv-refresh'){refreshInv(true)}
