@@ -1,4 +1,6 @@
-// Excelsior reminder sender — run by GitHub Actions every few minutes.
+// Excelsior reminder sender — BACKUP, run by GitHub Actions (often late: GitHub runs it roughly hourly).
+// The main sender is the Cloudflare Worker in worker/worker.js (every minute). This one only sends reminders
+// that are still unsent 3+ minutes after they fell due, so the two never double up.
 // Reads each user's events from Firestore and sends due reminders as web push notifications.
 // Secrets (GitHub → Settings → Secrets → Actions): FIREBASE_SA (service account JSON), VAPID_PRIVATE.
 import admin from 'firebase-admin';
@@ -7,6 +9,7 @@ import webpush from 'web-push';
 const VAPID_PUBLIC = 'BCcHdmo8rR4moROkbMK0rxkCCrA5xdjc6r50SzrdDSdU_BCjFKPKS1VqCURkFxjZ7yxKWA9zm95skoHP6chfBIc';
 const WINDOW_MIN = 90;            // send reminders that fell due in the last 90 min (GitHub schedules can be late)
 const KEEP_SENT_DAYS = 10;
+const GRACE_MIN = 3;              // leave fresh reminders to the Worker
 
 if (!process.env.FIREBASE_SA || !process.env.VAPID_PRIVATE) {
   console.log('Secrets not set yet (FIREBASE_SA, VAPID_PRIVATE): skipping.'); process.exit(0);
@@ -61,9 +64,9 @@ for (const u of users) {
   const due = [];
   for (const e of (st.events || [])) {
     if (!e || !e.d || e.done || del[e.id]) continue;
-    for (const r of remindersFor(e, tz)) if (r.at <= now && r.at > now - WINDOW_MIN * 60000 && !sent[r.key]) due.push(r);
+    for (const r of remindersFor(e, tz)) if (r.at <= now - GRACE_MIN * 60000 && r.at > now - WINDOW_MIN * 60000 && !sent[r.key]) due.push(r);
   }
-  const dead = [];
+  const dead = [], newSent = {};
   for (const r of due) {
     const payload = JSON.stringify({ title: r.title, body: r.body, tag: r.key, url: './#events' });
     let ok = false;
@@ -72,10 +75,11 @@ for (const u of users) {
       try { await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, payload, { TTL: 3600 }); ok = true; }
       catch (err) { if (err.statusCode === 404 || err.statusCode === 410) dead.push(dev); else console.error('push failed', err.statusCode || err.message); }
     }
-    sent[r.key] = now; if (ok) sentTotal++;
+    newSent[r.key] = now; if (ok) sentTotal++;
   }
-  for (const k of Object.keys(sent)) if (sent[k] < now - KEEP_SENT_DAYS * 864e5) delete sent[k];
-  if (due.length || !lgS.exists) await u.collection('app').doc('pushlog').set({ sent });
+  // write only our own keys (merge), so we never overwrite what the Worker logged in the meantime
+  for (const k of Object.keys(sent)) if (sent[k] < now - KEEP_SENT_DAYS * 864e5) newSent[k] = admin.firestore.FieldValue.delete();
+  if (Object.keys(newSent).length) await u.collection('app').doc('pushlog').set({ sent: newSent }, { merge: true });
   if (dead.length) await u.collection('app').doc('push').set({ subs: Object.fromEntries(dead.map(d => [d, null])) }, { merge: true });
 }
 console.log(`Checked ${users.length} user(s), sent ${sentTotal} reminder(s).`);
