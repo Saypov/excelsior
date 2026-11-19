@@ -593,7 +593,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.24 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v4.1.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1596,7 +1596,7 @@ function renderPush(){const box=$('#pushBox');if(!box)return;let h='';
   else if(!pushOk())h=`<p class="small muted">This browser doesn't support notifications.</p>`;
   else if(Notification.permission==='denied')h=`<p class="small muted">Notifications are blocked for Excelsior. Allow them in your device settings (iPhone: Settings → Notifications → Excelsior), then come back here.</p>`;
   else if(!uid)h=`<p class="small muted">Sign in first (Account & sync below), so reminders know which events are yours.</p>`;
-  else if(pushOn&&Notification.permission==='granted')h=`<p class="small"><b>On for this device.</b> <span class="muted">Event reminders arrive even when the app is closed (they can be a few minutes late).</span></p><div class="grid2" style="margin-top:10px"><button class="ghost" data-act="push-test">Test</button><button class="ghost" data-act="push-off">Turn off</button></div>`;
+  else if(pushOn&&Notification.permission==='granted')h=`<p class="small"><b>On for this device.</b> <span class="muted">Event reminders arrive on time (within about a minute), even when the app is closed.</span></p><div class="grid2" style="margin-top:10px"><button class="ghost" data-act="push-test">Test</button><button class="ghost" data-act="push-off">Turn off</button></div>`;
   else h=`<p class="small muted">Get reminders for your events on this device, even when the app is closed. Set the timing for each event when you add it.</p><button class="btn" data-act="push-on">Turn on notifications</button>`;
   box.innerHTML=h+'<p class="msg" id="pushMsg"></p>'}
 async function pushEnable(){const m=$('#pushMsg');try{
@@ -1607,6 +1607,16 @@ async function pushEnable(){const m=$('#pushMsg');try{
   pushOn=true;try{localStorage.setItem('excelsior-push','1')}catch(e){}renderPush();toast('Notifications on');
   reg.showNotification('Excelsior',{body:'Notifications are on. Event reminders will appear like this.',icon:'icon.png'})}
   catch(e){m.textContent='Couldn\'t turn on: '+(e&&e.message||e)}}
+const NOTIFY_URL='https://excelsior-notify.rasul-saipov-uk.workers.dev';
+async function pushTest(btn){const m=$('#pushMsg');if(btn)btn.disabled=true;m.textContent='Sending from the server…';
+  const say=t=>{m.textContent=t;if(btn)btn.disabled=false};
+  let tok;try{tok=await cloud.idToken()}catch(e){return say('Couldn\'t check your sign-in. Sign out and back in, then try again.')}
+  let r,j={};try{r=await fetch(NOTIFY_URL+'/test',{method:'POST',headers:{authorization:'Bearer '+tok,'content-type':'application/json'},body:JSON.stringify({dev:devId})});j=await r.json().catch(()=>({}))}
+  catch(e){return say('Couldn\'t reach the reminder server. Check your connection and try again.')}
+  if(r.ok&&j.ok)return say('Sent from the server. It should arrive within a few seconds; if it doesn\'t, reminders won\'t reach this device either.');
+  if(j.error==='device-not-registered'||j.error==='subscription-expired')return say('This device isn\'t registered for reminders any more. Tap Turn off, then turn notifications on again.');
+  if(j.error==='auth')return say('The server couldn\'t verify your sign-in. Sign out and back in, then try again.');
+  say('The server couldn\'t send it'+(j.detail?' ('+j.detail+')':'')+'. Tell Claude this message.')}
 async function pushDisable(){try{const reg=await navigator.serviceWorker.getRegistration();const sub=reg&&await reg.pushManager.getSubscription();if(sub)await sub.unsubscribe()}catch(e){}
   try{if(uid)await cloud.savePush(uid,devId,null)}catch(e){}pushOn=false;try{localStorage.removeItem('excelsior-push')}catch(e){}renderPush();toast('Notifications off')}
 function renderVoices(){const box=$('#voiceBox');if(!box)return;if(!('speechSynthesis' in window)||S.tts===false){box.innerHTML='';return}
@@ -1666,7 +1676,7 @@ document.addEventListener('click',e=>{
   else if(a==='skin'){try{localStorage.setItem('excelsior-skin',b.dataset.v)}catch(e){}S.skin=b.dataset.v;commit()}
   else if(a==='push-on'){pushEnable()}
   else if(a==='push-off'){pushDisable()}
-  else if(a==='push-test'){navigator.serviceWorker.getRegistration().then(reg=>reg&&reg.showNotification('Excelsior test',{body:'This is how your reminders will look.',icon:'icon.png'}))}
+  else if(a==='push-test'){pushTest(b)}
   else if(a==='tts'){S.tts=b.dataset.v==='on';commit();if(S.tts)say(lang==='fr'?'bonjour':'ciao',lang)}
   else if(a==='ttsauto'){S.ttsAuto=b.dataset.v==='on';commit()}
   else if(a==='say'){say(b.dataset.t,b.dataset.l||lang,true)}
@@ -1905,6 +1915,7 @@ window.saroCloud={
   save:(uid,data)=>setDoc(ref(uid),data),
   watchInbox:(uid,next)=>onSnapshot(collection(db,'users',uid,'inbox'),q=>next(q.docs.map(d=>({id:d.id,data:d.data()}))),()=>{}),
   getSecret:async uid=>{const s=await getDoc(doc(db,'users',uid,'app','secrets'));return s.exists()?s.data():null},
+  idToken:()=>auth.currentUser?auth.currentUser.getIdToken():Promise.reject(new Error('not signed in')),
   savePush:(uid,dev,sub)=>setDoc(doc(db,'users',uid,'app','push'),{subs:{[dev]:sub}},{merge:true}),
   setSecret:(uid,data)=>setDoc(doc(db,'users',uid,'app','secrets'),data,{merge:true}),
   backup:(uid,day,data)=>setDoc(doc(db,'users',uid,'backups',day),data),
