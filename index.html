@@ -590,7 +590,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.21 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.22 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1630,6 +1630,9 @@ function show(){if(location.hash==='#invest'){sub='invest';renderMoney();setTime
 function renderAll(){if(!S.potStart){S.potStart=ym(today());S.potStartDay=+today().slice(8);S.budgets=S.budgets||{};if(S.budgets[S.potStart]==null)S.budgets[S.potStart]=S.budget}try{const lk=localStorage.getItem('excelsior-dropkey');if(S.dropKey){if(lk!==S.dropKey)localStorage.setItem('excelsior-dropkey',S.dropKey)}else if(lk&&uid){S.dropKey=lk;commit()}}catch(e){}try{const b=$('#payBanner');let sy=null;try{sy=localStorage.getItem('excelsior-synced')}catch(e){}if(b)b.hidden=!(uid&&sy&&!S.dropKey)}catch(e){}try{watchDrop()}catch(e){}try{renderWeight()}catch(e){}renderPay();renderSettings();renderToday();renderFit();renderMoney();renderLang();renderInvest();renderEvents()}
 
 /* ---------- events ---------- */
+function disarmAll(){document.querySelectorAll('[data-armed="1"]').forEach(x=>{x.dataset.armed='';x.innerHTML=x.dataset.orig;x.classList.remove('armed')})}
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('[data-armed="1"]'))disarmAll()},true);
+addEventListener('scroll',()=>{if(document.querySelector('[data-armed="1"]'))disarmAll()},{passive:true,capture:true});
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act,id=b.dataset.id,i=+b.dataset.i;
