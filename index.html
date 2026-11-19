@@ -587,7 +587,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.12 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.13 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -958,7 +958,7 @@ function renderDraft(){
 function resetForm(){draft=[blank()];editingId=null;$('#woDate').value=today();$('#woNote').value='';$('#woMsg').textContent='';renderDraft()}
 function woCard(w,actions){
   return `<div class="card wo"><div class="row"><h3>${pd(w.d).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</h3><span class="small muted">${w.ex.length} exercise${w.ex.length>1?'s':''}</span></div>
-  ${w.ex.map(e=>`<p><b>${esc(e.name)}</b> <span class="muted">${e.sets.join(' · ')} ${e.unit}</span>${e.feel?` <span class="tag${e.feel==='harder'?' hot':e.feel==='easier'?' good':''}">${e.feel}</span>`:''}${e.note?`<br><span class="small muted">${esc(e.note)}</span>`:''}</p>`).join('')}
+  ${w.ex.map(e=>`<p><b>${esc(e.name)}</b> <span class="muted">${e.sets.join(' · ')} ${e.unit}</span>${e.feel?` <span class="tag${e.feel==='harder'?' urg':e.feel==='easier'?' good':''}">${e.feel}</span>`:''}${e.note?`<br><span class="small muted">${esc(e.note)}</span>`:''}</p>`).join('')}
   ${w.note?`<p class="muted">${esc(w.note)}</p>`:''}
   ${actions?`<div class="acts"><button class="link" data-act="edit-wo" data-id="${w.id}">Edit</button><button class="link" data-act="del-wo" data-id="${w.id}">Delete</button></div>`:''}</div>`;
 }
