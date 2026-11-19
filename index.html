@@ -583,7 +583,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.2 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.3 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1141,7 +1141,7 @@ function evRow(e){
   const n=days(today(),e.d),dl=e.cat==='academic'||e.cat==='work';
   return `<div class="li" style="align-items:flex-start${e.done?';opacity:.5':''}"><span style="display:flex;gap:10px;align-items:flex-start"><i style="flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;background:${evColor(e.cat)}"></i>
     <span><b style="${e.done?'text-decoration:line-through':''}">${esc(e.title)}</b><br><span class="small muted">${e.time?e.time+' · ':''}${(EVN[e.cat]||EVN.other)[1]}${e.note?' · '+esc(e.note):''}</span>
-    <span class="evacts">${dl?`<button class="link" data-act="ev-done" data-id="${e.id}">${e.done?'Undo':'Done'}</button>`:''}<a class="link" href="${gcalUrl(e)}" target="_blank" rel="noopener" style="text-decoration:none">+ Google Calendar</a><button class="link" data-act="ev-edit" data-id="${e.id}">Edit</button><button class="link" data-act="ev-del" data-id="${e.id}">Delete</button></span></span></span>
+    <span class="evacts">${dl?`<button class="link" data-act="ev-done" data-id="${e.id}">${e.done?'Undo':'Done'}</button>`:''}<a class="link" href="${gcalUrl(e)}" target="_blank" rel="noopener" style="text-decoration:none">Add to GC</a><button class="link" data-act="ev-edit" data-id="${e.id}">Edit</button><button class="link" data-act="ev-del" data-id="${e.id}">Delete</button></span></span></span>
     ${n>=0&&!e.done?`<span class="tag${n<=2&&dl?' hot':''}">${n===0?'today':n===1?'tomorrow':'in '+n+'d'}</span>`:''}</div>`;
 }
 function renderEvents(){
