@@ -589,7 +589,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.19 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.20 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -864,7 +864,7 @@ const evMs=(d,t)=>new Date(d+'T'+t+':00').getTime();
 // countdown label for a timed event: returns {cls,txt,over} or null when >24h away / untimed
 function evCount(e){if(!e.time)return null;const now=Date.now(),st=evMs(e.d,e.time),en=e.end&&e.end>e.time?evMs(e.d,e.end):st+3600e3;
   if(now>=en)return {over:true};if(now>=st)return {cls:'urg',txt:'now'};const dm=st-now;
-  if(dm<3600e3)return {cls:dm<15*60000?'urg':'soon',txt:'in '+Math.max(1,Math.ceil(dm/60000))+' min'};
+  if(dm<3600e3)return {cls:dm<30*60000?'urg':'soon',txt:'in '+Math.max(1,Math.ceil(dm/60000))+' min'};
   if(dm<864e5)return {cls:'soon',txt:'in '+Math.floor(dm/3600e3)+' h'};return null}
 function renderToday(){
   const t=today(),m=ym(t),spent=monthSpent(m);
