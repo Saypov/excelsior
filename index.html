@@ -583,7 +583,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.4 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.5 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -884,7 +884,7 @@ function renderToday(){
   const up=[];
   S.plans.forEach(p=>{const i=planInfo(p);if(i.dl<=60&&i.left>0)up.push({dl:i.dl,h:`<span><b>${esc(p.name)}</b><br><span class="small muted">${short(p.d)} · ${money(i.left)} still to save</span></span><span class="tag${i.dl<0?' hot':''}">${when(i.dl)}</span>`})});
   S.debts.forEach(d=>{const i=debtInfo(d);if(!i.done&&i.dl!=null&&i.dl<=30)up.push({dl:i.dl,h:`<span><b>${d.dir==='owe'?'Pay back '+esc(d.who):esc(d.who)+' pays you'}</b><br><span class="small muted">${money(i.left)} left · by ${short(d.due)}</span></span><span class="tag${i.dl<0?' hot':''}">${when(i.dl)}</span>`})});
-  (S.events||[]).forEach(e=>{const n=days(today(),e.d);if(n>=0&&n<=7&&!e.done)up.push({dl:n+(e.time?0:0.5)/10,h:`<span style="display:flex;gap:10px"><i style="flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;background:${evColor(e.cat)}"></i><span><b>${esc(e.title)}</b><br><span class="small muted">${dayLabel(e.d)}${e.time?' · '+e.time:''}</span></span></span><span class="tag${n<=1&&(e.cat==='academic'||e.cat==='work')?' hot':''}">${when(n)}</span>`})});
+  (S.events||[]).forEach(e=>{const n=days(today(),e.d);if(n>=0&&n<=7&&!e.done)up.push({dl:n+(e.time?0:0.5)/10,h:`<span style="display:flex;gap:10px"><i style="flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;${evDot(e.cat)}"></i><span><b>${esc(e.title)}</b><br><span class="small muted">${dayLabel(e.d)}${e.time?' · '+e.time:''}</span></span></span><span class="tag${n<=1&&(e.cat==='academic'||e.cat==='work')?' hot':''}">${when(n)}</span>`})});
   up.sort((a,b)=>a.dl-b.dl);
   $('#upcoming').innerHTML=up.length?up.slice(0,8).map(u=>`<li class="li">${u.h}</li>`).join(''):'<li class="empty">Nothing coming up this week. Add deadlines and plans in Events.</li>';
   const w=sortedWo()[0];
@@ -1131,15 +1131,16 @@ function renderLang(){
 const newCard=(f,b,ex)=>({id:newId(),lang,f,b,ex:ex||'',due:today(),int:0,ease:2.5,reps:0});
 
 /* ---------- Events ---------- */
-const EVC=[['academic','Academic','#ef4444'],['work','Jobs & careers','#3b82f6'],['meeting','Meeting','#14b8a6'],['social','Social','#eab308'],['other','Other','#8b93a6']];
+const EVC=[['class','Class','#ffffff'],['academic','Academic','#ef4444'],['work','Jobs & careers','#3b82f6'],['meeting','Meeting','#14b8a6'],['social','Social','#eab308'],['other','Other','#8b93a6']];
 const EVN=Object.fromEntries(EVC.map(c=>[c[0],c]));
 let evCat='academic',evEdit=null,evDay='',evView=ym(today());
 const evColor=c=>(EVN[c]||EVN.other)[2];
+const evDot=c=>c==='class'?'background:#fff;box-shadow:inset 0 0 0 1.5px #ef4444':'background:'+evColor(c);
 const evSort=(a,b)=>a.d.localeCompare(b.d)||(a.time||'99').localeCompare(b.time||'99');
 function dayLabel(d){const n=days(today(),d);return n===0?'Today':n===1?'Tomorrow':n>1&&n<7?pd(d).toLocaleDateString('en-GB',{weekday:'long'}):pd(d).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
 function evRow(e){
   const n=days(today(),e.d),dl=e.cat==='academic'||e.cat==='work';
-  return `<div class="li" style="align-items:flex-start${e.done?';opacity:.5':''}"><span style="display:flex;gap:10px;align-items:flex-start"><i style="flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;background:${evColor(e.cat)}"></i>
+  return `<div class="li" style="align-items:flex-start${e.done?';opacity:.5':''}"><span style="display:flex;gap:10px;align-items:flex-start"><i style="flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;${evDot(e.cat)}"></i>
     <span><b style="${e.done?'text-decoration:line-through':''}">${esc(e.title)}</b><br><span class="small muted">${e.time?e.time+' · ':''}${(EVN[e.cat]||EVN.other)[1]}${e.note?' · '+esc(e.note):''}</span>
     <span class="evacts">${dl?`<button class="link" data-act="ev-done" data-id="${e.id}">${e.done?'Undo':'Done'}</button>`:''}<a class="link" href="${gcalUrl(e)}" target="_blank" rel="noopener" style="text-decoration:none">Add to GC</a><button class="link" data-act="ev-edit" data-id="${e.id}">Edit</button><button class="link" data-act="ev-del" data-id="${e.id}">Delete</button></span></span></span>
     ${n>=0&&!e.done?`<span class="tag${n<=2&&dl?' hot':''}">${n===0?'today':n===1?'tomorrow':'in '+n+'d'}</span>`:''}</div>`;
@@ -1153,9 +1154,9 @@ function renderEvents(){
   const byDay={};ev.forEach(e=>{(byDay[e.d]=byDay[e.d]||[]).push(e)});
   let g='MTWTFSS'.split('').map(x=>`<span class="cal-h">${x}</span>`).join('')+'<span></span>'.repeat(off);
   for(let d=1;d<=dim;d++){const k=evView+'-'+pad(d),es=byDay[k]||[];
-    g+=`<button class="cal-d${k===t?' now':''}${k===evDay?' sel':''}" data-act="ev-day" data-v="${k}" aria-label="${k}"><span>${d}</span><i>${es.slice(0,3).map(e=>`<b style="background:${evColor(e.cat)}"></b>`).join('')}</i></button>`}
+    g+=`<button class="cal-d${k===t?' now':''}${k===evDay?' sel':''}" data-act="ev-day" data-v="${k}" aria-label="${k}"><span>${d}</span><i>${es.slice(0,3).map(e=>`<b style="${evDot(e.cat)}"></b>`).join('')}</i></button>`}
   $('#evCal').innerHTML=g;
-  $('#evLegend').innerHTML=EVC.map(c=>`<span class="small muted" style="display:inline-flex;align-items:center;gap:5px;margin-right:6px"><i style="width:9px;height:9px;border-radius:50%;background:${c[2]}"></i>${c[1]}</span>`).join('');
+  $('#evLegend').innerHTML=EVC.map(c=>`<span class="small muted" style="display:inline-flex;align-items:center;gap:5px;margin-right:6px"><i style="width:9px;height:9px;border-radius:50%;${evDot(c[0])}"></i>${c[1]}</span>`).join('');
   // list
   let list,title;
   if(evDay){list=byDay[evDay]||[];title=dayLabel(evDay)}

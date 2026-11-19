@@ -28,7 +28,7 @@ function zoned(dateStr, timeStr, tz) {
   return t;
 }
 const addDays = (s, n) => { const d = new Date(s + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
-const CAT = { academic: 'Academic', work: 'Jobs & careers', meeting: 'Meeting', social: 'Social', other: 'Other' };
+const CAT = { class: 'Class', academic: 'Academic', work: 'Jobs & careers', meeting: 'Meeting', social: 'Social', other: 'Other' };
 const lead = m => m === 0 ? 'Now' : m < 60 ? `In ${m} min` : m === 60 ? 'In 1 hour' : m === 1440 ? 'Tomorrow' : `In ${Math.round(m / 60)} hours`;
 
 function remindersFor(e, tz) {
