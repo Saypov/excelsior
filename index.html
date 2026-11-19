@@ -615,7 +615,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.2.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.2.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1615,8 +1615,12 @@ const LVX=[0,100,250,500,800,1200,1700,2300,3000];
 function lvlOf(xp){let l=0;while(l<LVX.length-1&&xp>=LVX[l+1])l++;const lo=LVX[l],hi=LVX[l+1]||null;return {lv:l+1,lo,hi,pct:hi?Math.min(100,Math.round((xp-lo)/(hi-lo)*100)):100}}
 const RANKS=[['Intern',0],['Analyst',300],['Associate',900],['Vice President',2000],['Director',3500],['Managing Director',5500],['Partner',8000]];
 const rankOf=xp=>{let r=RANKS[0];for(const x of RANKS)if(xp>=x[1])r=x;const i=RANKS.indexOf(r),nx=RANKS[i+1];return {name:r[0],next:nx?nx[0]:null,need:nx?nx[1]-xp:0}};
-function finStreak(){let n=0;const d=new Date();if(!fget('day|'+iso(d)))d.setDate(d.getDate()-1);while(fget('day|'+iso(d))){n++;d.setDate(d.getDate()-1)}return n}
-const missed=()=>Object.keys(FL()).filter(k=>k.startsWith('miss|')).map(k=>k.slice(5)).filter(id=>fget('miss|'+id)>fget('fix|'+id)&&QT[id]);
+function finStreak(sub){const k=sub?'dayS|'+sub+'|':'day|';let n=0;const d=new Date();if(!fget(k+iso(d)))d.setDate(d.getDate()-1);while(fget(k+iso(d))){n++;d.setDate(d.getDate()-1)}return n}
+const subOf=tid=>String(tid||'')[0]==='m'?'im':'fsa';
+const logDay=tid=>{flog('day|'+today(),1);flog('dayS|'+subOf(tid)+'|'+today(),1)};
+/* days logged before per-subject streaks existed were all FSA */
+function seedSubDays(){const L=FL();if(Object.keys(L).some(k=>k.startsWith('dayS|')))return;Object.keys(L).filter(k=>k.startsWith('day|')).forEach(k=>{L['dayS|fsa|'+k.slice(4)]=L[k]})}
+const missed=sub=>Object.keys(FL()).filter(k=>k.startsWith('miss|')).map(k=>k.slice(5)).filter(id=>fget('miss|'+id)>fget('fix|'+id)&&QT[id]&&(!sub||subOf(QT[id].t)===sub));
 const BOSS_AT=150;
 
 const QAB=['quick','adv','blitz'],QB=['quick','blitz'];
@@ -2408,7 +2412,7 @@ function finStart(mode,tid){
   else{let ids=[];
     if(mode==='quick')ids=pickIds(QUICK.filter(inT),10);
     else if(mode==='adv')ids=pickIds(ADV.filter(inT),5);
-    else if(mode==='review')ids=shuffle(missed().slice()).slice(0,10);
+    else if(mode==='review')ids=shuffle(missed(subOf(tid)).slice()).slice(0,10);
     F={v:'play',mode,tid,ids,n:mode==='blitz'?Infinity:ids.length,i:0,ok:0,xp:0,combo:0,best:0}}
   if(mode==='blitz'){F.end=Date.now()+60000;fTimer=setInterval(()=>{const el=$('#fClock');const left=Math.max(0,Math.ceil((F.end-Date.now())/1000));if(el)el.textContent=left+'s';if(left<=0){clearInterval(fTimer);finDone()}},250)}
   if(F.v==='play')nextQ();else renderFin();
@@ -2426,7 +2430,7 @@ function answer(correct){
   let gain=0;
   if(correct){F.ok++;F.combo++;F.best=Math.max(F.best,F.combo);gain=base*mult+(F.mode==='blitz'?0:Math.min(10,2*(F.combo-1)));if(q.id!=='boss'&&fget('miss|'+q.id)>fget('fix|'+q.id))flog('fix|'+q.id,Date.now())}
   else{F.combo=0;if(q.id!=='boss')flog('miss|'+q.id,Date.now())}
-  F.gain=gain;F.xp+=gain;addXP(QT[q.id]?QT[q.id].t:F.tid,gain);flog('day|'+today(),1);
+  F.gain=gain;F.xp+=gain;addXP(QT[q.id]?QT[q.id].t:F.tid,gain);logDay(QT[q.id]?QT[q.id].t:F.tid);
   if(F.mode==='blitz'){toast(correct?'✓ Right':'✗ '+(q.k==='q'?q.opts[q.ans].replace(/<[^>]+>/g,''):''));F.i++;saveQuiet();nextQ();return}
   commit();
 }
@@ -2440,7 +2444,7 @@ function sortCheck(){
   const B=F.bs;if(B.rows.some(r=>!r.pick)){$('#finMsg').textContent='Label every line first.';return}
   B.checked=true;const ok=B.rows.filter(r=>r.pick===r.cls).length;B.ok=ok;
   B.rows.forEach(r=>{const k=B.kind+':'+r.id;if(r.pick===r.cls){if(fget('miss|'+k)>fget('fix|'+k))flog('fix|'+k,Date.now())}else flog('miss|'+k,Date.now())});
-  B.gain=ok*2+(ok===B.rows.length?10:0);addXP(F.tid,B.gain);flog('day|'+today(),1);
+  B.gain=ok*2+(ok===B.rows.length?10:0);addXP(F.tid,B.gain);logDay(F.tid);
   if(F.mode==='sortadv')F.step=1;commit();
 }
 function sortCalc(){
@@ -2459,12 +2463,14 @@ function renderFin(){
   const ae=document.activeElement&&document.activeElement.id;
   if((ae==='finIn'&&F.v==='play'&&!F.done)||((ae==='fNoa'||ae==='fNfo')&&F.v==='sort'&&F.step===1))return;
   if(F.v==='play')return renderPlay(box);if(F.v==='sort')return renderSort(box);if(F.v==='done')return renderDone(box);
-  const x=totalXP(),rk=rankOf(x),st=finStreak(),ms=missed().length;
-  box.innerHTML=`<div class="stats"><div><b>${x}</b><span>XP · ${esc(rk.name)}</span></div><div><b>${st}</b><span>day streak</span></div><div><b>${ms}</b><span>to review</span></div></div>
-  ${rk.next?`<p class="small muted" style="margin:8px 2px 0">${rk.need} XP to ${esc(rk.next)}</p>`:''}
-  ${ms?`<button class="btn" data-act="fin-play" data-m="review" data-t="t8">Review mistakes · ${ms}</button>`:''}
-  <div class="chips" style="margin:16px 0 4px">${SUBJ.map(x=>`<button data-act="fin-sub" data-v="${x.id}" class="${x.id===fsub?'on':''}">${esc(x.name)}</button>`).join('')}</div>
-  ${(SUBJ.find(x=>x.id===fsub)||SUBJ[0]).topics.map((t,i)=>{const xp=topicXP(t.id),L=lvlOf(xp),g=t.games||[];
+  seedSubDays();
+  const SB=SUBJ.find(x=>x.id===fsub)||SUBJ[0],sx=SB.topics.reduce((a,t)=>a+topicXP(t.id),0),x=totalXP(),rk=rankOf(x),st=finStreak(SB.id),ms=missed(SB.id).length;
+  box.innerHTML=`<div class="chips" style="margin:14px 0 2px">${SUBJ.map(y=>`<button data-act="fin-sub" data-v="${y.id}" class="${y.id===fsub?'on':''}">${esc(y.name)}</button>`).join('')}</div>
+  <div class="stats"><div><b>${sx}</b><span>XP in ${SB.id==='im'?'IM':'FSA'}</span></div><div><b>${st}</b><span>day streak</span></div><div><b>${ms}</b><span>to review</span></div></div>
+  <p class="small muted" style="margin:8px 2px 0">Overall: <b>${esc(rk.name)}</b> · ${x} XP${rk.next?` · ${rk.need} XP to ${esc(rk.next)}`:''}</p>
+  ${ms?`<button class="btn" data-act="fin-play" data-m="review" data-t="${SB.topics[0].id}">Review mistakes · ${ms}</button>`:''}
+  <div style="height:12px"></div>
+  ${SB.topics.map((t,i)=>{const xp=topicXP(t.id),L=lvlOf(xp),g=t.games||[];
    if(!g.length)return `<div class="card ftopic soon"><div class="row"><span><b>${i+1}</b> · ${esc(t.name)}</span><span class="tag">soon</span></div></div>`;
    const bossOpen=xp>=BOSS_AT,bb=fget('blitz|'+t.id);
    const btn=(m,l,dis)=>`<button class="ghost" data-act="fin-play" data-m="${m}" data-t="${t.id}"${dis?' disabled':''}>${l}</button>`;
