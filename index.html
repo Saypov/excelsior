@@ -160,6 +160,10 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
 .srow{padding:8px 0;border-bottom:1px solid var(--line)}.srow .sname{display:flex;justify-content:space-between;gap:10px;font-size:15px;margin-bottom:6px}.srow .amt{font-weight:600}
 .srow.right .sname{color:var(--good)}.srow.wrong .sname{color:var(--bad)}.swhy{margin:6px 0 0;color:var(--muted)}.sh{margin:14px 0 0;text-transform:uppercase;letter-spacing:.05em;font-size:12px}.eqrow{border-bottom:0}
 .seg2{display:grid;grid-template-columns:1fr 1fr;gap:6px}.seg2 button{min-height:38px;font-size:14px;font-weight:500;background:var(--soft)}.seg2 button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}.seg2 button:disabled{opacity:1}.seg2 button.ans:not(.on){border:2px solid var(--good)}
+.lbtn{flex:1 1 100%!important;border-color:var(--blue)!important;color:var(--blue)}
+.ldots{display:flex;gap:5px;justify-content:center;margin-top:14px}.ldots i{width:7px;height:7px;border-radius:50%;background:var(--line)}.ldots i.on{background:var(--blue)}
+.lform{display:flex;flex-direction:column;gap:2px;padding:9px 0;border-bottom:1px solid var(--line)}.lform:last-child{border-bottom:0}.lform b{font-variant-numeric:tabular-nums;font-weight:600}
+.ltraps{margin:0;padding-left:18px}.ltraps li{margin:6px 0;font-size:15px}
 .msg{color:var(--hot);font-size:14px;margin-top:8px;min-height:1em}
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
 .hdr{display:flex;align-items:center;gap:6px}
@@ -615,7 +619,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.2.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.3.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -2293,6 +2297,242 @@ Object.assign(BOSS,{
   return {table:tab,steps:[['Call payoff if the price rises (£)',s.Cu,'£',`max(${f2(s.Su)} − ${s.K}, 0)`],['Call payoff if the price falls (£)',s.Cd,'£',`max(${f2(s.Sd)} − ${s.K}, 0)`],['Hedge ratio',s.h,'n',`(C_u − C_d) ÷ (S_u − S_d)`],[`Calls to write to hedge your ${n} shares`,n/s.h,'n',`${n} ÷ h`],['Riskless payoff per call written (h shares − 1 call) (£)',s.h*s.Sd-s.Cd,'£','h × S_d − C_d (same in both states)'],['Value of the call today (£)',s.C,'£','h × S − PV(riskless payoff)'],['Arbitrage profit per call at the market price (£)',Math.abs(Math.max(.01,m)-s.C),'£','|market price − value|']]}}
 });
 
+/* ---------- Learn: lessons per topic (key ideas, formulas / key studies, traps). Written for revision; worked examples come from the question engine. ---------- */
+const LEARN={
+ t1:{ideas:[
+  ['Profit and cash add up in the end','For a going concern, total profit over the firm\'s life equals total cash flow. Accruals only change <i>when</i> things are recognised, not how much in total.'],
+  ['Why profit and cash differ in a year','Sell goods on credit and you book revenue and profit now, but the cash comes next year. The receivable carries that expected cash; when it\'s collected the accrual reverses.'],
+  ['Why accruals are useful','Profit reflects business reality on time and embeds managers\' judgement about future cash. Good-quality accruals turn into cash later.'],
+  ['Recognition and matching','Revenue is recognised when control passes and cash is highly likely. Costs are matched to the revenue they helped earn.'],
+  ['Dividends distribute value','The dividend model values equity as the PV of dividends. But under Modigliani-Miller, payout policy doesn\'t create value: it splits it between the firm and shareholders.'],
+  ['So, look at fundamentals','Because cash and accruals agree in total, accounting-based valuation (AOP) and DCF are equivalent in theory. The module uses accounting fundamentals to find where value comes from.']],
+  formulas:[['P₀ = Σ Dₜ ÷ (1 + ρ)ᵗ','Dividend discount model: PV of expected dividends at the cost of equity ρ.'],['P₀ = D₁ ÷ (ρ − g)','Constant growth (Gordon): next year\'s dividend over (cost of equity − growth).'],['NPV = −I + Σ CFₜ ÷ (1 + r)ᵗ','Net present value of an investment.'],['Σ Profit = Σ Cash (over the firm\'s life)','The going-concern link between accruals and cash.']],
+  traps:['Using today\'s dividend D₀ instead of next year\'s D₁ in the Gordon formula.','Treating a credit sale as cash: profit rises, operating cash flow doesn\'t (yet).','Reading a higher dividend as value creation: it is a distribution.']},
+ t2:{ideas:[
+  ['Why strategy matters','Strategy analysis explains where and how the firm competes. Ratios and forecasts only make sense when grounded in that economic reality.'],
+  ['Country → industry → firm','Start broad (PESTEL), then the industry (Porter\'s Five Forces), then the firm (SWOT, core competencies, competitive advantage).'],
+  ['PESTEL','Not a checklist: pick the few macro forces that really matter for future performance and value.'],
+  ['Five Forces in two groups','Rivalry, new entrants and substitutes decide whether above-normal profit is possible. Buyer and supplier power decide how much of it the firm keeps.'],
+  ['Core competencies','Need valuable firm-specific resources (assets, brands, networks) plus the capabilities to manage them (design, R&D, cost control).'],
+  ['Cost leadership vs differentiation','Cost leaders: lower margin, higher asset turnover (Choice Hotels). Differentiators: higher margin from a price premium, often heavier assets (Starwood).'],
+  ['Turn strategy into numbers','Competitive advantage → sales growth with higher margins. More competition → lower margin forecasts and a lower value (Penman).']],
+  formulas:[['RNOA = NOPM × ATO','How strategy shows up: margin (pricing power, cost control) times turnover (asset efficiency).']],
+  traps:['Listing every PESTEL factor instead of the few that move value.','Assuming differentiation always beats cost leadership: check RNOA against WACC.','Leaving the analysis qualitative instead of changing forecast margins, growth and turnover.']},
+ t3:{ideas:[
+  ['Why reformulate','By Modigliani-Miller, value comes from operations (trading with customers and suppliers), not from how they\'re financed. So separate the two.'],
+  ['Penman\'s test','Financing = transactions with financial markets that are independent of trading. A note to a supplier is operating; a note issued to raise cash is financing.'],
+  ['Reformulated balance sheet','NOA = operating assets − operating liabilities. Net debt (NFO) = financial liabilities − financial assets. NOA = NFO + equity.'],
+  ['Tricky items','Cash and investments: financial. Lease liabilities: financing (the right-of-use asset is operating). Accrued interest: financing. Pensions, deferred tax, provisions: operating.'],
+  ['Reformulated income statement','Give operations the tax they\'d pay if all-equity financed: tax on operations = reported tax + tax shield on interest. Then NI = NOPAT − NIE.'],
+  ['One-off items','Strip non-recurring items (restructuring, impairments, disposal gains) to see core NOPAT. Tax them at the same rate.'],
+  ['Non-GAAP caution','Adjusted profit helps forecasting, but managers can label recurring costs as "one-off" (Black et al.). Watch for repeat "exceptionals".']],
+  formulas:[['NOA = OA − OL','Net operating assets.'],['NFO = FL − FA','Net debt; negative means net cash.'],['BVE = NOA − NFO','Equity from the reformulated balance sheet.'],['Tax shield = t × net finance expense','Tax saved by interest.'],['Tax on ops = reported tax + t × NFE (+ t × exceptional charges)','Tax allocated to (core) operations.'],['NOPAT = operating profit − tax on ops','Net operating profit after tax.'],['NIE = NFE × (1 − t)','Net finance expense after tax.'],['NI = NOPAT − NIE (− exceptional items after tax)','Back to reported profit.']],
+  traps:['Treating cash as an operating asset.','Classifying lease liabilities as operating.','Using reported tax for NOPAT without adding back the shield on interest.','Leaving exceptional items inside core NOPAT.']},
+ t4:{ideas:[
+  ['What free cash flow is','Cash available to all capital providers after investing in operations: FCF = C − I.'],
+  ['Unlevered operating cash (C)','Start from CFO and add back net interest paid after tax, because interest is a payment to lenders.'],
+  ['Operating investment (I)','Net capex: PP&E, intangibles and acquisitions, net of disposals. Remove purchases/sales of financial investments (they\'re financing). Lease payments shown under financing count as capital investment (Seminar 4).'],
+  ['FCF = d + F','What operations free up is paid to shareholders (d) and debtholders (F = NIE − ΔNFO).'],
+  ['Life-cycle patterns','Growth firms: rising CFO but negative FCF from heavy capex. Mature firms (Coke): stable CFO, modest capex, healthy FCF.'],
+  ['FCF isn\'t a value-added measure','Positive-NPV investment reduces FCF as if it were a cost, so past FCF can mislead.'],
+  ['In forecasts','Derive FCF from NOPAT and NOA: FCF = NOPAT − ΔNOA. Forecasting capex directly is hard and biased.']],
+  formulas:[['uCFO = CFO + net interest paid × (1 − t)','Unlevered cash from operations.'],['FCF = uCFO − net capex','Historical free cash flow (C − I).'],['F = NIE − ΔNFO','Net payments to debtholders.'],['d = FCF − F','Net payments to shareholders.'],['FCF = NOPAT − ΔNOA','Forecast free cash flow.']],
+  traps:['Adding back pre-tax interest instead of interest after tax.','Counting purchases of short-term investments as capex.','Reading negative FCF as value destruction: check what the investment earns.']},
+ t5:{ideas:[
+  ['The advanced DuPont identity','ROE = RNOA + FLEV × (RNOA − NIR). Return on equity = operating return plus a leverage effect.'],
+  ['Three levels','Level 1: ROE. Level 2: RNOA, FLEV and the spread. Level 3: RNOA = NOPM × ATO (operating vs investment management).'],
+  ['The right benchmarks','Compare ROE with the cost of equity, but RNOA with WACC. RNOA isn\'t affected by financing, so it shows value creation.'],
+  ['Leverage is risk, not value','Starwood: ROE 17.8% but RNOA 4.8% < WACC 9.5%. The high ROE came from leverage. Don\'t buy risk.'],
+  ['Payouts raise ROE','Microsoft\'s special dividend cut net financial assets, raising FLEV and ROE without better operations. Buybacks do the same.'],
+  ['Net cash firms','If NFO < 0, FLEV is negative and ROE sits below RNOA (when the spread is positive).'],
+  ['Use averages','Profit is earned over the year on capital that changed, so use average balances for NOA, NFO and BVE.'],
+  ['Why not traditional DuPont?','NI/Sales × Sales/TA × TA/Equity mixes operating and financing items, so it can\'t separate value creation from leverage.']],
+  formulas:[['RNOA = NOPAT ÷ avg NOA','Return on net operating assets.'],['NOPM = NOPAT ÷ sales','Operating margin.'],['ATO = sales ÷ avg NOA','Asset turnover.'],['FLEV = avg NFO ÷ avg BVE','Financial leverage.'],['NIR = NIE ÷ avg NFO','Net interest rate after tax.'],['Spread = RNOA − NIR','Operating return minus borrowing cost.'],['ROE = RNOA + FLEV × spread = NI ÷ avg BVE','Advanced DuPont; check both ways.']],
+  traps:['Using year-end instead of average balances.','Dividing net income (not NOPAT) by NOA.','Losing the minus sign when the firm has net cash.','Concluding ROE > cost of equity means value is created.']},
+ t6:{ideas:[
+  ['Abnormal operating profit','AOP = NOPAT − WACC × NOA at the start of the year. It\'s positive when RNOA beats WACC.'],
+  ['The balance sheet as a floor','When bought, an asset\'s value-in-use exceeds its cost, and it stays on the books only while that holds. So book NOA is a conservative starting point.'],
+  ['Impairment is a signal','A write-down means an asset\'s positive-NPV ability has gone, so future cash flow forecasts should fall. It isn\'t meaningless.'],
+  ['Two statements, two roles','The balance sheet supports lending (liquidation values) and anchors valuation; the income statement shows abnormal earnings opportunities.'],
+  ['Value = book + extra','Equity value = BVE + PV of expected AOP. If AOP is zero forever, value = book and P/B = 1.'],
+  ['Unrecognised assets','Brands and know-how aren\'t on the balance sheet, but they show up as superior RNOA and AOP. Don\'t add a separate brand mark-up: that double counts.']],
+  formulas:[['AOPₜ = NOPATₜ − WACC × NOAₜ₋₁','Abnormal operating profit.'],['AOP = (RNOA − WACC) × NOA₋₁','Equivalent form.'],['V_E = BVE₀ + Σ AOPₜ ÷ (1 + WACC)ᵗ + PV(CV)','AOP valuation of equity.'],['V = BVE + AOP ÷ WACC','If AOP stays constant forever.'],['Required RNOA = WACC + AOP ÷ NOA','RNOA needed for a target AOP.']],
+  traps:['Charging WACC on end-of-year NOA.','Discounting AOP at the cost of equity: use WACC.','Adding brand value on top of an AOP valuation.']},
+ t7:{ideas:[
+  ['Two roles of accounting information','Ex-ante (valuation): helps investors assess returns and reduces information asymmetry. Ex-post (stewardship): lets owners monitor managers.'],
+  ['The lemons problem','Akerlof: if investors can\'t tell good firms from bad, everyone is discounted. Credible disclosure fixes this.'],
+  ['Mandatory vs voluntary','Annual reports are regulated; conference calls, guidance, presentations and social media are managers\' choice. Analysts add their own reports.'],
+  ['Narrative reporting','UK Strategic Report ≈ US MD&A. Athanasakou et al. (2020): narrative length vs cost of equity is U-shaped: helpful, then cluttering.'],
+  ['Conference calls','A scripted presentation plus an unscripted Q&A that often reveals more. Tone matters: Tesla\'s 2018 call hurt the price; successful humour softens reactions (Call et al. 2024).'],
+  ['Earnings guidance','Critics (Buffett, CFA Institute) say it feeds short-termism. When firms stop guiding, analysts work harder and markets rely on them more (Palmon et al. 2023).'],
+  ['Fake news','Peaks before earnings announcements; strong disclosure reduces targeting and price impact (Liu & Moss 2024).']],
+  studies:[['Akerlof (1970)','Lemons problem: asymmetry → mispricing and market failure.'],['Athanasakou et al. (2020)','U-shaped link between narrative disclosure and cost of equity.'],['Call et al. (2024)','Humour on calls: more positive reactions, milder analyst revisions.'],['Palmon et al. (2023)','Guidance stoppage: analysts become more important.'],['Liu & Moss (2024)','Accounting disclosure protects against fake news.']],
+  traps:['Assuming more disclosure is always better (it\'s U-shaped).','Forgetting the Q&A is where new information emerges.','Treating guidance as purely beneficial.']},
+ t8:{ideas:[
+  ['Two models, one value','With the same NOPAT and NOA forecasts, AOP valuation and DCF give the same enterprise value. Only the timing of when value is recognised differs.'],
+  ['The forecast engine','Sales → NOPAT = sales × NOPM → NOA (start of year) = sales ÷ ATO. Everything else follows.'],
+  ['AOP each year','AOP = NOPAT − WACC × NOA at the start of the year.'],
+  ['FCF each year','FCF = NOPAT − ΔNOA. In the last forecast year NOA keeps growing at g, so ΔNOA = NOA × g.'],
+  ['Continuing value','Gordon growth on next year\'s figure: CV = AOP_T × (1 + g) ÷ (WACC − g). It needs g < WACC and a steady state (constant NOPM and ATO).'],
+  ['Putting it together','EV (AOP) = NOA₀ + PV(AOPs) + PV(CV). EV (DCF) = PV(FCFs) + PV(CV of FCF). Equity = EV − net debt.'],
+  ['Where the value sits','AOP starts from book NOA, so less value sits in the continuing value than in DCF, which treats investment as an outflow.']],
+  formulas:[['NOPATₜ = salesₜ × NOPMₜ','Projected profit.'],['NOAₜ₋₁ = salesₜ ÷ ATO','Projected capital at the start of each year.'],['AOPₜ = NOPATₜ − WACC × NOAₜ₋₁','Abnormal operating profit.'],['FCFₜ = NOPATₜ − ΔNOAₜ','Free cash flow.'],['CV_T = X_T × (1 + g) ÷ (WACC − g)','X = AOP or FCF in the last forecast year.'],['PV = CV_T ÷ (1 + WACC)^T','Discount the CV back T years.'],['EV = NOA₀ + Σ PV(AOP) + PV(CV)','AOP model.'],['EV = Σ PV(FCF) + PV(CV)','DCF model.'],['Equity per share = (EV − net debt) ÷ shares','From enterprise to equity.']],
+  traps:['Using end-of-year NOA in AOP.','Forgetting the (1 + g) in the CV numerator.','Discounting the CV by T + 1 years, or not at all.','Adding NOA₀ in the DCF model.','Using ΔNOA = 0 in the final year when growth continues.']},
+ t9:{ideas:[
+  ['Growth means growing AOP','Growth creates value only if new investment earns above WACC: ΔAOP = ΔNOPAT − WACC × ΔNOA > 0. Growing sales alone isn\'t enough.'],
+  ['Mean reversion','Sales growth, margins and RNOA revert towards normal levels, so forecast 3–5 years explicitly, then assume a steady state.'],
+  ['Let the market speak','Step 1: compare price with book value per share; a premium means the market expects AOP > 0. Step 2: is AOP growing?'],
+  ['Zero growth valuation','If AOP stays constant, EV = NOA + AOP ÷ WACC = next year\'s NOPAT ÷ WACC (the Nike example).'],
+  ['Choices vs conditions','Firm choices (strategy, pricing, capex) may persist; external conditions (economy, industry shocks) often reverse.'],
+  ['Forecasting template','Forecast sales, then NOPM (→ NOPAT), then ATO (→ NOA), then AOP, then convert to FCF.'],
+  ['Reverse engineering','Solve for the growth or AOP the market price implies, then judge whether it\'s plausible.']],
+  formulas:[['ΔAOP = ΔNOPAT − WACC × ΔNOA','Value-creating growth test.'],['NOPAT₁ = NOPAT₀ + WACC × ΔNOA₀','Zero-growth (constant AOP) projection.'],['EV = NOPAT₁ ÷ WACC = NOA₀ + AOP ÷ WACC','Zero-growth enterprise value.'],['Equity = EV − net debt (or + net financial assets)','Then divide by shares.'],['g = WACC − AOP₁ ÷ (EV − NOA₀)','Implied growth from the market price.'],['AOP = sales × (NOPM − WACC ÷ ATO)','AOP from value drivers.']],
+  traps:['Equating sales growth with value creation.','Forgetting to add net financial assets (or subtract net debt) to get equity.','Implied growth at or above WACC: the model breaks.']},
+ t10:{ideas:[
+  ['What P/E reflects','Expected growth in abnormal earnings, risk (cost of equity), payout, and accounting effects such as temporarily low earnings.'],
+  ['Baseline P/E','With no growth in abnormal earnings and no dividends, trailing P/E = (1 + ρ) ÷ ρ. Anything above reflects expected growth.'],
+  ['What P/B reflects','How much, and how persistently, ROE beats the cost of equity. P/B = 1 means no abnormal earnings expected.'],
+  ['Using multiples','Pick comparable peers, take the median (or mean) multiple and apply it to your firm\'s metric.'],
+  ['Enterprise multiples','EV/Sales or EV/EBITDA give enterprise value: subtract net debt for equity, then divide by shares.'],
+  ['Weaknesses','Relies on peers being priced correctly and on peer choice; outliers distort the mean.'],
+  ['Blend the approaches','Final value = w × fundamental value + (1 − w) × multiples value.']],
+  formulas:[['Price = EPS × peer P/E','Equity multiple.'],['Equity = EV/Sales × sales − net debt','Enterprise multiple, then to equity.'],['P/B = P/E × ROE','Linking the two multiples.'],['P/E₀ = (1 + ρ) ÷ ρ','No-growth trailing P/E.'],['Final = w × V_fund + (1 − w) × V_market','Blended valuation.']],
+  traps:['Applying an EV multiple and forgetting to subtract net debt.','Using the mean when one peer is an extreme outlier.','Reading a high P/E as overvaluation without checking growth and risk.']},
+ m1:{ideas:[
+  ['Buying on margin','You put up part of the cost (equity) and borrow the rest. Margin = equity ÷ value of the shares.'],
+  ['Leverage cuts both ways','Your return ≈ % price change × (position ÷ your equity), minus interest. Gains and losses are both magnified.'],
+  ['Margin calls','If equity ÷ value falls below the maintenance margin, the broker asks for more cash. Over a year, the loan grows with interest.'],
+  ['Short selling','Borrow shares, sell now, buy back later. You profit if the price falls; losses are unlimited if it rises.'],
+  ['Risk aversion','Utility U = E(r) − ½Aσ². Higher A means more risk-averse; A = 0 is risk-neutral.'],
+  ['Capital allocation','Mix a risky portfolio with the risk-free asset. The CAL\'s slope is the Sharpe ratio.'],
+  ['Optimal mix','y* = (E(r) − r_f) ÷ (Aσ²): more expected premium or less risk aversion means more in the risky asset.']],
+  formulas:[['Margin = equity ÷ value of shares','Equity = value − loan (with interest after a year).'],['P* = loan × (1 + r) ÷ [n × (1 − m)]','Price that triggers a margin call after a year.'],['Return = (E₁ − E₀) ÷ E₀','Return on your own money.'],['U = E(r) − ½Aσ²','Mean-variance utility.'],['y* = (E(r) − r_f) ÷ (Aσ²)','Optimal risky weight.'],['Sharpe = (E(r) − r_f) ÷ σ','Reward per unit of total risk.'],['E(r_C) = r_f + y(E(r) − r_f); σ_C = yσ','Complete portfolio.']],
+  traps:['Forgetting interest on the loan after a year.','Using σ instead of σ² in utility or y*.','Using interest when the price change is immediate.']},
+ m2:{ideas:[
+  ['Diversification','Portfolio σ is below the weighted average of σs unless correlation is 1. It removes idiosyncratic risk, not market risk.'],
+  ['Single-index model','r_i = α_i + β_i r_M + e_i. Risk splits into systematic (β²σ²_M) and idiosyncratic (σ²(e)).'],
+  ['Why managers like it','Instead of every pairwise covariance, you need only betas and residual variances, and the market links all stocks.'],
+  ['Beta, covariance, correlation','β = Cov(i, M) ÷ σ²_M. Under the index model, two stocks covary only through the market.'],
+  ['Portfolios','Portfolio β is the weighted average β (the risk-free asset has β 0). Residual variances add up with squared weights.'],
+  ['Standalone vs inside a portfolio','Holding one stock alone: total σ matters. Adding it to the market portfolio: only beta matters.'],
+  ['Treynor-Black','Add an active portfolio A to the market in proportion to α ÷ σ²(e), then adjust for A\'s beta. A higher β_A raises the weight.']],
+  formulas:[['σ²_P = w₁²σ₁² + w₂²σ₂² + 2w₁w₂ρσ₁σ₂','Two-asset portfolio variance.'],['β = Cov(i,M) ÷ σ²_M = ρσ_i ÷ σ_M','Beta.'],['σ²_i = β²σ²_M + σ²(e)','Systematic + idiosyncratic variance.'],['Cov(i,j) = β_iβ_jσ²_M; ρ_ij = Cov ÷ (σ_iσ_j)','Index-model covariance and correlation.'],['β_P = Σ w_iβ_i; σ²(e_P) = Σ w_i²σ²(e_i)','Portfolio beta and residual variance.'],['w₀ = (α ÷ σ²(e)) ÷ (E[R_M] ÷ σ²_M)','Initial active weight (E[R_M] = market excess return).'],['w* = w₀ ÷ (1 + (1 − β_A)w₀); β_P = w*β_A + (1 − w*)','Beta-adjusted weight and portfolio beta.']],
+  traps:['Subtracting standard deviations instead of variances.','Forgetting the risk-free asset has β = 0 in portfolio beta.','Using total variance instead of residual variance in w₀.']},
+ m3:{ideas:[
+  ['The CAPM','E(r) = r_f + β(E(r_M) − r_f). Only systematic risk is priced, because idiosyncratic risk can be diversified away.'],
+  ['Alpha','α = expected return − CAPM required return. Positive α plots above the SML (underpriced).'],
+  ['Cost of capital and NPV','Discount a project at its CAPM rate. NPV > 0 means it earns more than investors require for its beta.'],
+  ['Multi-factor models','Fama-French adds HML (value) and SMB (size): r = r_f + β_M·MKT + β_HML·HML + β_SMB·SMB.'],
+  ['APT and arbitrage','No riskless profits for well-diversified portfolios. An arbitrage needs zero net investment and zero factor exposure.'],
+  ['Building the trade','Short the negative-α portfolio, buy the positive-α one in beta-neutral size, and fund the difference at r_f. The profit is the α spread.'],
+  ['Residual risk','With idiosyncratic risk left in, the expected profit is the same but the actual profit is uncertain.'],
+  ['The flat SML','High-beta stocks earn less than the CAPM predicts. Sentiment helps explain this (Antoniou et al. 2016).']],
+  formulas:[['E(r) = r_f + β(E(r_M) − r_f)','CAPM.'],['α = E(r) − [r_f + β(E(r_M) − r_f)]','Alpha.'],['NPV = −I + Σ CFₜ ÷ (1 + k)ᵗ; perpetuity: CF ÷ k','With k from the CAPM.'],['E(r) = r_f + Σ βₖ × premiumₖ','Multi-factor (Fama-French).'],['Long X = short × β_short ÷ β_long','Beta-neutral sizing.'],['Expected CF = X·α_long − S·α_short','Factor and r_f terms cancel.'],['σ(profit) = √2 × £1m × σ(e) ÷ √(n per side)','Equal-weighted long/short with residual risk.']],
+  traps:['Multiplying beta by E(r_M) instead of the premium E(r_M) − r_f.','Forgetting to fund (or lend) the size difference at r_f.','Thinking higher volatility alone earns a higher CAPM return.']},
+ m4:{ideas:[
+  ['Three forms of efficiency','Weak: past prices are in the price. Semi-strong: all public information. Strong: even private information.'],
+  ['Anomalies','Momentum challenges weak-form efficiency; post-earnings-announcement drift challenges semi-strong.'],
+  ['Good firm ≠ good stock','In an efficient market, buying firms with great performance earns no abnormal return: it\'s already priced.'],
+  ['Choosing a performance measure','Sharpe: when the fund is your whole portfolio. Treynor or Jensen\'s α: when it\'s one part of a diversified portfolio. Information ratio: for an active add-on.'],
+  ['Performance attribution','Split excess return into asset (or country) allocation and selection within each class.'],
+  ['Costs matter','High-turnover strategies like momentum can look great gross and ordinary after trading costs.'],
+  ['Buffett','His record is often explained by value and quality tilts plus leverage (Frazzini et al.), so it isn\'t automatic proof of inefficiency.']],
+  formulas:[['Sharpe = (r − r_f) ÷ σ','Total-risk measure.'],['Treynor = (r − r_f) ÷ β','Systematic-risk measure.'],['Jensen α = r − [r_f + β(r_M − r_f)]','Abnormal return vs the CAPM.'],['IR = α ÷ σ(e)','Alpha per unit of residual risk.'],['Allocation = Σ (w_p − w_b) × index return','Over/underweighting classes.'],['Selection = Σ w_p × (manager − index return)','Picking within classes.'],['Excess = allocation + selection','Check that it adds up.']],
+  traps:['Using Sharpe for a fund that is only part of a diversified portfolio.','Using benchmark weights in the selection effect.','Mixing up weak-form and semi-strong examples.']},
+ m5:{ideas:[
+  ['Rational expectations','Investors use all information and update correctly (Bayes). Behavioural finance studies systematic departures.'],
+  ['Representativeness','Treating a run of good results as typical leads to extrapolation and overreaction: glamour stocks get overpriced.'],
+  ['Conservatism','Updating too slowly on new information leads to underreaction: prices drift after earnings news (PEAD).'],
+  ['Strength vs weight','Griffin & Tversky (1992): people weigh how striking evidence is (strength) about twice as much as how reliable it is (weight).'],
+  ['When each bias wins','High strength, low weight (long performance runs) → overreaction. Low strength, high weight (earnings surprises, dividend changes, buybacks) → underreaction.'],
+  ['Value vs growth','Overreaction to past growth makes growth stocks overpriced (negative α) and value stocks underpriced (positive α).'],
+  ['Why it matters','Knowing which bias dominates tells you which way to trade.']],
+  studies:[['Griffin & Tversky (1992)','Salience: strength outweighs weight, reconciling overreaction and underreaction.'],['Post-earnings drift (SUE)','Prices keep moving in the surprise direction for months: underreaction.'],['Value premium evidence','Value beats glamour as extrapolated expectations correct.']],
+  traps:['Assuming the two biases simply cancel out.','Forgetting that underreaction events are singular, reliable signals.']},
+ m6:{ideas:[
+  ['What sentiment is','Beliefs about future cash flows and risk that the facts don\'t justify: waves of optimism or pessimism.'],
+  ['Measuring it (Baker & Wurgler)','An index of turnover, the dividend premium, IPO numbers, IPO first-day returns and the equity share of new issues.'],
+  ['What it predicts','High sentiment predicts lower future returns, especially for speculative, hard-to-value, hard-to-arbitrage stocks.'],
+  ['Fund flows (Ben-Rephael et al. 2012)','Switches from bond funds to equity funds raise prices now but predict lower returns later: overpricing that corrects.'],
+  ['The flat SML (Antoniou et al. 2016)','After optimistic periods, high-beta stocks are overpriced and underperform; after pessimistic ones the SML slopes up as the CAPM says.'],
+  ['Why it persists','Limits to arbitrage make betting against sentiment risky and costly.']],
+  studies:[['Baker & Wurgler (2006, 2007)','Sentiment index; speculative stocks most affected.'],['Ben-Rephael, Kandel & Wohl (2012)','Mutual fund exchanges as sentiment; later reversal.'],['Antoniou, Doukas & Subrahmanyam (2016)','Sentiment, beta and the flat security market line.']],
+  traps:['Thinking sentiment hits all stocks equally.','Confusing a contemporaneous price rise with information: watch for later reversal.']},
+ m7:{ideas:[
+  ['Friedman\'s claim','Rational arbitrageurs always correct mispricing. Behavioural finance says arbitrage is limited, so mispricing can persist.'],
+  ['Fundamental risk','The hedge isn\'t perfect, so news about your long or short leg can hurt you.'],
+  ['Noise-trader risk','Mispricing can get worse before it corrects. Royal Dutch/Shell deviated from 60:40 parity by up to ~35% for years.'],
+  ['Agency problems','Investors withdraw money after losses, forcing arbitrageurs to sell exactly when mispricing is biggest (Shleifer & Vishny 1997).'],
+  ['Implementation costs','3Com\'s stub value was −$60, yet shorting Palm cost about 20–30% a year, which blocked the trade.'],
+  ['The upshot','With limited arbitrage, behavioural biases can move prices for a long time.']],
+  formulas:[['Stub = P_parent − ratio × P_subsidiary','Implied value of the rest of the parent.'],['Deviation = P_RD ÷ (1.5 × P_Shell) − 1','Twin-share parity gap (60:40 split).']],
+  traps:['Calling a trade riskless just because it is hedged.','Ignoring shorting costs and recall risk.']},
+ m8:{ideas:[
+  ['Price and yield move oppositely','Fixed cash flows discounted at a higher rate are worth less, so prices fall until the yield matches the market.'],
+  ['Zeros, discount factors, YTM','A zero\'s price = face × discount factor. YTM is the single rate that discounts all cash flows to the price.'],
+  ['Strips and arbitrage','A coupon bond is a bundle of zeros. If it trades away from the sum of the strip values, short the expensive side and buy the cheap side.'],
+  ['Forward rates','(1 + y₂)² = (1 + y₁)(1 + f₂). Under the expectations hypothesis, forwards are expected future short rates.'],
+  ['Duration','Macaulay D: the PV-weighted average time of cash flows. A zero\'s duration is its maturity. Higher coupons → lower duration; a perpetuity\'s D* = 1/y.'],
+  ['Price sensitivity','ΔP ≈ −D* × Δy × P. Convexity makes the true price higher than this estimate after big moves either way.'],
+  ['Immunisation','Match the PV and duration of assets to liabilities, and rebalance over time. Two zeros: solve w·T_A + (1 − w)·T_B = D.']],
+  formulas:[['P = Σ CFₜ ÷ (1 + y)ᵗ','Bond price.'],['Zero: P = F ÷ (1 + y)ᵀ; y = (F ÷ P)^(1/T) − 1','Zero price and YTM.'],['f₂ = (1 + y₂)² ÷ (1 + y₁) − 1','Forward rate.'],['D = Σ t × PV(CFₜ) ÷ P','Macaulay duration.'],['D* = D ÷ (1 + y)','Modified duration.'],['ΔP ≈ −D* × Δy × P','Duration rule.'],['w_A = (T_B − D) ÷ (T_B − T_A)','Weight in zero A for immunisation.']],
+  traps:['Using Macaulay instead of modified duration in the price-change rule.','Forgetting that immunisation needs equal PVs as well as equal durations.','Mixing annual and semi-annual compounding.']},
+ m9:{ideas:[
+  ['Payoff vs profit','Call payoff = max(S_T − K, 0); put = max(K − S_T, 0). Profit = payoff − premium.'],
+  ['Why managers use options','Hedging, speculating with leverage, earning premium income, and betting on volatility.'],
+  ['Put-call parity','C + PV(K) = P + S: two portfolios with identical payoffs must cost the same.'],
+  ['Strategies','Protective put (floor), covered call (income, capped upside), collar (floor and cap), straddle (big move either way), spreads (capped bets).'],
+  ['Volatility','Calls and puts both rise with total volatility, including firm-specific risk. The expected return of the stock doesn\'t matter.'],
+  ['Binomial pricing','Hold h shares per call written so the payoff is the same in both states. Then C = hS − PV(riskless payoff).'],
+  ['Arbitrage','If a call trades above its value, write it and buy the replicating portfolio; if below, do the reverse.']],
+  formulas:[['P = C − S + K ÷ (1 + r)ᵀ','Put-call parity (T in years).'],['h = (C_u − C_d) ÷ (S_u − S_d)','Hedge ratio (delta).'],['Calls to hedge n shares = n ÷ h','Write this many calls.'],['C = hS − (hS_d − C_d) ÷ (1 + r)','Binomial call value.'],['Straddle break-evens: K ± (C + P)','Needs a big move.'],['Collar: max profit = K_call − S₀ − p + c; max loss = S₀ − K_put + p − c','Bounded both ways.']],
+  traps:['Confusing payoff with profit.','Using simple interest K ÷ (1 + rT) when the module uses (1 + r)ᵀ.','Inverting the hedge ratio.','Thinking the stock\'s expected return changes the option\'s value.']},
+ m10:{ideas:[
+  ['What overconfidence is','Overestimating the precision of your information (miscalibration) and your own ability (better-than-average).'],
+  ['It predicts too much trading','Overconfident investors trade more, and the extra trading lowers net returns.'],
+  ['Trading is hazardous','Barber & Odean (2000): the most active households earned the lowest net returns; gross returns were similar, so costs made the difference.'],
+  ['Boys will be boys','Barber & Odean (2001): men traded more (turnover ~80% vs 51%) and earned less; stronger for single men.'],
+  ['Do investors trade too much?','Odean (1999): stocks bought underperformed stocks sold, even before costs.'],
+  ['Online trading','After switching online, investors traded more and did worse (Barber & Odean 2002).'],
+  ['Momentum and reversal','Daniel, Hirshleifer & Subrahmanyam (1998): overconfidence plus self-attribution causes overreaction to private information, then correction.']],
+  studies:[['Barber & Odean (2000)','Trading is hazardous to your wealth.'],['Barber & Odean (2001)','Gender, overconfidence and trading.'],['Odean (1999)','Investors trade too much.'],['Barber & Odean (2002)','Online investors: do the slow die first?'],['Daniel, Hirshleifer & Subrahmanyam (1998)','Overconfidence, self-attribution and over/underreaction.']],
+  traps:['Thinking more trading reflects better information.','Confusing overconfidence (beliefs) with risk-loving (preferences).']}
+};
+
+let LS={i:0};
+function learnExample(tid){
+  const pool=Object.keys(QT).filter(k=>QT[k].t===tid&&!QT[k].c),adv=pool.filter(k=>QT[k].k==='a');
+  const ids=adv.length?adv:pool;if(!ids.length)return null;const id=pick(ids),q=QT[id].gen();
+  const ans=q.opts?q.opts[q.ans]:fu(q.c,q.u);return {q,ans};
+}
+function renderLearn(box){
+  const t=ALLT.find(x=>x.id===LS.tid),L=LEARN[LS.tid],n=L.ideas.length,i=Math.min(LS.i,n-1),done=i===n-1;
+  const read=fget('learn|'+LS.tid+'|'+today());
+  let h=`<div class="row fhead"><button class="link" data-act="fin-home">‹ Topics</button><span class="small"><b>Learn</b> · ${esc(TN[LS.tid])}</span><span class="small muted">${i+1} / ${n}</span></div>
+  <div class="card fq lcard" id="lcard"><p class="small muted" style="margin:0 0 4px">Key idea ${i+1}</p><h2 style="margin:0 0 8px;font-size:19px">${L.ideas[i][0]}</h2><p class="fstem" style="margin:0">${L.ideas[i][1]}</p>
+   <div class="ldots">${L.ideas.map((_,j)=>`<i class="${j===i?'on':''}"></i>`).join('')}</div>
+   <div class="grid2" style="margin-top:12px"><button class="ghost" data-act="learn-nav" data-d="-1"${i?'':' disabled'}>‹ Back</button>${done?`<button class="btn" style="margin-top:0" data-act="learn-done">${read?'Read today ✓':'Done · +5 XP'}</button>`:`<button class="btn" style="margin-top:0" data-act="learn-nav" data-d="1">Next ›</button>`}</div></div>`;
+  if(L.formulas)h+=`<h2>Formula sheet</h2><div class="card">${L.formulas.map(f=>`<div class="lform"><b>${f[0]}</b><span class="small muted">${f[1]}</span></div>`).join('')}</div>`;
+  if(L.studies)h+=`<h2>Key studies</h2><div class="card">${L.studies.map(f=>`<div class="lform"><b>${f[0]}</b><span class="small muted">${f[1]}</span></div>`).join('')}</div>`;
+  if(LS.ex===undefined)LS.ex=learnExample(LS.tid);
+  if(LS.ex){const q=LS.ex.q;h+=`<h2>Worked example</h2><div class="card fq">${q.table||''}<p class="fstem">${q.stem}</p>${q.opts&&!LS.show?`<p class="small muted">${q.opts.map(o=>'• '+o).join('<br>')}</p>`:''}
+   ${LS.show?`<div class="ffb good"><b>Answer: ${LS.ex.ans}</b>${q.expl?`<p>${q.expl}</p>`:''}${q.sol?`<details open><summary>Full working</summary>${q.sol}</details>`:''}</div><button class="ghost" style="width:100%;margin-top:10px" data-act="learn-ex">Another example</button>`:`<button class="btn" data-act="learn-show">Show solution</button>`}</div>`}
+  h+=`<h2>Common traps</h2><div class="card"><ul class="ltraps">${L.traps.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+  <button class="btn" data-act="fin-play" data-m="quick" data-t="${LS.tid}">Test yourself · Quick quiz</button><div style="height:18px"></div>`;
+  box.innerHTML=h;
+}
+function learnAct(a,b){
+  if(a==='fin-learn'){LS={tid:b.dataset.t,i:0};F={v:'learn'};renderFin();window.scrollTo(0,0);return true}
+  if(a==='learn-nav'){LS.i=Math.max(0,Math.min(LEARN[LS.tid].ideas.length-1,LS.i+(+b.dataset.d)));renderFin();return true}
+  if(a==='learn-done'){const k='learn|'+LS.tid+'|'+today();if(!fget(k)){flog(k,1);addXP(LS.tid,5);logDay(LS.tid);commit();toast('+5 XP · lesson read')}else renderFin();return true}
+  if(a==='learn-show'){LS.show=true;renderFin();return true}
+  if(a==='learn-ex'){LS.ex=learnExample(LS.tid);LS.show=false;renderFin();return true}
+  return false;
+}
+let lx=null;
+document.addEventListener('touchstart',e=>{const c=e.target.closest&&e.target.closest('#lcard');lx=c?e.touches[0].clientX:null},{passive:true});
+document.addEventListener('touchend',e=>{if(lx==null||F.v!=='learn')return;const dx=e.changedTouches[0].clientX-lx;lx=null;if(Math.abs(dx)>50){const n=LEARN[LS.tid].ideas.length;const ni=Math.max(0,Math.min(n-1,LS.i+(dx<0?1:-1)));if(ni!==LS.i){LS.i=ni;renderFin()}}},{passive:true});
+
 /* "Sort the statement": balance sheet, income statement, cash flow (module conventions: Penman / Week 3–4) */
 const BSI=[
  ['cash','A','fin','Cash and cash equivalents',[40,400],'Cash is a financial asset: it is netted against debt in net debt.'],
@@ -2462,7 +2702,7 @@ function renderFin(){
   renderStudy();const box=$('#finBox');if(!box||area!=='fin')return;
   const ae=document.activeElement&&document.activeElement.id;
   if((ae==='finIn'&&F.v==='play'&&!F.done)||((ae==='fNoa'||ae==='fNfo')&&F.v==='sort'&&F.step===1))return;
-  if(F.v==='play')return renderPlay(box);if(F.v==='sort')return renderSort(box);if(F.v==='done')return renderDone(box);
+  if(F.v==='play')return renderPlay(box);if(F.v==='sort')return renderSort(box);if(F.v==='done')return renderDone(box);if(F.v==='learn')return renderLearn(box);
   seedSubDays();
   const SB=SUBJ.find(x=>x.id===fsub)||SUBJ[0],sx=SB.topics.reduce((a,t)=>a+topicXP(t.id),0),x=totalXP(),rk=rankOf(x),st=finStreak(SB.id),ms=missed(SB.id).length;
   box.innerHTML=`<div class="chips" style="margin:14px 0 2px">${SUBJ.map(y=>`<button data-act="fin-sub" data-v="${y.id}" class="${y.id===fsub?'on':''}">${esc(y.name)}</button>`).join('')}</div>
@@ -2476,7 +2716,7 @@ function renderFin(){
    const btn=(m,l,dis)=>`<button class="ghost" data-act="fin-play" data-m="${m}" data-t="${t.id}"${dis?' disabled':''}>${l}</button>`;
    return `<div class="card ftopic"><div class="row"><span><b>${i+1}</b> · ${esc(t.name)}</span><span class="small muted">Lv ${L.lv}${fget('boss|'+t.id)?' ★':''}</span></div>
    <div class="xpbar"><i style="width:${L.pct}%"></i></div><p class="small muted" style="margin:4px 0 8px">${xp} XP${L.hi?' · '+(L.hi-xp)+' to level '+(L.lv+1):' · max level'}</p>
-   <div class="fbtns">${g.includes('sort')?btn('sort','Sort balance sheet')+btn('sortis','Sort income statement')+btn('sortcf','Sort cash flow')+btn('sortadv','Sort + calculate'):''}${g.includes('quick')?btn('quick','Quick quiz'):''}${g.includes('adv')?btn('adv','Advanced'):''}${g.includes('boss')?btn('boss',bossOpen?'Boss round':'Boss · '+(BOSS_AT-xp)+' XP',!bossOpen):''}${g.includes('blitz')?btn('blitz','Blitz 60s'+(bb?' · best '+bb:'')):''}</div></div>`}).join('')}
+   <div class="fbtns">${LEARN[t.id]?`<button class="ghost lbtn" data-act="fin-learn" data-t="${t.id}">Learn${fget('learn|'+t.id+'|'+today())?' ✓':''}</button>`:''}${g.includes('sort')?btn('sort','Sort balance sheet')+btn('sortis','Sort income statement')+btn('sortcf','Sort cash flow')+btn('sortadv','Sort + calculate'):''}${g.includes('quick')?btn('quick','Quick quiz'):''}${g.includes('adv')?btn('adv','Advanced'):''}${g.includes('boss')?btn('boss',bossOpen?'Boss round':'Boss · '+(BOSS_AT-xp)+' XP',!bossOpen):''}${g.includes('blitz')?btn('blitz','Blitz 60s'+(bb?' · best '+bb:'')):''}</div></div>`}).join('')}
   <p class="small muted" style="margin:14px 2px 0">${fsub==='im'?'Closed-book module: questions also drill the formulas you need to remember. Numbers change every time.':'Questions are written for revision from the module\'s methods (Penman-style reformulation, DuPont, AOP and DCF). Numbers change every time.'}</p>`;
 }
 function playHead(){
@@ -2525,6 +2765,7 @@ function renderSort(box){
 }
 document.addEventListener('submit',e=>{const f=e.target;if(f.id==='finForm'){e.preventDefault();checkTyped()}else if(f.id==='sortForm'){e.preventDefault();sortCalc()}});
 function finAct(a,b){
+  if(learnAct(a,b))return true;
   if(a==='area'){area=b.dataset.v;try{localStorage.setItem('excelsior-area',area)}catch(e){}renderStudy();if(area==='fin')renderFin();else renderLang();return true}
   if(a==='fin-sub'){fsub=b.dataset.v;try{localStorage.setItem('excelsior-fsub',fsub)}catch(e){}renderFin();return true}
   if(a==='fin-play'){finStart(b.dataset.m,b.dataset.t);window.scrollTo(0,0);return true}
