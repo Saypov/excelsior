@@ -161,6 +161,8 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
 .srow.right .sname{color:var(--good)}.srow.wrong .sname{color:var(--bad)}.swhy{margin:6px 0 0;color:var(--muted)}.sh{margin:14px 0 0;text-transform:uppercase;letter-spacing:.05em;font-size:12px}.eqrow{border-bottom:0}
 .seg2{display:grid;grid-template-columns:1fr 1fr;gap:6px}.seg2 button{min-height:38px;font-size:14px;font-weight:500;background:var(--soft)}.seg2 button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}.seg2 button:disabled{opacity:1}.seg2 button.ans:not(.on){border:2px solid var(--good)}
 .lbtn{flex:1 1 100%!important;border-color:var(--blue)!important;color:var(--blue)}
+.lslide{will-change:transform,opacity;touch-action:pan-y}.lin-r{animation:linr .3s cubic-bezier(.2,.8,.2,1)}.lin-l{animation:linl .3s cubic-bezier(.2,.8,.2,1)}@keyframes linr{from{transform:translateX(70px);opacity:0}to{transform:none;opacity:1}}@keyframes linl{from{transform:translateX(-70px);opacity:0}to{transform:none;opacity:1}}@media (prefers-reduced-motion:reduce){.lin-r,.lin-l{animation:none}}
+.ldots i{transition:background .25s,transform .25s}.ldots i.on{transform:scale(1.25)}
 .ldots{display:flex;gap:5px;justify-content:center;margin-top:14px}.ldots i{width:7px;height:7px;border-radius:50%;background:var(--line)}.ldots i.on{background:var(--blue)}
 .lform{display:flex;flex-direction:column;gap:2px;padding:9px 0;border-bottom:1px solid var(--line)}.lform:last-child{border-bottom:0}.lform b{font-variant-numeric:tabular-nums;font-weight:600}
 .ltraps{margin:0;padding-left:18px}.ltraps li{margin:6px 0;font-size:15px}
@@ -619,7 +621,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.3.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.3.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -2509,7 +2511,7 @@ function renderLearn(box){
   const t=ALLT.find(x=>x.id===LS.tid),L=LEARN[LS.tid],n=L.ideas.length,i=Math.min(LS.i,n-1),done=i===n-1;
   const read=fget('learn|'+LS.tid+'|'+today());
   let h=`<div class="row fhead"><button class="link" data-act="fin-home">‹ Topics</button><span class="small"><b>Learn</b> · ${esc(TN[LS.tid])}</span><span class="small muted">${i+1} / ${n}</span></div>
-  <div class="card fq lcard" id="lcard"><p class="small muted" style="margin:0 0 4px">Key idea ${i+1}</p><h2 style="margin:0 0 8px;font-size:19px">${L.ideas[i][0]}</h2><p class="fstem" style="margin:0">${L.ideas[i][1]}</p>
+  <div class="card fq lcard" id="lcard"><div class="lslide${LS.dir?(LS.dir>0?' lin-r':' lin-l'):''}" id="lslide"><p class="small muted" style="margin:0 0 4px">Key idea ${i+1}</p><h2 style="margin:0 0 8px;font-size:19px">${L.ideas[i][0]}</h2><p class="fstem" style="margin:0">${L.ideas[i][1]}</p></div>
    <div class="ldots">${L.ideas.map((_,j)=>`<i class="${j===i?'on':''}"></i>`).join('')}</div>
    <div class="grid2" style="margin-top:12px"><button class="ghost" data-act="learn-nav" data-d="-1"${i?'':' disabled'}>‹ Back</button>${done?`<button class="btn" style="margin-top:0" data-act="learn-done">${read?'Read today ✓':'Done · +5 XP'}</button>`:`<button class="btn" style="margin-top:0" data-act="learn-nav" data-d="1">Next ›</button>`}</div></div>`;
   if(L.formulas)h+=`<h2>Formula sheet</h2><div class="card">${L.formulas.map(f=>`<div class="lform"><b>${f[0]}</b><span class="small muted">${f[1]}</span></div>`).join('')}</div>`;
@@ -2523,15 +2525,27 @@ function renderLearn(box){
 }
 function learnAct(a,b){
   if(a==='fin-learn'){LS={tid:b.dataset.t,i:0};F={v:'learn'};renderFin();window.scrollTo(0,0);return true}
-  if(a==='learn-nav'){LS.i=Math.max(0,Math.min(LEARN[LS.tid].ideas.length-1,LS.i+(+b.dataset.d)));renderFin();return true}
+  if(a==='learn-nav'){learnGo(+b.dataset.d);return true}
   if(a==='learn-done'){const k='learn|'+LS.tid+'|'+today();if(!fget(k)){flog(k,1);addXP(LS.tid,5);logDay(LS.tid);commit();toast('+5 XP · lesson read')}else renderFin();return true}
   if(a==='learn-show'){LS.show=true;renderFin();return true}
   if(a==='learn-ex'){LS.ex=learnExample(LS.tid);LS.show=false;renderFin();return true}
   return false;
 }
-let lx=null;
-document.addEventListener('touchstart',e=>{const c=e.target.closest&&e.target.closest('#lcard');lx=c?e.touches[0].clientX:null},{passive:true});
-document.addEventListener('touchend',e=>{if(lx==null||F.v!=='learn')return;const dx=e.changedTouches[0].clientX-lx;lx=null;if(Math.abs(dx)>50){const n=LEARN[LS.tid].ideas.length;const ni=Math.max(0,Math.min(n-1,LS.i+(dx<0?1:-1)));if(ni!==LS.i){LS.i=ni;renderFin()}}},{passive:true});
+const RM=()=>window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+function learnGo(d,fromX){const n=LEARN[LS.tid].ideas.length,ni=Math.max(0,Math.min(n-1,LS.i+d));const s=$('#lslide'),c=$('#lcard');
+  if(ni===LS.i){if(s){s.style.transition='transform .25s cubic-bezier(.2,.8,.2,1),opacity .25s';s.style.transform='';s.style.opacity=''}return}
+  if(!s||RM()){LS.i=ni;LS.dir=0;renderFin();return}
+  const h0=c.offsetHeight;s.style.transition='transform .16s ease-in,opacity .16s ease-in';s.style.transform=`translateX(${-d*70}px)`;s.style.opacity='0';
+  setTimeout(()=>{LS.i=ni;LS.dir=d;renderFin();LS.dir=0;const c2=$('#lcard');if(!c2)return;const h1=c2.offsetHeight;if(Math.abs(h1-h0)<2)return;
+    c2.style.height=h0+'px';c2.style.overflow='hidden';c2.offsetHeight;c2.style.transition='height .28s cubic-bezier(.2,.8,.2,1)';c2.style.height=h1+'px';
+    setTimeout(()=>{c2.style.height='';c2.style.overflow='';c2.style.transition=''},300)},160)}
+let lx=null,ly=null,ldrag=false;
+document.addEventListener('touchstart',e=>{const c=e.target.closest&&e.target.closest('#lslide');if(c&&!e.target.closest('button')){lx=e.touches[0].clientX;ly=e.touches[0].clientY;ldrag=false;c.style.transition='none'}else lx=null},{passive:true});
+document.addEventListener('touchmove',e=>{if(lx==null)return;const s=$('#lslide');if(!s)return;const dx=e.touches[0].clientX-lx,dy=e.touches[0].clientY-ly;
+  if(!ldrag){if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>8){lx=null;return}if(Math.abs(dx)>8)ldrag=true}
+  if(ldrag){const n=LEARN[LS.tid].ideas.length,edge=(dx>0&&LS.i===0)||(dx<0&&LS.i===n-1);const x=edge?dx*.3:dx;s.style.transform=`translateX(${x}px)`;s.style.opacity=String(1-Math.min(.6,Math.abs(x)/400))}},{passive:true});
+document.addEventListener('touchend',e=>{if(lx==null||F.v!=='learn')return;const dx=e.changedTouches[0].clientX-lx;lx=null;if(!ldrag)return;ldrag=false;
+  learnGo(Math.abs(dx)>50?(dx<0?1:-1):0)},{passive:true});
 
 /* "Sort the statement": balance sheet, income statement, cash flow (module conventions: Penman / Week 3–4) */
 const BSI=[
