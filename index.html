@@ -583,7 +583,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1131,7 +1131,7 @@ function renderLang(){
 const newCard=(f,b,ex)=>({id:newId(),lang,f,b,ex:ex||'',due:today(),int:0,ease:2.5,reps:0});
 
 /* ---------- Events ---------- */
-const EVC=[['academic','Academic','#f97316'],['work','Jobs & careers','#3b82f6'],['meeting','Meeting','#14b8a6'],['social','Social','#a855f7'],['other','Other','#8b93a6']];
+const EVC=[['academic','Academic','#ef4444'],['work','Jobs & careers','#3b82f6'],['meeting','Meeting','#14b8a6'],['social','Social','#eab308'],['other','Other','#8b93a6']];
 const EVN=Object.fromEntries(EVC.map(c=>[c[0],c]));
 let evCat='academic',evEdit=null,evDay='',evView=ym(today());
 const evColor=c=>(EVN[c]||EVN.other)[2];
@@ -1141,7 +1141,7 @@ function evRow(e){
   const n=days(today(),e.d),dl=e.cat==='academic'||e.cat==='work';
   return `<div class="li" style="align-items:flex-start${e.done?';opacity:.5':''}"><span style="display:flex;gap:10px;align-items:flex-start"><i style="flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;background:${evColor(e.cat)}"></i>
     <span><b style="${e.done?'text-decoration:line-through':''}">${esc(e.title)}</b><br><span class="small muted">${e.time?e.time+' · ':''}${(EVN[e.cat]||EVN.other)[1]}${e.note?' · '+esc(e.note):''}</span>
-    <span class="evacts">${dl?`<button class="link" data-act="ev-done" data-id="${e.id}">${e.done?'Undo':'Done'}</button>`:''}<button class="link" data-act="ev-ics" data-id="${e.id}">+ Calendar</button><button class="link" data-act="ev-edit" data-id="${e.id}">Edit</button><button class="link" data-act="ev-del" data-id="${e.id}">Delete</button></span></span></span>
+    <span class="evacts">${dl?`<button class="link" data-act="ev-done" data-id="${e.id}">${e.done?'Undo':'Done'}</button>`:''}<button class="link" data-act="ev-edit" data-id="${e.id}">Edit</button><button class="link" data-act="ev-del" data-id="${e.id}">Delete</button></span></span></span>
     ${n>=0&&!e.done?`<span class="tag${n<=2&&dl?' hot':''}">${n===0?'today':n===1?'tomorrow':'in '+n+'d'}</span>`:''}</div>`;
 }
 function renderEvents(){
