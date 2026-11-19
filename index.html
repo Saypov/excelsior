@@ -103,6 +103,7 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 .btn{background:var(--blue);border-color:var(--blue);color:#fff;width:100%;margin-top:14px}
 .ghost{background:var(--soft)}
 .link{border:0;background:none;color:var(--blue);padding:0 4px;min-height:36px}
+.exprow{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;row-gap:6px;align-items:center}.exprow .en{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.exprow .amt{white-space:nowrap;text-align:right}.exprow .em{min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px}.exprow .ea{display:flex;gap:6px;justify-content:flex-end;align-items:center}.exprow .x{width:38px;min-height:38px}
 .x{flex:none;width:44px;padding:0;font-size:22px;line-height:1;color:var(--muted)}
 .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
 .seg{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
@@ -592,7 +593,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.23 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.24 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1037,7 +1038,7 @@ function renderMoney(){
   const by={};mon.forEach(e=>by[e.cat]=(by[e.cat]||0)+e.amt);
   const ks=Object.keys(by).sort((a,b)=>by[b]-by[a]);
   $('#catBars').innerHTML=ks.length?ks.map(k=>`<div class="cat"><div class="row"><span>${CATN[k]||'Other'}</span><span class="amt">${money(by[k])}</span></div><div class="bar"><i style="width:${by[k]/spent*100}%"></i></div></div>`).join(''):'<div class="empty">Add an expense to see where your money goes.</div>';
-  $('#expList').innerHTML=mon.length?mon.map(e=>e.id===editExp?expEditHtml(e):`<li class="li"><span><b>${esc(e.note||CATN[e.cat])}</b><br><span class="small muted">${e.fromPot?'<span class="tag">From pot</span> ':''}${e.auto?`<span class="tag">Apple Pay</span> <select data-catfor="${e.id}" aria-label="Category" style="width:auto;min-height:32px;padding:2px 24px 2px 8px;font-size:13px;display:inline-block;background-position:right 7px center;background-size:11px">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>`:(CATN[e.cat]||'Other')} · ${short(e.d)}</span></span><span style="display:flex;align-items:center;gap:4px"><span class="amt">${money(e.amt)}</span><button class="x" data-act="edit-exp" data-id="${e.id}" aria-label="Edit expense" style="font-size:15px">✎</button><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
+  $('#expList').innerHTML=mon.length?mon.map(e=>e.id===editExp?expEditHtml(e):`<li class="li exprow"><b class="en">${esc(e.note||CATN[e.cat])}</b><span class="amt">${money(e.amt)}</span><span class="em small muted">${e.fromPot?'<span class="tag">From pot</span> ':''}${e.auto?`<span class="tag">Apple Pay</span> <select data-catfor="${e.id}" aria-label="Category" style="width:auto;min-height:32px;padding:2px 24px 2px 8px;font-size:13px;display:inline-block;background-position:right 7px center;background-size:11px">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>`:(CATN[e.cat]||'Other')}<span style="white-space:nowrap">· ${short(e.d)}</span></span><span class="ea"><button class="x" data-act="edit-exp" data-id="${e.id}" aria-label="Edit expense" style="font-size:15px">✎</button><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
   const ps=S.plans.slice().sort((a,b)=>a.d.localeCompare(b.d));
   $('#planList').innerHTML=ps.length?ps.map(p=>{const i=planInfo(p);const full=i.left<=0.004;return `<div class="card${full&&i.dl<0?' done':''}">
     <div class="row"><b>${esc(p.name)}</b><span class="amt">${money(p.amt)}</span></div>
@@ -1635,13 +1636,14 @@ function renderAll(){if(!S.potStart){S.potStart=ym(today());S.potStartDay=+today
 function disarm(x){if(x.dataset.armed!=='1')return;x.dataset.armed='';clearTimeout(x._t);x.classList.add('disarming');setTimeout(()=>{x.classList.remove('armed','disarming');x.innerHTML=x.dataset.orig},170)}
 function disarmAll(){document.querySelectorAll('[data-armed="1"]').forEach(disarm)}
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('[data-armed="1"]'))disarmAll()},true);
-addEventListener('scroll',()=>{if(document.querySelector('[data-armed="1"]'))disarmAll()},{passive:true,capture:true});
+let armAt=0,armY=0;
+addEventListener('scroll',()=>{if(document.querySelector('[data-armed="1"]')&&Date.now()-armAt>250&&Math.abs(scrollY-armY)>8)disarmAll()},{passive:true,capture:true});
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act,id=b.dataset.id,i=+b.dataset.i;
   if(/^del-|^ev-del$/.test(a)&&b.dataset.armed!=='1'){ // two-tap delete: first tap asks, second tap deletes
     disarmAll();
-    b.dataset.orig=b.innerHTML;b.dataset.armed='1';b.innerHTML=b.textContent.trim()==='×'?'Delete?':'Sure? Tap again';b.classList.add('armed');
+    b.dataset.orig=b.innerHTML;b.dataset.armed='1';armAt=Date.now();armY=scrollY;b.innerHTML=b.textContent.trim()==='×'?'Delete?':'Sure? Tap again';b.classList.add('armed');
     clearTimeout(b._t);b._t=setTimeout(()=>disarm(b),4000);return}
   if(a==='go'){location.hash=b.dataset.to}
   else if(a==='add-ex'){draft.push(blank());renderDraft();const ins=document.querySelectorAll('#exRows input[data-f=name]');ins[ins.length-1].focus()}
