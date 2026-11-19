@@ -615,7 +615,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.1.2 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.2.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1631,7 +1631,20 @@ const FIN=[
  {id:'t8',name:'AOP = DCF valuation',games:['quick','adv','boss','blitz']},
  {id:'t9',name:'Growth, forecasting & reverse engineering',games:QAB},
  {id:'t10',name:'Relative valuation',games:QAB}];
-const TN=Object.fromEntries(FIN.map((t,i)=>[t.id,(i+1)+' · '+t.name]));
+const IMT=[
+ {id:'m1',name:'Risk, return & margin',games:QAB},
+ {id:'m2',name:'Portfolio theory & index models',games:['quick','adv','boss','blitz']},
+ {id:'m3',name:'Asset pricing: CAPM, APT, Fama-French',games:QAB},
+ {id:'m4',name:'Market efficiency & performance evaluation',games:QAB},
+ {id:'m5',name:'Behavioural finance',games:QB},
+ {id:'m6',name:'Investor sentiment',games:QB},
+ {id:'m7',name:'Limits to arbitrage',games:QB},
+ {id:'m8',name:'Fixed income',games:['quick','adv','boss','blitz']},
+ {id:'m9',name:'Derivatives',games:['quick','adv','boss','blitz']},
+ {id:'m10',name:'Overconfidence',games:QB}];
+const SUBJ=[{id:'fsa',name:'FSA & Valuation',topics:FIN},{id:'im',name:'Investment Management',topics:IMT}],ALLT=FIN.concat(IMT);
+let fsub='fsa';try{fsub=localStorage.getItem('excelsior-fsub')||'fsa'}catch(e){}
+const TN={};SUBJ.forEach(S_=>S_.topics.forEach((t,i)=>TN[t.id]=(i+1)+' · '+t.name));
 
 /* numbers */
 const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
@@ -1741,9 +1754,9 @@ const QT={
 ].forEach((c,i)=>{QT['c8_'+(i+1)]={t:'t8',k:'q',c:1,gen(){const o=shuffle(c[1].map((t,j)=>({t,j})));return {stem:c[0],opts:o.map(x=>x.t),ans:o.findIndex(x=>x.j===0),expl:c[2]}}}});
 
 /* ---------- FSA topics 1–7, 9–10: concept MCQs + light calcs (quick) + typed drills (advanced) ---------- */
-const conceptSet=(t,list)=>list.forEach((c,i)=>{QT['c'+t.slice(1)+'_'+(i+1)]={t,k:'q',c:1,gen(){const o=shuffle(c[1].map((x,j)=>({x,j})));return {stem:c[0],opts:o.map(y=>y.x),ans:o.findIndex(y=>y.j===0),expl:c[2]}}}});
+const conceptSet=(t,list)=>list.forEach((c,i)=>{QT['c'+(t[0]==='t'?t.slice(1):t)+'_'+(i+1)]={t,k:'q',c:1,gen(){const o=shuffle(c[1].map((x,j)=>({x,j})));return {stem:c[0],opts:o.map(y=>y.x),ans:o.findIndex(y=>y.j===0),expl:c[2]}}}});
 const fx=x=>(x<0?'−':'')+Math.abs(r2(x)).toLocaleString('en-GB',{maximumFractionDigits:2})+'×';
-const fu=(v,u)=>u==='%'?pc(v/100):u==='x'?fx(v):u==='£'?'£'+f2(v):fm(v);
+const fu=(v,u)=>u==='%'?pc(v/100):u==='x'?fx(v):u==='£'?(v<0?'−£':'£')+f2(Math.abs(v)):u==='n'?(v<0?'−':'')+Math.abs(v).toLocaleString('en-GB',{maximumFractionDigits:4}):fm(v);
 const tRate=()=>pick([.19,.2,.25,.27]);
 const add=(o)=>Object.assign(QT,o);
 
@@ -2010,6 +2023,272 @@ const BOSS={
   return {table:tab,steps:[['NOPAT',s.np,'£m',`${f2(op)} − tax on operations (reported ${f2(r2(t*(op-nfe)))} + shield ${f2(t*nfe)}) = ${f2(op)} × (1 − ${pc(t)})`],['Net finance expense after tax (NIE)',s.nie,'£m',`${f2(nfe)} × (1 − ${pc(t)})`],['RNOA (%)',s.rnoa*100,'%',DPW.rnoa[3](s)],['ATO',s.ato,'x',DPW.ato[3](s)],['FLEV',s.flev,'x',DPW.flev[3](s)],['NIR (%)',s.nir*100,'%',DPW.nir[3](s)],['ROE (%)',s.roe*100,'%',DPW.roe[3](s)]]}}
 };
 
+/* ---------- Investment Management (IB3570): topics m1–m10 ---------- */
+const g2=v=>'£'+f2(v),gk=v=>(v<0?'−£':'£')+Math.round(Math.abs(v)).toLocaleString('en-GB'),f4=x=>(x<0?'−':'')+Math.abs(x).toFixed(4),pc1=x=>pc(x);
+const nf=v=>f2(v);
+/* m1: risk, return and margin */
+add({
+ qm1_call:{t:'m1',k:'q',gen(){const p=rnd(20,80),n=rnd(5,30)*100,own=rnd(50,70)/100,L=Math.round(n*p*(1-own)),r=rnd(4,10)/100,m=rnd(25,40)/100,c=L*(1+r)/(n*(1-m));
+  return {stem:`You buy ${n.toLocaleString('en-GB')} shares at £${p}, borrowing £${L.toLocaleString('en-GB')} from your broker at ${pc(r)} a year. Maintenance margin ${pc(m)}. How low can the price fall <b>in one year</b> before a margin call?`,...opts(c,[L/(n*(1-m)),L*(1+r)/(n*m),L*(1+r)/(n*(1+m))],g2),
+  expl:`Margin = (nP − loan with interest) ÷ nP = ${pc(m)} ⇒ P = ${L.toLocaleString('en-GB')} × ${(1+r).toFixed(2)} ÷ (${n} × ${(1-m).toFixed(2)}) = £${f2(c)}. After a year the loan has grown with interest.`}}},
+ qm1_ret:{t:'m1',k:'q',gen(){const p=rnd(20,80),n=rnd(5,30)*100,own=rnd(50,75)/100,L=Math.round(n*p*(1-own)),E0=n*p-L,r=rnd(4,10)/100,p1=Math.round(p*(1+rnd(-25,30)/100)),c=(n*p1-L*(1+r)-E0)/E0;
+  return {stem:`You buy ${n.toLocaleString('en-GB')} shares at £${p} using £${E0.toLocaleString('en-GB')} of your own money and borrow the rest at ${pc(r)} a year. After one year the price is £${p1}. Rate of return on your investment?`,...opts(c,[(p1-p)/p,(n*(p1-p))/E0,(n*p1-L-E0)/E0],pc),
+  expl:`Return = (ending equity − initial equity) ÷ initial equity = (${n}×${p1} − ${L.toLocaleString('en-GB')}×${(1+r).toFixed(2)} − ${E0.toLocaleString('en-GB')}) ÷ ${E0.toLocaleString('en-GB')} = ${pc(c)}. Leverage magnifies the price change, and interest is a cost.`}}},
+ qm1_util:{t:'m1',k:'q',gen(){const e=rnd(6,16)/100,s=rnd(10,35)/100,A=rnd(2,6),c=e-.5*A*s*s;
+  return {stem:`A portfolio has expected return ${pc(e)} and standard deviation ${pc(s)}. With risk aversion A = ${A}, what is its utility U = E(r) − ½Aσ²?`,...opts(c,[e-.5*A*s,e-A*s*s,e+.5*A*s*s],pc),expl:`U = ${pc(e)} − 0.5 × ${A} × ${s.toFixed(2)}² = ${pc(c)}. Use the variance, not the standard deviation.`}}},
+ qm1_y:{t:'m1',k:'q',gen(){const e=rnd(8,15)/100,rf=rnd(2,5)/100,s=rnd(15,30)/100,A=rnd(2,6),c=(e-rf)/(A*s*s);
+  return {stem:`Risky portfolio: E(r) ${pc(e)}, σ ${pc(s)}; risk-free rate ${pc(rf)}; risk aversion A = ${A}. Optimal share of the complete portfolio in the risky asset (y*)?`,...opts(c,[(e-rf)/(A*s),e/(A*s*s),(e-rf)/(.5*A*s*s)],pc),expl:`y* = (E(r) − r_f) ÷ (Aσ²) = ${pc(e-rf)} ÷ (${A} × ${(s*s).toFixed(4)}) = ${pc(c)}. Higher A means less in the risky asset.`}}},
+ qm1_sh:{t:'m1',k:'q',gen(){const e=rnd(6,16)/100,rf=rnd(1,5)/100,s=rnd(10,35)/100,c=(e-rf)/s;return {stem:`E(r) ${pc(e)}, risk-free ${pc(rf)}, σ ${pc(s)}. Sharpe ratio?`,...opts(c,[e/s,(e-rf)/(s*s),(e-rf)*s],v=>v.toFixed(3)),expl:`Sharpe = (E(r) − r_f) ÷ σ = ${pc(e-rf)} ÷ ${pc(s)} = ${c.toFixed(3)}: the slope of the capital allocation line.`}}},
+ am1_call:{t:'m1',k:'a',gen(){const p=rnd(20,90),n=rnd(5,30)*100,own=rnd(45,70)/100,L=Math.round(n*p*(1-own)),r=rnd(4,10)/100,m=rnd(25,40)/100,c=L*(1+r)/(n*(1-m));
+  return {stem:`Shares cost £${p}. You buy ${n.toLocaleString('en-GB')} shares, borrowing £${L.toLocaleString('en-GB')} at ${pc(r)} a year. Maintenance margin ${pc(m)}. Lowest price in one year before a margin call (£)?`,c,u:'£',tol:.005,expl:`(${n}P − ${L}×${(1+r).toFixed(2)}) ÷ ${n}P = ${m} ⇒ P = £${f2(c)}.`}}},
+ am1_ret:{t:'m1',k:'a',gen(){const p=rnd(20,90),n=rnd(5,30)*100,own=rnd(45,75)/100,L=Math.round(n*p*(1-own)),E0=n*p-L,r=rnd(4,10)/100,p1=Math.round(p*(1+rnd(-25,35)/100)),c=(n*p1-L*(1+r)-E0)/E0*100;
+  return {stem:`You buy ${n.toLocaleString('en-GB')} shares at £${p}, putting in £${E0.toLocaleString('en-GB')} and borrowing the rest at ${pc(r)}. One year later the price is £${p1}. Return on your equity (%)?`,c,u:'%',tol:.005,expl:`Ending equity = ${n}×${p1} − ${L}×${(1+r).toFixed(2)} = ${f2(n*p1-L*(1+r))}; return = ${pc(c/100)}.`}}},
+ am1_y:{t:'m1',k:'a',gen(){const e=rnd(8,16)/100,rf=rnd(2,5)/100,s=rnd(15,30)/100,A=rnd(2,6),y=(e-rf)/(A*s*s),k=pick(['y','er']);
+  return k==='y'?{stem:`E(r) ${pc(e)}, σ ${pc(s)}, r_f ${pc(rf)}, A = ${A}. Optimal weight in the risky asset y* (%)?`,c:y*100,u:'%',tol:.005,expl:`y* = ${pc(e-rf)} ÷ (${A} × ${(s*s).toFixed(4)}) = ${pc(y)}.`}
+   :{stem:`E(r) ${pc(e)}, σ ${pc(s)}, r_f ${pc(rf)}, A = ${A}. Expected return of the optimal complete portfolio (%)?`,c:(rf+y*(e-rf))*100,u:'%',tol:.005,expl:`y* = ${pc(y)}; E(r_C) = r_f + y*(E(r) − r_f) = ${pc(rf+y*(e-rf))}.`}}}
+});
+conceptSet('m1',[
+ ['An investor with risk aversion A = 0 in U = E(r) − ½Aσ² is…',['Risk-neutral: they pick the highest expected return regardless of risk','Extremely risk-averse','Risk-loving','Irrational'],'With A = 0 variance doesn\'t reduce utility, so only expected return matters.'],
+ ['Two investors have A = 3 and A = 6. Who puts more in the risky asset?',['The one with A = 3','The one with A = 6','Both the same','Neither'],'y* = (E(r) − r_f) ÷ (Aσ²): halving A doubles the risky weight.'],
+ ['Buying on margin…',['Magnifies both gains and losses on your equity','Reduces risk','Only magnifies gains','Has no effect on returns'],'Return on equity ≈ % price change × (total investment ÷ own equity), minus interest.'],
+ ['A margin call happens when…',['Equity ÷ value of the position falls below the maintenance margin','The share price rises','Interest rates fall','The loan is repaid'],'The broker then asks you to top up the account or sell.'],
+ ['The slope of the capital allocation line is…',['The Sharpe ratio of the risky portfolio','The beta','The risk-free rate','The variance'],'Each extra unit of σ earns (E(r) − r_f) ÷ σ of expected return.'],
+ ['Why might a risk-averse investor accept a risky asset at all?',['Because it offers a positive risk premium that compensates for the risk','Because risk is always rewarded one-for-one','Because variance doesn\'t matter','They wouldn\'t'],'Risk-averse investors require a premium, not zero risk.'],
+ ['In U = E(r) − ½Aσ², the "certainty equivalent" of a risky portfolio is…',['The risk-free return that gives the same utility (U itself)','Its expected return','Its Sharpe ratio','Its variance'],'Compare U with the risk-free rate to see whether the risky portfolio is worth holding.'],
+ ['Short selling a share means…',['Borrowing it, selling it now and buying it back later to return it','Buying it with borrowed money','Holding it for less than a year','Selling a call option'],'You profit if the price falls, but losses are unlimited if it rises.']
+]);
+
+/* m2: portfolio theory and index models */
+add({
+ qm2_cov:{t:'m2',k:'q',gen(){const b=r2(rnd(5,18)/10),sm=rnd(15,25)/100,c=b*sm*sm;return {stem:`A stock's beta is ${b}; the market's standard deviation is ${pc(sm)}. Covariance between the stock and the market?`,...opts(c,[b*sm,b/(sm*sm),b*sm*sm*sm],f4),expl:`β = Cov ÷ σ²_M ⇒ Cov = ${b} × ${sm}² = ${f4(c)}.`}}},
+ qm2_rhoM:{t:'m2',k:'q',gen(){const b=r2(rnd(5,16)/10),sm=rnd(15,25)/100,si=rnd(30,70)/100,c=b*sm/si;return {stem:`Beta ${b}, stock σ ${pc(si)}, market σ ${pc(sm)}. Correlation with the market?`,...opts(c,[b*si/sm,b*sm*sm/si,b*sm*sm/(si*si)],v=>v.toFixed(3)),expl:`ρ = β σ_M ÷ σ_i = ${b} × ${pc(sm)} ÷ ${pc(si)} = ${c.toFixed(3)}.`}}},
+ qm2_beta:{t:'m2',k:'q',gen(){const rho=pick([-.2,-.15,.3,.4,.5,.6,.7,.8]),si=rnd(25,80)/100,sm=rnd(15,25)/100,c=rho*si/sm;return {stem:`A stock's σ is ${pc(si)}, the market's σ is ${pc(sm)} and their correlation is ${rho}. Beta?`,...opts(c,[rho*sm/si,rho*si*si/(sm*sm),si/sm],v=>v.toFixed(3)),expl:`β = ρ σ_i ÷ σ_M = ${rho} × ${pc(si)} ÷ ${pc(sm)} = ${c.toFixed(3)}.${c<0?' A negative beta stock hedges market risk, so the CAPM requires a return below the risk-free rate.':''}`}}},
+ qm2_rhoij:{t:'m2',k:'q',gen(){const b1=r2(rnd(6,16)/10),b2=r2(rnd(5,14)/10),sm=rnd(18,25)/100,s1=rnd(35,60)/100,s2=rnd(30,70)/100,c=b1*b2*sm*sm/(s1*s2);
+  return {stem:`Single-index model: stock 1 has β ${b1}, σ ${pc(s1)}; stock 2 has β ${b2}, σ ${pc(s2)}; market σ ${pc(sm)}. Correlation between the two stocks?`,...opts(c,[b1*b2*sm*sm,b1*b2*sm/(s1*s2),b1*b2*sm*sm/(s1*s1)],v=>v.toFixed(3)),expl:`Only the market links them: Cov = β₁β₂σ²_M = ${f4(b1*b2*sm*sm)}; ρ = Cov ÷ (σ₁σ₂) = ${c.toFixed(3)}.`}}},
+ qm2_idio:{t:'m2',k:'q',gen(){const b=r2(rnd(6,15)/10),sm=rnd(15,25)/100,si=rnd(40,70)/100,c=Math.sqrt(si*si-b*b*sm*sm);
+  return {stem:`Stock σ ${pc(si)}, beta ${b}, market σ ${pc(sm)}. Standard deviation of the idiosyncratic component?`,...opts(c,[si-b*sm,si*si-b*b*sm*sm,Math.sqrt(si*si-b*sm*sm)],pc),expl:`σ²(e) = σ²_i − β²σ²_M = ${(si*si).toFixed(4)} − ${(b*b*sm*sm).toFixed(4)}; σ(e) = ${pc(c)}. Subtract variances, not standard deviations.`}}},
+ qm2_pbeta:{t:'m2',k:'q',gen(){const w=[rnd(2,5)/10],b=[r2(rnd(5,16)/10),r2(rnd(5,16)/10)];w[1]=r2(rnd(2,10-w[0]*10-1)/10);const wf=r2(1-w[0]-w[1]),c=w[0]*b[0]+w[1]*b[1];
+  return {stem:`Portfolio: ${pc(w[0])} in a stock with β ${b[0]}, ${pc(w[1])} in a stock with β ${b[1]}, and ${pc(wf)} in the risk-free asset. Portfolio beta?`,...opts(c,[c+wf,(b[0]+b[1])/2,c/(w[0]+w[1])],v=>v.toFixed(3)),expl:`β_P = Σwβ = ${w[0]}×${b[0]} + ${w[1]}×${b[1]} + ${wf}×0 = ${c.toFixed(3)}.`}}},
+ am2_psd:{t:'m2',k:'a',gen(){const w=rnd(2,8)/10,s1=rnd(15,40)/100,s2=rnd(10,35)/100,rho=pick([-.5,-.2,0,.2,.3,.5,.7]),c=Math.sqrt(w*w*s1*s1+(1-w)*(1-w)*s2*s2+2*w*(1-w)*rho*s1*s2)*100;
+  return {stem:`Two stocks: σ₁ ${pc(s1)}, σ₂ ${pc(s2)}, correlation ${rho}. You put ${pc(w)} in stock 1 and the rest in stock 2. Portfolio standard deviation (%)?`,c,u:'%',tol:.005,expl:`σ²_P = w²σ₁² + (1−w)²σ₂² + 2w(1−w)ρσ₁σ₂ = ${(c*c/10000).toFixed(5)}; σ_P = ${pc(c/100)}. Lower than the weighted average (${pc(w*s1+(1-w)*s2)}) unless ρ = 1.`}}},
+ am2_sys:{t:'m2',k:'a',gen(){const sm=rnd(15,22)/100,s=[[rnd(25,45)/100,r2(rnd(6,12)/10)],[rnd(30,50)/100,r2(rnd(7,13)/10)]],w=[.4,.4],bp=w[0]*s[0][1]+w[1]*s[1][1],sys=bp*sm,idio=Math.sqrt(w[0]*w[0]*s[0][0]**2+w[1]*w[1]*s[1][0]**2),k=pick(['sys','idio']);
+  return {stem:`Single-index model. Stock C: idiosyncratic σ ${pc(s[0][0])}, β ${s[0][1]}. Stock Z: idiosyncratic σ ${pc(s[1][0])}, β ${s[1][1]}. Market σ ${pc(sm)}. Portfolio: 0.4 in C, 0.4 in Z, 0.2 risk-free. Portfolio ${k==='sys'?'<b>systematic</b>':'<b>idiosyncratic</b>'} standard deviation (%)?`,c:(k==='sys'?sys:idio)*100,u:'%',tol:.005,
+  expl:`β_P = ${bp.toFixed(3)}; systematic σ = β_P σ_M = ${pc(sys)}. Idiosyncratic σ = √(0.4²×${s[0][0]}² + 0.4²×${s[1][0]}²) = ${pc(idio)} (residuals are uncorrelated).`}}},
+ am2_rhoij:{t:'m2',k:'a',gen(){const b1=r2(rnd(6,16)/10),b2=r2(rnd(5,14)/10),sm=rnd(18,25)/100,s1=rnd(35,60)/100,s2=rnd(30,70)/100,c=b1*b2*sm*sm/(s1*s2);
+  return {stem:`Stock 1: β ${b1}, σ ${pc(s1)}. Stock 2: β ${b2}, σ ${pc(s2)}. Market σ ${pc(sm)}. Under the single-index model, the correlation between the stocks (as a decimal)?`,c,u:'n',tol:.01,expl:`ρ = β₁β₂σ²_M ÷ (σ₁σ₂) = ${c.toFixed(4)}.`}}}
+});
+function tbGen(){const a=rnd(2,10)/100,v=rnd(5,30)/100,b=r2(rnd(7,14)/10),em=rnd(5,9)/100,sm=rnd(15,22)/100,w0=(a/v)/(em/(sm*sm)),ws=w0/(1+(1-b)*w0),bp=ws*b+(1-ws),er=ws*(a+b*em)+(1-ws)*em,sp=Math.sqrt(bp*bp*sm*sm+ws*ws*v);return {a,v,b,em,sm,w0,ws,bp,er,sp,sh:er/sp}}
+add({
+ qm2_w0:{t:'m2',k:'q',gen(){const s=tbGen();return {stem:`Active portfolio: α ${pc(s.a)}, residual variance ${s.v}. Market: expected excess return ${pc(s.em)}, σ ${pc(s.sm)}. Initial weight in the active portfolio, w₀ = (α ÷ σ²(e)) ÷ (E[R_M] ÷ σ²_M)?`,...opts(s.w0,[(s.a/Math.sqrt(s.v))/(s.em/s.sm),(s.a/s.v)/(s.em/s.sm),s.a/s.em],pc),expl:`w₀ = (${s.a} ÷ ${s.v}) ÷ (${s.em} ÷ ${(s.sm*s.sm).toFixed(4)}) = ${pc(s.w0)}.`}}},
+ qm2_ws:{t:'m2',k:'q',gen(){const s=tbGen();return {stem:`Initial active weight w₀ = ${pc(s.w0)} and the active portfolio's beta is ${s.b}. Beta-adjusted weight w*?`,...opts(s.ws,[s.w0/(1+(1+s.b)*s.w0),s.w0*s.b,s.w0/(1-(1-s.b)*s.w0)],pc),expl:`w* = w₀ ÷ (1 + (1 − β_A)w₀) = ${pc(s.ws)}. ${s.b>1?'β_A > 1 raises the weight: the market diversifies A less, so you lean more on A.':'β_A < 1 lowers the weight.'}`}}}
+});
+conceptSet('m2',[
+ ['Is a portfolio\'s standard deviation always the weighted average of its stocks\' standard deviations?',['No: it is lower whenever correlations are below 1 (diversification)','Yes, always','Only for two stocks','Only if betas are equal'],'Only with perfect correlation does the weighted-average rule hold.'],
+ ['Diversification across many stocks eliminates…',['Idiosyncratic (firm-specific) risk, but not systematic market risk','All risk','Only market risk','Neither'],'Residuals average out; the common market factor remains.'],
+ ['A main advantage of the single-index model for managers is…',['Far fewer estimates: n betas and residual variances instead of every pairwise covariance','It needs no data','It ignores the market','It guarantees alpha'],'It also splits risk into systematic and firm-specific parts.'],
+ ['John holds no other stocks and can buy only one of two stocks with equal expected returns. He should choose…',['The one with lower total standard deviation','The one with lower beta','The one with higher beta','Either; they\'re equivalent'],'On its own, all of a stock\'s risk matters to him.'],
+ ['John already holds the market portfolio and adds one stock. With equal expected returns he should prefer…',['The lower-beta stock, because only its contribution to market risk matters','The lower total-σ stock','The higher-beta stock','The more volatile stock'],'Idiosyncratic risk is diversified away inside his portfolio.'],
+ ['In the Treynor-Black model, the weight in the active portfolio is driven by…',['Its alpha relative to its residual variance','Its total variance only','Its beta only','The risk-free rate'],'w₀ ∝ α ÷ σ²(e): more alpha per unit of unhedgeable risk means a bigger bet.'],
+ ['If the active portfolio\'s beta rises above 1, the optimal weight w*…',['Increases, because the market adds less diversification','Decreases','Stays the same','Becomes zero'],'w* = w₀ ÷ (1 + (1 − β_A)w₀).'],
+ ['A stock with a negative correlation with the market…',['Hedges market risk, so its CAPM expected return is below the risk-free rate','Must have high expected return','Has no idiosyncratic risk','Has beta above 1'],'Risk-averse investors value its insurance role.'],
+ ['Covariance between two stocks under the single-index model is…',['β₁β₂σ²_M','σ₁σ₂','β₁σ²_M','Zero'],'Residuals are assumed uncorrelated, so the market is the only link.'],
+ ['The minimum-variance portfolio of two assets…',['Has the lowest σ possible, regardless of expected return','Has the highest Sharpe ratio','Is always 50/50','Always includes the risk-free asset'],'It coincides with the mean-variance optimum only if expected returns are equal.']
+]);
+
+/* m3: asset pricing (CAPM, APT, Fama-French) */
+add({
+ qm3_capm:{t:'m3',k:'q',gen(){const rf=rnd(1,6)/100,em=rnd(7,13)/100,b=r2(rnd(-3,20)/10),c=rf+b*(em-rf);return {stem:`Risk-free rate ${pc(rf)}, expected market return ${pc(em)}, beta ${b}. CAPM expected return?`,...opts(c,[rf+b*em,b*em,rf+(em-rf)/b],pc),expl:`E(r) = r_f + β(E(r_M) − r_f) = ${pc(rf)} + ${b} × ${pc(em-rf)} = ${pc(c)}.`}}},
+ qm3_perp:{t:'m3',k:'q',gen(){const I=rnd(10,60),cf=r2(I*rnd(8,18)/100),b=r2(rnd(6,16)/10),rf=rnd(2,6)/100,em=rnd(8,12)/100,k=rf+b*(em-rf),c=-I+cf/k;
+  return {stem:`A project costs £${I}m and pays £${f2(cf)}m a year forever, starting in one year. Beta ${b}, r_f ${pc(rf)}, E(r_M) ${pc(em)}. NPV using the CAPM?`,...opts(c,[-I+cf/em,-I+cf/(rf+b*em),-I+cf/rf]),expl:`Discount rate = ${pc(rf)} + ${b} × ${pc(em-rf)} = ${pc(k)}; NPV = −${I} + ${f2(cf)} ÷ ${pc(k)} = ${f2(c)}. ${c>0?'Accept: it earns more than investors require for its systematic risk.':'Reject: it earns less than the return investors require for its beta.'}`}}},
+ qm3_ff:{t:'m3',k:'q',gen(){const rf=rnd(1,4)/100,bm=r2(rnd(8,14)/10),bh=r2(rnd(-5,8)/10),bs=r2(rnd(-3,7)/10),pm=rnd(5,8)/100,ph=rnd(2,9)/100,ps=rnd(1,4)/100,c=rf+bm*pm+bh*ph+bs*ps;
+  return {stem:`Fama-French 3-factor: r_f ${pc(rf)}; betas — market ${bm}, HML ${bh}, SMB ${bs}; factor premia — market ${pc(pm)}, HML ${pc(ph)}, SMB ${pc(ps)}. Required return?`,...opts(c,[rf+bm*pm,bm*pm+bh*ph+bs*ps,rf+(bm+bh+bs)*pm],pc),expl:`r_f + Σβ × premium = ${pc(rf)} + ${pc(bm*pm)} + ${pc(bh*ph)} + ${pc(bs*ps)} = ${pc(c)}.`}}},
+ qm3_alpha:{t:'m3',k:'q',gen(){const rf=rnd(1,5)/100,em=rnd(7,12)/100,b=r2(rnd(5,16)/10),req=rf+b*(em-rf),exp=r2((req+rnd(-4,4)/100)*100)/100,c=exp-req;
+  return {stem:`An analyst expects a stock to return ${pc(exp)}. Beta ${b}, r_f ${pc(rf)}, E(r_M) ${pc(em)}. The stock's alpha?`,...opts(c,[exp-rf,exp-b*em,req-exp],pc),expl:`Required (CAPM) = ${pc(req)}; α = ${pc(exp)} − ${pc(req)} = ${pc(c)}. ${c>0?'Positive: underpriced, plots above the SML.':'Negative: overpriced, plots below the SML.'}`}}},
+ qm3_size:{t:'m3',k:'q',gen(){const bs=r2(rnd(8,15)/10),bl=r2(rnd(5,12)/10),S=1,c=S*bs/bl;
+  return {stem:`To build a zero-beta arbitrage you short £1m of a portfolio with β ${bs} and go long a portfolio with β ${bl}. How much do you buy?`,...opts(c,[S*bl/bs,S,S*(bs-bl)],v=>'£'+v.toFixed(3)+'m'),expl:`Beta-neutral: X × ${bl} = £1m × ${bs} ⇒ X = £${c.toFixed(3)}m. ${c>1?'Borrow':'Lend'} the £${Math.abs(c-1).toFixed(3)}m difference at the risk-free rate so no capital is invested.`}}},
+ am3_arb:{t:'m3',k:'a',gen(){const rf=rnd(2,5)/100,F=rnd(6,10)/100,bg=r2(rnd(11,15)/10),bv=r2(rnd(6,9)/10),ag=-rnd(2,6)/100,av=rnd(3,8)/100,X=bg/bv,c=(X*av-ag)*1e6;
+  return {stem:`One-factor model E[R] = α + r_f + β·E[R_F]. Growth portfolio: β ${bg}, α ${pc(ag)}. Value portfolio: β ${bv}, α ${pc(av)}. r_f ${pc(rf)}, E[R_F] ${pc(F)}. Short £1m of growth, buy value so the position has zero beta, and fund the difference at r_f. Expected cash flow in £?`,c,u:'£',tol:.005,
+  expl:`Long value = ${bg} ÷ ${bv} = £${X.toFixed(4)}m; borrow £${(X-1).toFixed(4)}m. CF = ${X.toFixed(4)}m × (${pc(av)} + ${pc(rf)} + ${bv}×${pc(F)}) − 1m × (${pc(ag)} + ${pc(rf)} + ${bg}×${pc(F)}) − ${(X-1).toFixed(4)}m × ${pc(rf)} = £${Math.round(c).toLocaleString('en-GB')}. The factor and r_f terms cancel, leaving X·α_value − α_growth.`}}},
+ am3_npv:{t:'m3',k:'a',gen(){const I=rnd(10,40),c1=rnd(5,25),c2=rnd(5,25),b=r2(rnd(6,18)/10),rf=rnd(2,6)/100,em=rnd(9,14)/100,k=rf+b*(em-rf),c=-I+c1/(1+k)+c2/Math.pow(1+k,2);
+  return {stem:`Project cost £${I}m; cash flows £${c1}m in one year and £${c2}m in two years. Beta ${b}, r_f ${pc(rf)}, E(r_M) ${pc(em)}. NPV in £m using the CAPM?`,c,tol:.005,expl:`k = ${pc(k)}; NPV = −${I} + ${c1} ÷ ${(1+k).toFixed(4)} + ${c2} ÷ ${(1+k).toFixed(4)}² = ${f2(c)}.`}}},
+ am3_ffnpv:{t:'m3',k:'a',gen(){const cost=100,cf=rnd(110,140),rf=rnd(1,4)/100,bm=r2(rnd(8,14)/10),bh=r2(rnd(2,8)/10),bs=r2(rnd(2,6)/10),pm=rnd(5,8)/100,ph=rnd(4,9)/100,ps=rnd(2,5)/100,kc=rf+bm*pm,kf=kc+bh*ph+bs*ps,w=pick(['c','f']),c=-cost+cf/(1+(w==='c'?kc:kf));
+  return {stem:`One-year project: costs £100m, pays £${cf}m in one year. Betas — market ${bm}, HML ${bh}, SMB ${bs}; premia — ${pc(pm)}, ${pc(ph)}, ${pc(ps)}; r_f ${pc(rf)}. NPV in £m using <b>${w==='c'?'the CAPM':'the Fama-French 3-factor model'}</b>?`,c,tol:.005,expl:`CAPM rate ${pc(kc)}; FF3 rate ${pc(kf)}. NPV = −100 + ${cf} ÷ ${(1+(w==='c'?kc:kf)).toFixed(4)} = ${f2(c)}.`}}},
+ am3_sd:{t:'m3',k:'a',gen(){const n=pick([20,30,40,50]),s=rnd(25,50)/100,a=rnd(2,5)/100,w=pick(['mean','sd']),half=n/2,mean=2*a*1e6,sd=Math.sqrt(2)*1e6*s/Math.sqrt(half);
+  return {stem:`All stocks have the same market beta; idiosyncratic σ ${pc(s)}, uncorrelated. Of ${n} stocks, half have α +${pc(a)} and half −${pc(a)}. You short £1m of an equal-weighted portfolio of the negative-alpha stocks and buy £1m of the positive ones. ${w==='mean'?'Expected profit':'Standard deviation of the profit'} in £?`,c:w==='mean'?mean:sd,u:'£',tol:.005,
+  expl:`Expected profit = £1m × ${pc(a)} + £1m × ${pc(a)} = £${mean.toLocaleString('en-GB')}. Each side's σ = £1m × ${pc(s)} ÷ √${half}; profit σ = √2 × that = £${Math.round(sd).toLocaleString('en-GB')}. Market risk cancels; residual risk remains because the portfolios aren't infinitely diversified.`}}}
+});
+conceptSet('m3',[
+ ['Stock A is far more volatile than stock B. Under the CAPM, must A offer a higher expected return?',['No: only systematic risk (beta) is priced, not total volatility','Yes, always','Only if A is small','Only in bear markets'],'Idiosyncratic risk can be diversified away, so it earns no premium.'],
+ ['A stock with a higher beta but much lower total risk than another will, under the CAPM…',['Have the higher expected return','Have the lower expected return','Have the same expected return','Have zero expected return'],'Expected return depends on beta alone.'],
+ ['In October 2018 a β = 1.5 stock returned 2% and a β = 0.8 stock 4%. Does this reject the CAPM?',['No: the CAPM describes expected returns on average, not every period','Yes','Only if the market rose','Only for UK stocks'],'High-beta stocks should do better on average, not every month.'],
+ ['APT says that in equilibrium…',['No riskless arbitrage profits exist, so well-diversified portfolios lie on the SML','All stocks have the same return','Beta is irrelevant','Idiosyncratic risk is priced'],'If α ≠ 0 for well-diversified portfolios, arbitrageurs trade until it disappears.'],
+ ['An arbitrage portfolio must have…',['Zero net investment and zero factor exposure, with a positive payoff','High beta','Positive net investment','Only long positions'],'Short the negative-alpha side, buy the positive one, and size them to cancel beta.'],
+ ['If the arbitrage portfolios still contain idiosyncratic risk…',['The expected cash flow is unchanged, but the actual cash flow becomes uncertain','The expected cash flow doubles','The strategy has no risk','The beta becomes 1'],'Residuals average zero, but they add variance to the profit.'],
+ ['Empirically the security market line is "too flat". Antoniou, Doukas and Subrahmanyam (2016) show that…',['After optimistic sentiment, high-beta stocks are overpriced and earn low returns, flattening the SML','Beta always predicts returns well','Sentiment has no effect','The SML is too steep'],'In pessimistic periods the SML slopes up as the CAPM predicts.'],
+ ['The HML factor in Fama-French captures…',['The value premium: high book-to-market minus low book-to-market stocks','Momentum','The market premium','Small minus big stocks'],'SMB captures the size premium.'],
+ ['The CAPM and Fama-French give different discount rates for a project. What should a CEO consider?',['Which model better explains returns for this kind of risk, and why the extra factors are priced','Always use the lower rate','Always use the CAPM','Ignore both'],'If HML/SMB reflect real risk, FF3 is better; if they reflect mispricing, the CAPM may be the right cost of capital.'],
+ ['A positive NPV under the CAPM means the project…',['Earns more than investors require for its systematic risk','Has no risk','Has beta below 1','Will certainly make a profit'],'NPV > 0 ⇔ expected return above the SML rate for its beta.']
+]);
+
+/* m4: market efficiency and performance evaluation */
+add({
+ qm4_tr:{t:'m4',k:'q',gen(){const r=rnd(6,18)/100,rf=rnd(1,4)/100,b=r2(rnd(6,16)/10),c=(r-rf)/b;return {stem:`A fund returned ${pc(r)}; r_f ${pc(rf)}; beta ${b}. Treynor ratio?`,...opts(c,[(r-rf)/(b*b),r/b,(r-rf)*b],pc),expl:`Treynor = (r − r_f) ÷ β = ${pc(r-rf)} ÷ ${b} = ${pc(c)}: reward per unit of systematic risk.`}}},
+ qm4_jen:{t:'m4',k:'q',gen(){const r=rnd(6,18)/100,rf=rnd(1,4)/100,rm=rnd(6,12)/100,b=r2(rnd(6,16)/10),c=r-(rf+b*(rm-rf));return {stem:`Fund return ${pc(r)}, beta ${b}; market return ${pc(rm)}; r_f ${pc(rf)}. Jensen's alpha?`,...opts(c,[r-rm,r-b*rm,r-rf-(rm-rf)],pc),expl:`α = r − [r_f + β(r_M − r_f)] = ${pc(r)} − ${pc(rf+b*(rm-rf))} = ${pc(c)}.`}}},
+ qm4_ir:{t:'m4',k:'q',gen(){const a=rnd(-2,5)/100||.01,se=rnd(3,12)/100,c=a/se;return {stem:`A manager's alpha is ${pc(a)} with residual (tracking) standard deviation ${pc(se)}. Information ratio?`,...opts(c,[a/(se*se),a*se,se/a],v=>v.toFixed(3)),expl:`IR = α ÷ σ(e) = ${c.toFixed(3)}: alpha per unit of diversifiable risk taken.`}}},
+ qm4_alloc:{t:'m4',k:'q',gen(){const wb=rnd(2,6)/10,wm=r2(wb+pick([-.2,-.1,.1,.2])),ri=rnd(2,18)/100,c=(wm-wb)*ri;
+  return {stem:`Equities: manager weight ${wm}, benchmark weight ${wb}, equity index return ${pc(ri)}. Contribution of equities to the <b>asset allocation</b> effect?`,...opts(c,[wm*ri,(wm-wb)*ri*wm,(wb-wm)*ri],pc),expl:`Allocation = (w_manager − w_benchmark) × index return = ${r2(wm-wb)} × ${pc(ri)} = ${pc(c)}.`}}},
+ am4_att:{t:'m4',k:'a',h:1,gen(){const names=shuffle(['UK','US','Japan','Germany','China','France']).slice(0,4);let wb=[.3,.25,.25,.2],wp=shuffle([.4,.3,.2,.1]);const ri=names.map(()=>rnd(2,18)/100),rp=ri.map(r=>r+rnd(-6,6)/100);
+  const Rp=wp.reduce((a,w,i)=>a+w*rp[i],0),Rb=wb.reduce((a,w,i)=>a+w*ri[i],0),alloc=wp.reduce((a,w,i)=>a+(w-wb[i])*ri[i],0),sel=wp.reduce((a,w,i)=>a+w*(rp[i]-ri[i]),0),k=pick(['tot','alloc','sel']);
+  const tab=`<table class="ftab"><tr><th>Country</th><th>Index weight</th><th>Manager weight</th><th>Index return</th><th>Manager return</th></tr>${names.map((n,i)=>`<tr><th>${n}</th><td>${wb[i]}</td><td>${wp[i]}</td><td>${pc(ri[i])}</td><td>${pc(rp[i])}</td></tr>`).join('')}</table>`;
+  return {stem:`What is the ${k==='tot'?'manager\'s total excess return over the index':k==='alloc'?'excess return due to country allocation':'excess return due to stock selection within countries'} (%)?`,table:tab,c:(k==='tot'?Rp-Rb:k==='alloc'?alloc:sel)*100,u:'%',tol:.005,
+  expl:`Manager ${pc(Rp)}; index ${pc(Rb)}; excess ${pc(Rp-Rb)}. Allocation = Σ(w_p − w_b) × index return = ${pc(alloc)}. Selection = Σ w_p × (manager − index return) = ${pc(sel)}. Check: ${pc(alloc)} + ${pc(sel)} = ${pc(Rp-Rb)}.`}}},
+ am4_sh:{t:'m4',k:'a',gen(){const r=rnd(6,18)/100,rf=rnd(1,4)/100,s=rnd(10,30)/100,b=r2(rnd(6,15)/10),rm=rnd(6,12)/100,k=pick(['sh','tr','jen']);
+  const c=k==='sh'?(r-rf)/s:k==='tr'?(r-rf)/b*100:(r-(rf+b*(rm-rf)))*100;
+  return {stem:`Fund: return ${pc(r)}, σ ${pc(s)}, β ${b}. Market return ${pc(rm)}; r_f ${pc(rf)}. ${k==='sh'?'Sharpe ratio (decimal)':k==='tr'?'Treynor ratio (%)':'Jensen\'s alpha (%)'}?`,c,u:k==='sh'?'n':'%',tol:.005,expl:k==='sh'?`(${pc(r)} − ${pc(rf)}) ÷ ${pc(s)} = ${c.toFixed(3)}.`:k==='tr'?`(${pc(r)} − ${pc(rf)}) ÷ ${b} = ${pc(c/100)}.`:`${pc(r)} − [${pc(rf)} + ${b} × ${pc(rm-rf)}] = ${pc(c/100)}.`}}}
+});
+conceptSet('m4',[
+ ['Weak-form efficiency means prices already reflect…',['All information in past prices and trading volume','All public information','All information, including private','Nothing'],'Momentum (past winners keep winning) violates weak-form efficiency.'],
+ ['Semi-strong efficiency means prices reflect…',['All publicly available information','Only past prices','Insider information too','Analyst opinions only'],'Post-earnings-announcement drift violates semi-strong efficiency.'],
+ ['Post-earnings announcement drift is…',['Prices keep drifting in the direction of an earnings surprise for months afterwards','An immediate full price reaction','A reversal after good news','A tax effect'],'A long-short SUE strategy earned about 25% a year, unexplained by the CAPM.'],
+ ['In an efficient market, can you earn abnormal returns by buying firms with above-average performance?',['No: their good performance is already in the price','Yes, always','Only with leverage','Only for small firms'],'Abnormal returns need information the market hasn\'t priced yet.'],
+ ['Which measure suits judging a fund that is your <i>entire</i> risky portfolio?',['The Sharpe ratio','The Treynor ratio','Jensen\'s alpha','Beta'],'If the fund is all you hold, total risk matters. Treynor and alpha suit a fund that is one part of a diversified portfolio.'],
+ ['The information ratio measures…',['Alpha per unit of residual (diversifiable) risk','Return per unit of beta','Total return per unit of total risk','Turnover'],'It is the key ratio for an active portfolio added to a passive core.'],
+ ['In performance attribution, the asset allocation effect captures…',['Gains from over- or under-weighting asset classes relative to the benchmark','Picking better stocks within a class','Fees','Currency only'],'Selection captures returns within each class versus its index.'],
+ ['A momentum strategy shows high gross Sharpe and alpha. What can kill it in practice?',['Trading costs from high turnover','Taxes on dividends only','Low volatility','Its beta'],'In the seminar, about 0.6% a month in costs brought its Sharpe ratio close to the market\'s.'],
+ ['Is Warren Buffett\'s long-run success proof that markets are inefficient?',['Not necessarily: it can be explained by exposure to value and quality factors plus leverage (Frazzini et al.), or luck among many investors','Yes, definitively','No, he just took more beta','He never beat the market'],'"Buffett\'s Alpha" attributes much of it to systematic factor tilts.'],
+ ['An event study measures…',['Abnormal returns around an announcement, compared with a model of normal returns','Long-run GDP','Bond duration','Option prices'],'Under efficiency, prices should react fully and immediately.']
+]);
+
+/* m5: behavioural finance (concepts) */
+conceptSet('m5',[
+ ['Representativeness leads investors to…',['Extrapolate past performance too far, causing overreaction','Underreact to news','Ignore all past data','Prefer low-beta stocks'],'Long runs of good performance are treated as typical, so glamour stocks get overpriced.'],
+ ['Conservatism leads investors to…',['Update too slowly on new information, causing underreaction','Overreact to news','Panic sell','Overweight small samples'],'Prices then drift after the news (PEAD).'],
+ ['Griffin and Tversky (1992) found people weigh the strength of evidence versus its weight…',['About twice as much as Bayes\' rule implies','Equally, as Bayes\' rule says','Only by weight','Randomly'],'Salient (strong) evidence dominates, while its statistical reliability (weight) is underweighted.'],
+ ['Information with high strength but low weight (e.g. several years of great performance) tends to cause…',['Overreaction (representativeness)','Underreaction (conservatism)','No reaction','Correct pricing'],'This is the value effect: glamour stocks are overpriced and later disappoint.'],
+ ['Information with low strength but high weight (e.g. an earnings surprise) tends to cause…',['Underreaction (conservatism)','Overreaction','A crash','Correct pricing'],'Single events seem unremarkable, but they are reliable signals about fundamentals.'],
+ ['Why does the salience heuristic matter for exploiting anomalies?',['It predicts when overreaction or underreaction will occur, so you know which way to trade','It proves markets are efficient','It explains taxes','It only applies to bonds'],'Without it, representativeness and conservatism give opposite predictions.'],
+ ['Which bias explains growth (low B/M) stocks having negative alphas and value stocks positive alphas?',['Representativeness: extrapolating past growth makes glamour stocks overpriced','Conservatism','Home bias','Disposition effect'],'Lakonishok, Shleifer and Vishny-style evidence: value beats glamour as expectations correct.'],
+ ['Rational expectations mean investors…',['Use all available information and update correctly (Bayes\' rule)','Always make profits','Ignore risk','Follow the crowd'],'Behavioural finance studies systematic departures from this.'],
+ ['Which events are linked to underreaction?',['Earnings surprises, dividend changes and share repurchases','Long-run past returns','IPO first-day returns','Stock splits only'],'They are discrete, reliable signals that investors under-weight.'],
+ ['SUE in the earnings drift literature stands for…',['Standardised unexpected earnings: (actual − expected) ÷ a scaling factor','Sales unit elasticity','Systematic unexplained excess','Short-term unexpected equity'],'Sorting firms by SUE reveals the post-announcement drift.']
+]);
+/* m6: investor sentiment (concepts) */
+conceptSet('m6',[
+ ['Investor sentiment is best described as…',['Beliefs about future cash flows and risk not justified by the facts','Rational expectations','The risk-free rate','Analyst forecasts'],'Optimism or pessimism that pushes prices away from fundamentals.'],
+ ['Which is part of the Baker-Wurgler sentiment index?',['Number of IPOs and their first-day returns','The CAPM beta','Bond duration','GDP growth'],'Also NYSE turnover, the dividend premium and the equity share of new issues.'],
+ ['When the Baker-Wurgler index is high, subsequent returns tend to be…',['Lower, especially for speculative, hard-to-arbitrage stocks','Higher for all stocks','Unaffected','Higher for safe stocks only'],'Sentiment causes overpricing that later corrects.'],
+ ['Which stocks are most sensitive to sentiment?',['Speculative, hard-to-value and hard-to-arbitrage stocks','Large, safe, dividend-paying stocks','Government bonds','Cash'],'Their sentiment betas are highest.'],
+ ['Ben-Rephael, Kandel and Wohl (2012) measure sentiment with…',['Net exchanges from bond funds into equity funds','IPO volume','Consumer surveys','Options prices'],'A "flight to risk" signal from mutual fund flows.'],
+ ['Their key finding was that flows into equity funds…',['Coincide with higher returns now but predict lower returns later (overpricing then correction)','Predict permanently higher returns','Have no relation with returns','Only affect bonds'],'The reversal shows the initial price move was sentiment, not information.'],
+ ['How does sentiment help explain the flat security market line?',['In optimistic periods high-beta stocks are overpriced, so they earn less later (Antoniou et al. 2016)','It raises the risk-free rate','It makes beta zero','It only affects small stocks'],'In pessimistic periods the SML slopes upward as the CAPM says.'],
+ ['Why can sentiment-driven mispricing persist?',['Limits to arbitrage make betting against it risky and costly','Arbitrage is free','Prices are always right','Regulators fix it'],'Noise-trader risk means mispricing can grow before it corrects.']
+]);
+/* m7: limits to arbitrage */
+add({
+ qm7_stub:{t:'m7',k:'q',gen(){const pp=rnd(60,120),r=pick([1.5,1.5,1.2,2]),p3=Math.round(pp*r*rnd(50,80)/100),c=p3-r*pp;
+  return {stem:`A parent will give ${r} subsidiary shares per parent share. The subsidiary trades at $${pp} and the parent at $${p3}. Implied "stub" value of the parent's other business per share?`,...opts(c,[p3-pp,r*pp-p3,p3/r-pp],v=>(v<0?'−$':'$')+f2(Math.abs(v))),expl:`Stub = ${p3} − ${r} × ${pp} = ${f2(c)}. A negative stub violates the law of one price, as in 3Com/Palm (−$60), yet shorting the subsidiary was too costly to correct it.`}}},
+ qm7_twin:{t:'m7',k:'q',gen(){const s=rnd(20,60),rd=r2(s*1.5*(1+rnd(-30,15)/100)),c=rd/(1.5*s)-1;
+  return {stem:`Royal Dutch and Shell split cash flows 60:40, so Royal Dutch should be worth 1.5 × Shell. Shell trades at ${s} and Royal Dutch at ${f2(rd)}. Percentage deviation from parity?`,...opts(c,[rd/s-1,1.5*s/rd-1,(rd-s)/s],pc),expl:`Deviation = ${f2(rd)} ÷ (1.5 × ${s}) − 1 = ${pc(c)}. Deviations of up to about −35% persisted for years: noise-trader risk.`}}}
+});
+conceptSet('m7',[
+ ['Friedman (1953) argued that rational arbitrageurs always make markets efficient. The limits-to-arbitrage view says…',['Arbitrage is risky and costly, so mispricing can persist','He was right in every case','Arbitrage is illegal','Irrational traders always lose money quickly'],'Fundamental risk, noise-trader risk and implementation costs all deter arbitrage.'],
+ ['Noise-trader risk is the risk that…',['Mispricing gets worse before it corrects','The company goes bankrupt','Interest rates rise','The trade has no counterparty'],'Royal Dutch/Shell deviations from parity widened for years.'],
+ ['Fundamental risk in an arbitrage trade arises when…',['The substitute security isn\'t a perfect hedge for the mispriced one','Prices are correct','There are no trading costs','The arbitrage is riskless'],'Bad news specific to your long position can hit even a "hedged" trade.'],
+ ['How can agency problems create limits to arbitrage (Shleifer and Vishny 1997)?',['Investors withdraw money after losses, forcing arbitrageurs to liquidate exactly when mispricing is greatest','Managers always act in shareholders\' interest','It reduces trading costs','It makes short selling free'],'Performance-based arbitrage by fund managers is fragile.'],
+ ['Why did the 3Com/Palm mispricing persist?',['Palm shares were very hard and expensive to borrow for shorting (fees of 20–30% a year)','There was no mispricing','Regulation banned trading','3Com was worth more than Palm'],'Implementation costs blocked an otherwise riskless trade.'],
+ ['Twin shares like Royal Dutch/Shell are useful evidence because…',['They are claims on the same cash flows, so there\'s no fundamental risk, yet prices diverged','They had different businesses','One paid no dividends','They traded on the same exchange'],'Any divergence must come from noise-trader risk or frictions.'],
+ ['Which is an implementation cost of arbitrage?',['Short-selling fees and recall risk','Diversification','High liquidity','Low volatility'],'Also transaction costs and capital constraints.'],
+ ['If arbitrage is limited, what follows for market efficiency?',['Behavioural biases can have lasting price effects','Prices are always correct','Anomalies disappear instantly','Only bonds are mispriced'],'Limits to arbitrage are the second pillar of behavioural finance, alongside psychology.']
+]);
+
+/* m8: fixed income */
+add({
+ qm8_zero:{t:'m8',k:'q',gen(){const T=rnd(1,10),y=rnd(2,9)/100,c=1000/Math.pow(1+y,T);return {stem:`A ${T}-year zero-coupon bond with £1,000 face value yields ${pc(y)}. Price?`,...opts(c,[1000/(1+y*T),1000*Math.pow(1-y,T),1000/Math.pow(1+y,T-1)],g2),expl:`P = 1,000 ÷ ${(1+y).toFixed(2)}^${T} = £${f2(c)}.`}}},
+ qm8_ytm:{t:'m8',k:'q',gen(){const T=rnd(2,8),y=rnd(2,9)/100,p=r2(1000/Math.pow(1+y,T)),c=Math.pow(1000/p,1/T)-1;return {stem:`A ${T}-year zero-coupon bond (face £1,000) costs £${f2(p)}. Yield to maturity?`,...opts(c,[(1000/p-1)/T,1000/p-1,Math.pow(p/1000,1/T)],pc),expl:`(1,000 ÷ ${f2(p)})^(1/${T}) − 1 = ${pc(c)}.`}}},
+ qm8_df:{t:'m8',k:'q',gen(){const d=rnd(80,97)/100,T=rnd(1,4),c=1000*d;return {stem:`The ${T}-year discount factor is ${d}. Price of a ${T}-year zero with £1,000 face value?`,...opts(c,[1000/d,1000*Math.pow(d,T),1000*(1-d)],g2),expl:`Price = face × discount factor = £${f2(c)}. The YTM is (1/d)^(1/${T}) − 1 = ${pc(Math.pow(1/d,1/T)-1)}.`}}},
+ qm8_dmod:{t:'m8',k:'q',gen(){const D=r2(rnd(15,90)/10),y=rnd(3,9)/100,c=D/(1+y);return {stem:`Macaulay duration ${D} years; yield ${pc(y)}. Modified duration?`,...opts(c,[D*(1+y),D-y,D/(1-y)],v=>f2(v)+' yrs'),expl:`D* = D ÷ (1 + y) = ${f2(c)}.`}}},
+ qm8_dp:{t:'m8',k:'q',gen(){const P=rnd(900,1150),Dm=r2(rnd(20,90)/10),dy=pick([-.02,-.01,-.005,.005,.01,.02]),c=-Dm*dy*P;return {stem:`A bond costs £${P} with modified duration ${Dm}. Yields change by ${dy>0?'+':''}${pc(dy)}. Approximate price change in £?`,...opts(c,[Dm*dy*P,-Dm*dy,-Dm*dy*P*(1+dy)],v=>(v<0?'−£':'+£')+f2(Math.abs(v))),expl:`ΔP ≈ −D* × Δy × P = −${Dm} × ${dy} × ${P} = ${f2(c)}. Convexity would make the true price a little higher than this.`}}},
+ qm8_fwd:{t:'m8',k:'q',gen(){const y1=rnd(2,7)/100,y2=y1+rnd(0,20)/1000,c=Math.pow(1+y2,2)/(1+y1)-1;return {stem:`1-year zero yield ${pc(y1)}, 2-year zero yield ${pc(y2)}. Implied forward rate for year 2?`,...opts(c,[(y1+y2)/2,y2-y1,2*y2-y1+0.004],pc),expl:`(1 + y₂)² = (1 + y₁)(1 + f₂) ⇒ f₂ = ${pc(c)}.`}}},
+ qm8_perp:{t:'m8',k:'q',gen(){const y=rnd(3,8)/100,c=1/y;return {stem:`Modified duration of a perpetual bond when the yield is ${pc(y)}?`,...opts(c,[(1+y)/y,1/(1+y),y*100],v=>f2(v)+' yrs'),expl:`P = c ÷ y, so D* = −(1/P)(dP/dy) = 1 ÷ y = ${f2(c)} years.`}}},
+ am8_price:{t:'m8',k:'a',gen(){const T=rnd(3,6),cp=rnd(3,10)/100,y=rnd(3,9)/100;let p=0;for(let t=1;t<=T;t++)p+=1000*cp/Math.pow(1+y,t);p+=1000/Math.pow(1+y,T);return {stem:`A ${T}-year bond, face £1,000, pays an annual coupon of ${pc(cp)}; YTM ${pc(y)}. Price (£)?`,c:p,u:'£',tol:.002,expl:`P = Σ ${1000*cp} ÷ ${(1+y).toFixed(2)}ᵗ + 1,000 ÷ ${(1+y).toFixed(2)}^${T} = £${f2(p)}.`}}},
+ am8_dur:{t:'m8',k:'a',gen(){const T=rnd(3,5),cp=rnd(4,10)/100,y=rnd(3,9)/100;let p=0,w=0;for(let t=1;t<=T;t++){const cf=1000*cp+(t===T?1000:0),pv=cf/Math.pow(1+y,t);p+=pv;w+=t*pv}const D=w/p,k=pick(['D','dp']);
+  return k==='D'?{stem:`${T}-year bond, annual coupon ${pc(cp)}, face £1,000, flat yield ${pc(y)}. Macaulay duration (years)?`,c:D,u:'n',tol:.003,expl:`Price £${f2(p)}; D = Σ t × PV(CFₜ) ÷ P = ${D.toFixed(3)} years.`}
+   :{stem:`${T}-year bond, annual coupon ${pc(cp)}, face £1,000, flat yield ${pc(y)}. Using modified duration, approximate price change in £ if yields fall to ${pc(y-.02)}?`,c:D/(1+y)*.02*p,u:'£',tol:.005,expl:`P = £${f2(p)}; D = ${D.toFixed(3)}; D* = ${(D/(1+y)).toFixed(3)}; ΔP ≈ −D* × (−2%) × P = +£${f2(D/(1+y)*.02*p)}.`}}},
+ am8_strip:{t:'m8',k:'a',gen(){const y1=rnd(3,6)/100,y2=y1+rnd(5,15)/1000,cp=rnd(6,12)/100,ym=y2+pick([-.004,-.003,.003,.004]),strip=1000*cp/(1+y1)+1000*(1+cp)/Math.pow(1+y2,2),mkt=1000*cp/(1+ym)+1000*(1+cp)/Math.pow(1+ym,2),c=Math.abs(mkt-strip);
+  return {stem:`1-year zero yield ${pc(y1)}, 2-year zero yield ${pc(y2)}. A 2-year bond (face £1,000, annual coupon ${pc(cp)}) trades at a YTM of ${pc(ym)}. Arbitrage profit per bond (£)?`,c,u:'£',tol:.01,expl:`Value from strips = ${f2(strip)}; market price at its YTM = ${f2(mkt)}. ${mkt>strip?'The bond is overpriced: short it and buy the strips':'The bond is underpriced: buy it and sell the strips'}; profit = £${f2(c)}.`}}}
+});
+function immGen(){const y=rnd(4,10)/100,t1=rnd(1,2),t2=t1+rnd(2,4),L1=rnd(1,6),L2=rnd(1,6),pv1=L1/Math.pow(1+y,t1),pv2=L2/Math.pow(1+y,t2),PV=pv1+pv2,D=(t1*pv1+t2*pv2)/PV,a=1,b=pick([t2,t2+1].filter(x=>x>D)),wA=(b-D)/(b-a);return {y,t1,t2,L1,L2,PV,D,Dm:D/(1+y),a,b,wA,A:wA*PV,B:(1-wA)*PV}}
+add({
+ qm8_imm:{t:'m8',k:'q',gen(){const s=immGen();return {stem:`Liabilities have PV £${f2(s.PV)}m and duration ${s.D.toFixed(2)} years. Which single zero-coupon bond immunises them?`,...opts(s.D,[s.Dm,s.t2,(s.t1+s.t2)/2],v=>`A ${f2(v)}-year zero`),expl:`A zero's duration equals its maturity, so match maturity to the liabilities' duration (${s.D.toFixed(2)} years), with PV equal to £${f2(s.PV)}m.`}}}
+});
+conceptSet('m8',[
+ ['Why do bond prices fall when interest rates rise?',['The fixed cash flows are discounted at a higher rate, and new bonds offer better yields','Coupons fall','Default risk always rises','Face value falls'],'Price = PV of fixed cash flows, so the price must fall until its yield matches the market.'],
+ ['Is a 20-year 4% coupon bond more rate-sensitive than an otherwise identical 3% coupon bond?',['No: the higher coupon pays more cash earlier, so its duration is lower','Yes','They\'re identical','Only if yields rise'],'Higher coupon → shorter duration → less sensitivity.'],
+ ['At a 4% yield, which is more sensitive: a perpetual bond or a 20-year zero?',['The perpetual: D* = 1/y = 25 versus 20/1.04 ≈ 19.2','The 20-year zero','Equal','Neither has duration'],'This matches the 2023 exam statement, which is true.'],
+ ['Duration-based price estimates, ignoring convexity…',['Understate the bond\'s price after a large yield change in either direction','Overstate the price','Are exact','Only work for zeros'],'Convexity is desirable: prices rise more and fall less than duration predicts.'],
+ ['A floating-rate bond\'s duration is…',['Close to zero (at most the time to the next coupon reset)','Its maturity','Infinite','Equal to a zero\'s'],'Its coupon adjusts to rates, so its price barely moves.'],
+ ['Immunisation requires…',['Assets and liabilities to have equal present values and equal durations','Equal coupons','Only equal maturities','No bonds at all'],'It also needs rebalancing as time passes and rates change.'],
+ ['Why have 10-year Treasury yields risen as the Fed raised rates since 2022?',['Higher short rates, inflation expectations and term premia lift longer yields too','Bonds became safer','Coupons were cut','Demand for bonds surged'],'Long yields reflect expected future short rates plus a premium.'],
+ ['Under the expectations hypothesis, forward rates equal…',['The market\'s expected future short-term (spot) rates','Today\'s long rate','Zero','The coupon rate'],'An upward-sloping curve then signals expected rate rises.'],
+ ['A coupon bond priced above the sum of its strip values should be…',['Shorted while buying the strips, locking in the difference','Bought','Ignored, since that\'s normal','Held to maturity'],'Law of one price: same cash flows, same value.'],
+ ['A corporate bond\'s promised yield exceeds its expected yield because of…',['Default risk (the default premium)','Lower duration','Convexity','Taxes only'],'Investors need a higher promised return to compensate for possible default.']
+]);
+
+/* m9: derivatives */
+function binGen(){for(;;){const S=rnd(5,25)*10,u=rnd(10,35)/100,d=rnd(10,30)/100,K=Math.round(S*(1+rnd(-10,15)/100)),r=rnd(3,8)/100,Su=S*(1+u),Sd=S*(1-d),Cu=Math.max(0,Su-K),Cd=Math.max(0,Sd-K);if(Cu<=0||Cd>0)continue;const h=(Cu-Cd)/(Su-Sd),C=h*S-(h*Sd-Cd)/(1+r),Pu=Math.max(0,K-Su),Pd=Math.max(0,K-Sd);if(C<=0)continue;return {S,u,d,K,r,Su,Sd,Cu,Cd,h,C,P:C-S+K/(1+r)}}}
+add({
+ qm9_pcp:{t:'m9',k:'q',gen(){const S=rnd(40,120),K=S+pick([-10,0,0,10]),T=pick([.25,.5,1]),r=rnd(4,10)/100,C=r2(rnd(30,120)/10),pv=K/Math.pow(1+r,T),c=C-S+pv;if(c<=0)return this.gen();
+  return {stem:`Stock £${S}; ${T===1?'1-year':T*12+'-month'} call with strike £${K} costs £${f2(C)}; r_f ${pc(r)} a year; no dividends. Put price with the same strike and maturity?`,...opts(c,[C+S-pv,C-S+K,C-S+K/(1+r*T)],g2),expl:`P = C − S + K ÷ (1 + r)^T = ${f2(C)} − ${S} + ${K} ÷ ${(1+r).toFixed(2)}^${T} = £${f2(c)}.`}}},
+ qm9_h:{t:'m9',k:'q',gen(){const s=binGen();return {stem:`Stock £${s.S} will be £${f2(s.Su)} or £${f2(s.Sd)} in a year. Call strike £${s.K}. Hedge ratio (delta)?`,...opts(s.h,[(s.Su-s.Sd)/(s.Cu-s.Cd),s.Cu/s.Su,(s.Cu-s.Cd)/s.S],v=>v.toFixed(3)),expl:`h = (C_u − C_d) ÷ (S_u − S_d) = (${f2(s.Cu)} − ${f2(s.Cd)}) ÷ (${f2(s.Su)} − ${f2(s.Sd)}) = ${s.h.toFixed(3)}.`}}},
+ qm9_n:{t:'m9',k:'q',gen(){const h=pick([.25,.4,.5,.6,.75,.8]),n=pick([12,16,20,24,30,40]),c=n/h;return {stem:`A call's hedge ratio is ${h}. You own ${n} shares. How many calls must you write to hedge?`,...opts(c,[n*h,h/n*100,n],v=>f2(v)),expl:`Each call moves ${h} as much as a share, so write ${n} ÷ ${h} = ${f2(c)} calls.`}}},
+ qm9_strad:{t:'m9',k:'q',gen(){const K=rnd(5,20)*10,C=r2(rnd(30,150)/10),P=r2(rnd(30,150)/10),lo=K-C-P;return {stem:`Straddle: buy a call (£${f2(C)}) and a put (£${f2(P)}), both with strike £${K}. Lower break-even price?`,...opts(lo,[K-P,K-C,K-(C+P)/2],g2),expl:`Total cost £${f2(C+P)}; break-evens at ${K} ± ${f2(C+P)}: £${f2(lo)} and £${f2(K+C+P)}. Profit needs a big move either way.`}}},
+ qm9_collar:{t:'m9',k:'q',gen(){const S=rnd(50,100),Kp=S-rnd(5,15),Kc=S+rnd(5,15),p=r2(rnd(5,30)/10),cc=r2(rnd(5,30)/10),mx=Math.random()<.5,c=mx?Kc-S-p+cc:-(S-Kp+p-cc);
+  return {stem:`Collar: own a share bought at £${S}, buy a £${Kp} put for £${f2(p)} and write a £${Kc} call for £${f2(cc)}. Maximum ${mx?'profit':'loss'} at expiry?`,...opts(c,mx?[Kc-S,Kc-S+p-cc,Kc-Kp]:[-(S-Kp),-(S-Kp-p+cc),-(Kc-Kp)],v=>(v<0?'−£':'£')+f2(Math.abs(v))),
+  expl:`Value at expiry is capped between £${Kp} and £${Kc}. Net cost = ${S} + ${f2(p)} − ${f2(cc)} = ${f2(S+p-cc)}. Max profit = ${Kc} − ${f2(S+p-cc)} = ${f2(Kc-S-p+cc)} (if S_T ≥ ${Kc}); max loss = ${f2(S+p-cc)} − ${Kp} = ${f2(S-Kp+p-cc)} (if S_T ≤ ${Kp}).`}}},
+ qm9_pay:{t:'m9',k:'q',gen(){const K=rnd(5,20)*10,ST=K+rnd(-30,30),call=Math.random()<.5,prem=r2(rnd(20,80)/10),c=(call?Math.max(0,ST-K):Math.max(0,K-ST))-prem;
+  return {stem:`You bought a ${call?'call':'put'} with strike £${K} for £${f2(prem)}. At expiry the stock is £${ST}. Your profit?`,...opts(c,[call?ST-K:K-ST,(call?Math.max(0,ST-K):Math.max(0,K-ST)),-(call?Math.max(0,ST-K):Math.max(0,K-ST))+prem],v=>(v<0?'−£':'£')+f2(Math.abs(v))),expl:`Payoff = max(${call?'S_T − K':'K − S_T'}, 0) = ${f2(call?Math.max(0,ST-K):Math.max(0,K-ST))}; profit = payoff − premium = ${f2(c)}.`}}},
+ am9_call:{t:'m9',k:'a',gen(){const s=binGen();return {stem:`Stock £${s.S}; in one year it rises ${pc(s.u)} or falls ${pc(s.d)}. One-year call, strike £${s.K}; r_f ${pc(s.r)}. Value of the call (£)?`,c:s.C,u:'£',tol:.005,
+  expl:`C_u = ${f2(s.Cu)}, C_d = ${f2(s.Cd)}; h = ${s.h.toFixed(4)}. Hold h shares, write 1 call: riskless payoff ${f2(s.h*s.Sd-s.Cd)}; PV = ${f2((s.h*s.Sd-s.Cd)/(1+s.r))}. C = hS − PV = ${f2(s.h*s.S)} − ${f2((s.h*s.Sd-s.Cd)/(1+s.r))} = £${f2(s.C)}.`}}},
+ am9_arb:{t:'m9',k:'a',gen(){const s=binGen(),m=r2(s.C+pick([-1,1])*rnd(10,40)/10);if(m<=0)return this.gen();return {stem:`Stock £${s.S} goes up ${pc(s.u)} or down ${pc(s.d)} in a year; r_f ${pc(s.r)}; call strike £${s.K}. The call trades at £${f2(m)}. Riskless arbitrage profit per call today (£)?`,c:Math.abs(m-s.C),u:'£',tol:.01,
+  expl:`Fair value £${f2(s.C)}. The call is ${m>s.C?'overpriced: write it and buy h = '+s.h.toFixed(3)+' shares, borrowing the rest':'underpriced: buy it and short h = '+s.h.toFixed(3)+' shares, lending the proceeds'}. Profit = |${f2(m)} − ${f2(s.C)}| = £${f2(Math.abs(m-s.C))} per call.`}}},
+ am9_pcp:{t:'m9',k:'a',gen(){const S=rnd(40,120),K=S+pick([-10,0,10]),T=pick([.25,.5,1]),r=rnd(4,10)/100,C=r2(rnd(40,120)/10),c=C-S+K/Math.pow(1+r,T);if(c<=0)return this.gen();return {stem:`Stock £${S}, ${T===1?'1-year':T*12+'-month'} call (strike £${K}) £${f2(C)}, r_f ${pc(r)} a year, no dividends. Put price (£)?`,c,u:'£',tol:.003,expl:`P = ${f2(C)} − ${S} + ${K} ÷ ${(1+r).toFixed(2)}^${T} = £${f2(c)}.`}}}
+});
+conceptSet('m9',[
+ ['"Options can only be used for hedging." True or false?',['False: they are also used to speculate with leverage, earn premium income and bet on volatility','True','True for puts only','True for calls only'],'Investment managers use them for all of these purposes.'],
+ ['Do both call and put prices generally rise with expected volatility?',['Yes: the option holder gains from big moves but has limited downside','Only calls','Only puts','No, volatility lowers both'],'Higher volatility raises the chance of large payoffs.'],
+ ['Two stocks have the same beta. Is a call on the one with higher firm-specific volatility worth less?',['No: option value depends on total volatility, so it\'s worth more','Yes','They\'re equal','Only if beta > 1'],'Unlike the CAPM, option pricing cares about total volatility, including firm-specific risk.'],
+ ['If the underlying\'s volatility falls, the value of a long straddle…',['Falls','Rises','Doesn\'t change','Becomes negative'],'A straddle is a bet on big moves.'],
+ ['If the underlying\'s expected return falls (volatility unchanged), the straddle\'s value…',['Doesn\'t change: option prices don\'t depend on the expected return','Falls','Rises','Doubles'],'Replication and risk-neutral pricing use the risk-free rate, not the expected return.'],
+ ['Why might an investor use a collar?',['To protect against falls cheaply, by financing the put with a written call and giving up upside','To maximise upside','To bet on volatility','To earn the risk-free rate'],'The Joseph Jones case: protect a £350k floor while allowing value up to £450k.'],
+ ['Put-call parity says…',['C + PV(K) = P + S','C = P','C + S = P + K','C − P = K'],'Two portfolios with identical payoffs must cost the same (law of one price).'],
+ ['In the binomial model, the hedge ratio is…',['(C_u − C_d) ÷ (S_u − S_d)','S_u ÷ S_d','C ÷ S','1 ÷ (1 + r)'],'Holding h shares per call written makes the portfolio riskless.'],
+ ['If a call trades above its binomial value, the arbitrage is…',['Write the call, buy h shares and borrow, locking in the difference','Buy the call','Do nothing','Short the shares only'],'You sell the overpriced asset and buy its replicating portfolio.'],
+ ['A bear spread with calls is built by…',['Writing the lower-strike call and buying the higher-strike call','Buying both calls','Writing both calls','Buying the lower-strike call and writing the higher-strike call'],'It profits if the price falls; both gains and losses are capped.'],
+ ['In Black-Scholes, the call hedge ratio N(d₁)…',['Rises as the stock price rises','Falls as the stock price rises','Is always 0.5','Equals the put price'],'Deep in-the-money calls behave almost like the stock (delta near 1).']
+]);
+/* m10: overconfidence (concepts) */
+conceptSet('m10',[
+ ['Overconfidence in finance usually means…',['Overestimating the precision of your information and your own ability','Being risk-loving','Using leverage','Holding the market portfolio'],'Miscalibration and better-than-average beliefs are the main forms.'],
+ ['What does overconfidence predict about trading?',['Investors trade too much, and the extra trading lowers their net returns','Investors never trade','Trading raises returns','Trading volume is unrelated to beliefs'],'Barber and Odean (2000): the most active traders earn the lowest net returns.'],
+ ['Barber and Odean (2001) used gender to test overconfidence and found that…',['Men traded more (turnover about 80% vs 51%) and earned lower returns than women','Women traded more','No differences','Men earned higher returns'],'Effects were stronger for single men versus single women.'],
+ ['"Trading is hazardous to your wealth" (Barber and Odean 2000) concludes that individual investors should…',['Avoid active trading; low-turnover investors did best after costs','Trade daily','Use more leverage','Only trade options'],'Gross returns were similar; costs drove the difference.'],
+ ['Odean (1999), "Do investors trade too much?", found that the stocks investors bought…',['Underperformed the stocks they sold, even before costs','Outperformed what they sold','Performed the same','Were all bonds'],'Trading wasn\'t even justified by better picks.'],
+ ['When investors switched to online trading (Barber and Odean 2002)…',['They traded more actively and their performance fell','They became more rational','Their returns rose sharply','They stopped trading'],'Easy access fed overconfidence after a good run.'],
+ ['Daniel, Hirshleifer and Subrahmanyam (1998) combine overconfidence with self-attribution bias to explain…',['Short-run momentum and long-run reversal: overreaction to private information','The CAPM','Bond convexity','The January effect only'],'Investors credit successes to skill and blame failures on bad luck, which strengthens overconfidence.'],
+ ['Miscalibration means…',['Confidence intervals that are too narrow: actual outcomes fall outside them too often','Being too cautious','Correct probability estimates','Ignoring all information'],'People think they know more precisely than they do.']
+]);
+
+/* Boss rounds */
+Object.assign(BOSS,{
+ m2(){const s=tbGen();const tab=`<p class="small">Active portfolio A: α ${pc(s.a)}, residual variance σ²(e) ${s.v}, β ${s.b}. Market: expected <b>excess</b> return ${pc(s.em)}, σ ${pc(s.sm)}.</p>`;
+  return {table:tab,steps:[['Initial weight w₀ in A (%)',s.w0*100,'%',`(${s.a} ÷ ${s.v}) ÷ (${s.em} ÷ ${(s.sm*s.sm).toFixed(4)})`],['Beta-adjusted weight w* in A (%)',s.ws*100,'%',`w₀ ÷ (1 + (1 − ${s.b})w₀)`],['Weight in the market portfolio (%)',(1-s.ws)*100,'%','1 − w*'],['Portfolio beta',s.bp,'x',`w* × ${s.b} + (1 − w*) × 1`],['Portfolio expected excess return (%)',s.er*100,'%',`w*(α + β_A E[R_M]) + (1 − w*)E[R_M]`],['Portfolio standard deviation (%)',s.sp*100,'%',`√(β_P²σ²_M + w*²σ²(e))`],['Portfolio Sharpe ratio',s.sh,'n',`expected excess return ÷ σ (market alone: ${(s.em/s.sm).toFixed(3)})`]]}},
+ m8(){const s=immGen();const tab=`<p class="small">A firm must pay £${s.L1}m in ${s.t1} year${s.t1>1?'s':''} and £${s.L2}m in ${s.t2} years. The yield curve is flat at ${pc(s.y)} (annual compounding). It will immunise with 1-year and ${s.b}-year zero-coupon government bonds.</p>`;
+  const dv=-s.Dm*.0001*s.PV*1e6;
+  return {table:tab,steps:[['PV of the liabilities (£m)',s.PV,'£m',`${s.L1} ÷ ${(1+s.y).toFixed(2)}^${s.t1} + ${s.L2} ÷ ${(1+s.y).toFixed(2)}^${s.t2}`],['Macaulay duration of the liabilities (years)',s.D,'n','Σ t × PV ÷ total PV'],['Modified duration (years)',s.Dm,'n','D ÷ (1 + y)'],['Weight in the 1-year bond (%)',s.wA*100,'%',`w × 1 + (1 − w) × ${s.b} = ${s.D.toFixed(3)}`],['Amount in the 1-year bond (£m)',s.A,'£m','w × PV'],[`Amount in the ${s.b}-year bond (£m)`,s.B,'£m','(1 − w) × PV'],['Change in the liabilities\' value for a +1bp yield move (£)',dv,'£','−D* × 0.0001 × PV: the bond portfolio changes by the same amount']]}},
+ m9(){const s=binGen(),n=pick([12,16,20,24,30]),m=r2(s.C+pick([-1,1])*rnd(10,30)/10);const tab=`<p class="small">Stock £${s.S}; in one year it rises ${pc(s.u)} to £${f2(s.Su)} or falls ${pc(s.d)} to £${f2(s.Sd)}. One-year European call, strike £${s.K}. r_f ${pc(s.r)}. You own ${n} shares. The call trades at £${f2(Math.max(.01,m))}.</p>`;
+  return {table:tab,steps:[['Call payoff if the price rises (£)',s.Cu,'£',`max(${f2(s.Su)} − ${s.K}, 0)`],['Call payoff if the price falls (£)',s.Cd,'£',`max(${f2(s.Sd)} − ${s.K}, 0)`],['Hedge ratio',s.h,'n',`(C_u − C_d) ÷ (S_u − S_d)`],[`Calls to write to hedge your ${n} shares`,n/s.h,'n',`${n} ÷ h`],['Riskless payoff per call written (h shares − 1 call) (£)',s.h*s.Sd-s.Cd,'£','h × S_d − C_d (same in both states)'],['Value of the call today (£)',s.C,'£','h × S − PV(riskless payoff)'],['Arbitrage profit per call at the market price (£)',Math.abs(Math.max(.01,m)-s.C),'£','|market price − value|']]}}
+});
+
 /* "Sort the statement": balance sheet, income statement, cash flow (module conventions: Penman / Week 3–4) */
 const BSI=[
  ['cash','A','fin','Cash and cash equivalents',[40,400],'Cash is a financial asset: it is netted against debt in net debt.'],
@@ -2120,7 +2399,7 @@ function pickIds(pool,n){
   return out;
 }
 
-const ABS={'%':.06,x:.011,'£':.011,'£m':.011};
+const ABS={'%':.06,x:.011,'£':.011,'£m':.011,n:.0011};
 const okTyped=(q,v)=>Math.abs(v-q.c)<=Math.max(ABS[q.u||'£m'],Math.abs(q.c)*q.tol);
 function finStart(mode,tid){
   clearInterval(fTimer);const inT=k=>QT[k].t===tid;
@@ -2184,15 +2463,15 @@ function renderFin(){
   box.innerHTML=`<div class="stats"><div><b>${x}</b><span>XP · ${esc(rk.name)}</span></div><div><b>${st}</b><span>day streak</span></div><div><b>${ms}</b><span>to review</span></div></div>
   ${rk.next?`<p class="small muted" style="margin:8px 2px 0">${rk.need} XP to ${esc(rk.next)}</p>`:''}
   ${ms?`<button class="btn" data-act="fin-play" data-m="review" data-t="t8">Review mistakes · ${ms}</button>`:''}
-  <div class="chips" style="margin:16px 0 4px"><button class="on">FSA &amp; Valuation</button><button disabled style="opacity:.5">Investment Management · soon</button></div>
-  ${FIN.map((t,i)=>{const xp=topicXP(t.id),L=lvlOf(xp),g=t.games||[];
+  <div class="chips" style="margin:16px 0 4px">${SUBJ.map(x=>`<button data-act="fin-sub" data-v="${x.id}" class="${x.id===fsub?'on':''}">${esc(x.name)}</button>`).join('')}</div>
+  ${(SUBJ.find(x=>x.id===fsub)||SUBJ[0]).topics.map((t,i)=>{const xp=topicXP(t.id),L=lvlOf(xp),g=t.games||[];
    if(!g.length)return `<div class="card ftopic soon"><div class="row"><span><b>${i+1}</b> · ${esc(t.name)}</span><span class="tag">soon</span></div></div>`;
    const bossOpen=xp>=BOSS_AT,bb=fget('blitz|'+t.id);
    const btn=(m,l,dis)=>`<button class="ghost" data-act="fin-play" data-m="${m}" data-t="${t.id}"${dis?' disabled':''}>${l}</button>`;
    return `<div class="card ftopic"><div class="row"><span><b>${i+1}</b> · ${esc(t.name)}</span><span class="small muted">Lv ${L.lv}${fget('boss|'+t.id)?' ★':''}</span></div>
    <div class="xpbar"><i style="width:${L.pct}%"></i></div><p class="small muted" style="margin:4px 0 8px">${xp} XP${L.hi?' · '+(L.hi-xp)+' to level '+(L.lv+1):' · max level'}</p>
    <div class="fbtns">${g.includes('sort')?btn('sort','Sort balance sheet')+btn('sortis','Sort income statement')+btn('sortcf','Sort cash flow')+btn('sortadv','Sort + calculate'):''}${g.includes('quick')?btn('quick','Quick quiz'):''}${g.includes('adv')?btn('adv','Advanced'):''}${g.includes('boss')?btn('boss',bossOpen?'Boss round':'Boss · '+(BOSS_AT-xp)+' XP',!bossOpen):''}${g.includes('blitz')?btn('blitz','Blitz 60s'+(bb?' · best '+bb:'')):''}</div></div>`}).join('')}
-  <p class="small muted" style="margin:14px 2px 0">Questions are written for revision from the module's methods (Penman-style reformulation, DuPont, AOP and DCF). Numbers change every time.</p>`;
+  <p class="small muted" style="margin:14px 2px 0">${fsub==='im'?'Closed-book module: questions also drill the formulas you need to remember. Numbers change every time.':'Questions are written for revision from the module\'s methods (Penman-style reformulation, DuPont, AOP and DCF). Numbers change every time.'}</p>`;
 }
 function playHead(){
   const label=F.mode==='review'?'Mistake review':F.mode==='boss'?'Boss round':F.mode==='blitz'?'Blitz':F.mode==='adv'?'Advanced':'Quick quiz';
@@ -2204,7 +2483,7 @@ function renderPlay(box){
   if(q.k==='q'){
     h+=`<div class="fopts">${q.opts.map((o,i)=>{let c='';if(F.done){if(i===q.ans)c=' right';else if(i===F.pick)c=' wrong'}return `<button class="fopt${c}" data-act="fin-opt" data-i="${i}"${F.done?' disabled':''}>${o}</button>`}).join('')}</div>`;
   }else{
-    h+=`<form id="finForm" class="fform"><button type="button" class="ghost pm" data-act="fin-neg" data-for="finIn" aria-label="Make negative"${F.done?' disabled':''}>±</button><input id="finIn" inputmode="decimal" autocomplete="off" placeholder="${({'£':'£ per share','%':'in %, e.g. 12.34','x':'ratio, e.g. 1.25'})[q.u]||'£m, 2 decimals'}" value="${esc(F.val)}"${F.done?' disabled':''}><button class="btn" style="margin-top:0;width:auto" ${F.done?'disabled':''}>Check</button></form><p class="msg" id="finMsg"></p>`;
+    h+=`<form id="finForm" class="fform"><button type="button" class="ghost pm" data-act="fin-neg" data-for="finIn" aria-label="Make negative"${F.done?' disabled':''}>±</button><input id="finIn" inputmode="decimal" autocomplete="off" placeholder="${({'£':'£, 2 decimals','%':'in %, e.g. 12.34','x':'ratio, e.g. 1.25','n':'number, e.g. 1.234'})[q.u]||'£m, 2 decimals'}" value="${esc(F.val)}"${F.done?' disabled':''}><button class="btn" style="margin-top:0;width:auto" ${F.done?'disabled':''}>Check</button></form><p class="msg" id="finMsg"></p>`;
   }
   if(F.done){const ok=q.k==='q'?F.pick===q.ans:okTyped(q,F.pick);
     h+=`<div class="ffb ${ok?'good':'bad'}"><b>${ok?'Correct! +'+F.gain+' XP':'Not quite'}</b>${!ok&&q.k==='a'?` · answer ${fu(q.c,q.u)}`:''}${q.expl?`<p>${q.expl}</p>`:''}${q.sol?`<details${ok?'':' open'}><summary>Worked solution</summary>${q.sol}</details>`:''}</div>
@@ -2212,7 +2491,7 @@ function renderPlay(box){
   box.innerHTML=h+'</div>';
 }
 function renderDone(box){
-  const t=FIN.find(x=>x.id===F.tid)||FIN[7],xp=topicXP(t.id),L=lvlOf(xp);
+  const t=ALLT.find(x=>x.id===F.tid)||FIN[7],xp=topicXP(t.id),L=lvlOf(xp);
   const extra=F.mode==='blitz'?`<p>${F.ok} right in 60 seconds · best ${fget('blitz|'+F.tid)}</p>`:F.mode==='boss'?`<p>${F.ok} of ${F.n} steps right${F.ok===F.n?' · boss beaten ★':''}</p>`:`<p>${F.ok} of ${F.n} right · best combo ×${F.best}</p>`;
   box.innerHTML=`<div class="card fq" style="text-align:center"><h2 style="margin-top:4px">${F.ok===F.n?'Perfect round!':F.mode==='blitz'?'Time!':'Round complete'}</h2>${extra}<p class="big" style="font-size:30px;margin:6px 0">+${F.xp} XP</p>
   <p class="small muted">${esc(TN[t.id])} · level ${L.lv}</p><div class="xpbar"><i style="width:${L.pct}%"></i></div>
@@ -2241,6 +2520,7 @@ function renderSort(box){
 document.addEventListener('submit',e=>{const f=e.target;if(f.id==='finForm'){e.preventDefault();checkTyped()}else if(f.id==='sortForm'){e.preventDefault();sortCalc()}});
 function finAct(a,b){
   if(a==='area'){area=b.dataset.v;try{localStorage.setItem('excelsior-area',area)}catch(e){}renderStudy();if(area==='fin')renderFin();else renderLang();return true}
+  if(a==='fin-sub'){fsub=b.dataset.v;try{localStorage.setItem('excelsior-fsub',fsub)}catch(e){}renderFin();return true}
   if(a==='fin-play'){finStart(b.dataset.m,b.dataset.t);window.scrollTo(0,0);return true}
   if(a==='fin-opt'){if(F.done)return true;F.pick=+b.dataset.i;answer(F.pick===F.q.ans);return true}
   if(a==='fin-next'){F.i++;nextQ();window.scrollTo(0,0);return true}
