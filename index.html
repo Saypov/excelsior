@@ -83,6 +83,7 @@ main{max-width:600px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom) 
 .li:last-child{border-bottom:0}
 .amt{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;font-weight:600}
 .tag{display:inline-block;font-size:13px;padding:2px 8px;border-radius:20px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.tag.good{background:color-mix(in srgb,var(--good,#16a34a) 16%,transparent);color:var(--good,#16a34a);font-weight:600}
 .tag.hot{background:color-mix(in srgb,var(--hot) 16%,transparent);color:var(--hot);font-weight:600}
 label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}
 input,select,textarea{width:100%;font:16px Inter,sans-serif;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:11px 12px;min-height:44px}
@@ -583,7 +584,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.7 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v4.0.8 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -944,7 +945,7 @@ function renderDraft(){
 function resetForm(){draft=[blank()];editingId=null;$('#woDate').value=today();$('#woNote').value='';$('#woMsg').textContent='';renderDraft()}
 function woCard(w,actions){
   return `<div class="card wo"><div class="row"><h3>${pd(w.d).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</h3><span class="small muted">${w.ex.length} exercise${w.ex.length>1?'s':''}</span></div>
-  ${w.ex.map(e=>`<p><b>${esc(e.name)}</b> <span class="muted">${e.sets.join(' · ')} ${e.unit}</span>${e.feel?` <span class="tag${e.feel==='harder'?' hot':''}">${e.feel}</span>`:''}${e.note?`<br><span class="small muted">${esc(e.note)}</span>`:''}</p>`).join('')}
+  ${w.ex.map(e=>`<p><b>${esc(e.name)}</b> <span class="muted">${e.sets.join(' · ')} ${e.unit}</span>${e.feel?` <span class="tag${e.feel==='harder'?' hot':e.feel==='easier'?' good':''}">${e.feel}</span>`:''}${e.note?`<br><span class="small muted">${esc(e.note)}</span>`:''}</p>`).join('')}
   ${w.note?`<p class="muted">${esc(w.note)}</p>`:''}
   ${actions?`<div class="acts"><button class="link" data-act="edit-wo" data-id="${w.id}">Edit</button><button class="link" data-act="del-wo" data-id="${w.id}">Delete</button></div>`:''}</div>`;
 }
