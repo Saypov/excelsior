@@ -695,7 +695,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.6.2 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.6.3 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -972,17 +972,17 @@ function evCount(e){if(!e.time)return null;const now=Date.now(),st=evMs(e.d,e.ti
   if(now>=en)return {over:true};if(now>=st)return {cls:'urg',txt:'now'};const dm=st-now;
   if(dm<3600e3)return {cls:dm<30*60000?'urg':'soon',txt:'in '+Math.max(1,Math.ceil(dm/60000))+' min'};
   if(dm<864e5)return {cls:'soon',txt:'in '+Math.floor(dm/3600e3)+' h'};return null}
-function renderToday(){
+function renderToday(){if(S.spCcy==='USD')setTimeout(()=>spEnsureFx(),0);
   const t=today(),m=ym(t),spent=monthSpent(m);
   const di=dayInfo(),pi=potInfo();
   const h=new Date().getHours();
   $('#hello').textContent=(h<12?'Buongiorno':h<18?'Ciao':'Buonasera')+', '+(S.name||'Rasul')+' · '+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
   $('#safeLbl').textContent=di.left>=0?'Left to spend today':'Over today\'s budget';
-  $('#safe').textContent=money(Math.abs(di.left));$('#safe').className='big '+(di.left<-0.004?'neg':'pos');
-  {const rem=di.B-di.spent;$('#monRem').textContent=(rem<0?'−':'')+money(Math.abs(rem));$('#monRem').className='amt'+(rem<0?' neg':'');$('#monOf').textContent=rem<0?'over £'+(+di.B.toFixed(2)):'of '+money(di.B);}
-  $('#safeSub').textContent='of '+money(di.allow)+' today'+(di.reduced?' (reduced: over budget this month)':'')+' · '+money(di.saved)+' saved this month';
-  $('#potToday').textContent=money(pi.pot+di.saved);
-  $('#potTodaySub').textContent=money(pi.pot)+' in the pot + '+money(di.saved)+' saved so far this month';
+  $('#safe').textContent=sm(Math.abs(di.left));$('#safe').className='big '+(di.left<-0.004?'neg':'pos');
+  {const rem=di.B-di.spent;$('#monRem').textContent=(rem<0?'−':'')+sm(Math.abs(rem));$('#monRem').className='amt'+(rem<0?' neg':'');$('#monOf').textContent=rem<0?'over '+sm(di.B):'of '+sm(di.B);}
+  $('#safeSub').textContent='of '+sm(di.allow)+' today'+(di.reduced?' (reduced: over budget this month)':'')+' · '+sm(di.saved)+' saved this month';
+  $('#potToday').textContent=sm(pi.pot+di.saved);
+  $('#potTodaySub').textContent=sm(pi.pot)+' in the pot + '+sm(di.saved)+' saved so far this month';
   const lm=closedMonths().slice(-1)[0];
   if(lm&&!(S.monthAck||{})[lm]){
     const lo=monthLeftover(lm),ps=S.plans.filter(p=>planInfo(p).left>0);
