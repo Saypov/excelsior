@@ -131,6 +131,12 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 #mkSetBox[open] summary svg{transform:rotate(60deg)}
 #mkSetBox:not([open]){width:fit-content;margin:4px auto 20px;padding:0 18px;border-radius:999px}
 #mkBarBox .bar{background:var(--line)}
+[data-skin=terra] #mkBarBox .bar>i{background:#65d01e}
+[data-skin] #mkBarBox .bar.hot>i,#mkBarBox .bar.hot>i{background:var(--hot)}
+[data-skin] #mkWarn .tag.hot{background:color-mix(in srgb,var(--hot) 16%,transparent);color:var(--hot);font-weight:600}
+.mkconf{margin-top:12px;padding:12px;border-radius:12px;background:var(--soft);border-left:4px solid #7c5cff;animation:mkin .2s ease}
+.mkconf p{margin:4px 0 0;font-size:15px}
+@keyframes mkin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 #s-mk .kv{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .cat{margin:8px 0}.cat .row{font-size:14px}
 .empty{padding:18px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);text-align:center;font-size:15px}
@@ -426,7 +432,8 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         </div>
         <label for="mkFor">What for</label><input id="mkFor" placeholder="e.g. Calisthenics social ticket" autocomplete="off">
         <p class="msg" id="mkMsg"></p>
-        <button class="btn" type="button" data-act="mk-ask">Ask on Instagram</button>
+        <div id="mkConf"></div>
+        <button class="btn" type="button" data-act="mk-ask" id="mkAskBtn">Ask on Instagram</button>
         <div class="grid2" style="margin-top:8px"><button class="ghost" type="button" data-act="mk-paid">Already paid · log it</button><button class="ghost" type="button" data-act="mk-call" id="mkCall">Call Майкл</button></div>
       </div>
       <div id="mkPend"></div>
@@ -685,7 +692,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.5.2 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.5.3 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1186,6 +1193,12 @@ function mkClear(){$('#mkAmt').value='';$('#mkFor').value='';$('#mkD').value=tod
 function mkAct(a,b){
   if(a==='mk-ask'){const f=mkForm();if(!f)return true;const ig=(mkS().ig||'').replace(/^@/,'').trim();
     if(!ig){$('#mkMsg').textContent='Add Майкл\'s Instagram username in Fund settings first.';$('#mkSetBox').open=true;$('#mkSetBox').scrollIntoView({behavior:'smooth',block:'start'});return true}
+    // confirmation step: show the exact message and who it goes to before leaving the app
+    $('#mkConf').innerHTML=`<div class="mkconf"><b>Send this to @${esc(ig)}?</b><p>${esc(mkText(f.amt,f.what))}</p><p class="small muted" style="margin-top:6px">It'll be copied, then Instagram opens. Paste and send.</p><div class="grid2" style="margin-top:10px"><button class="ghost" type="button" data-act="mk-no">Cancel</button><button class="btn" type="button" data-act="mk-go" style="margin:0">Open chat</button></div></div>`;
+    $('#mkAskBtn').hidden=true;return true}
+  if(a==='mk-no'){$('#mkConf').innerHTML='';$('#mkAskBtn').hidden=false;return true}
+  if(a==='mk-go'){const f=mkForm();if(!f){$('#mkConf').innerHTML='';$('#mkAskBtn').hidden=false;return true}const ig=(mkS().ig||'').replace(/^@/,'').trim();
+    $('#mkConf').innerHTML='';$('#mkAskBtn').hidden=false;
     const txt=mkText(f.amt,f.what);try{navigator.clipboard&&navigator.clipboard.writeText(txt)}catch(e){}
     window.open('https://ig.me/m/'+encodeURIComponent(ig),'_blank');
     S.mk.push({id:newId(),d:f.d,amt:f.amt,k:'req',note:f.what,u:Date.now()});mkClear();commit();toast('Message copied · paste it in Instagram');return true}
@@ -3229,6 +3242,7 @@ setTimeout(checkUpdate,3000);
 $('#expDate').value=today();
 resetForm();$('#evDate').value=today();fillRem('');snapNow();renderAll();show();
 $('#evTime').addEventListener('input',()=>fillRem($('#evRem').value));
+['#mkAmt','#mkFor'].forEach(x=>{const el=$(x);if(el)el.addEventListener('input',()=>{if($('#mkConf').innerHTML){$('#mkConf').innerHTML='';$('#mkAskBtn').hidden=false}})});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 </script>
