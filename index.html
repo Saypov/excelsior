@@ -476,7 +476,8 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <form data-form="invkey">
         <label for="invKey">Financial Modeling Prep key</label><input id="invKey" autocomplete="off" autocapitalize="off" placeholder="leave empty to keep current">
         <label for="avKey">Alpha Vantage key</label><input id="avKey" autocomplete="off" autocapitalize="off" placeholder="leave empty to keep current">
-        <button class="btn" type="submit">Save keys</button></form>
+        <button class="btn" type="submit">Save keys</button>
+        <button class="ghost" type="button" data-act="inv-keys-cancel" id="invKeyCancel" style="width:100%;margin-top:8px">Cancel</button></form>
       <p class="msg" id="invKeyMsg"></p>
     </div>
 
@@ -694,7 +695,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.6.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.6.2 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1703,6 +1704,8 @@ function renderInvest(){
   document.querySelectorAll('[data-act=inv-ccy]').forEach(b=>b.classList.toggle('on',b.dataset.v===invCcy()));
   $('#invKeyCard').hidden=!showKeys&&(!!(fmpKey||avKey)||!keyLoaded&&!!uid);
   if(!uid){$('#invKeyCard').hidden=false;$('#invKeyMsg').textContent='Sign in first (Settings → Account & sync), so your key is stored safely.'}
+  else if(/^Sign in first/.test($('#invKeyMsg').textContent))$('#invKeyMsg').textContent=''; // clear the stale message once signed in
+  $('#invKeyCancel').hidden=!(fmpKey||avKey);
   const hs=(S.holdings||[]).slice().sort((a,b)=>(b.qty>0)-(a.qty>0)||a.sym.localeCompare(b.sym));
   // forecast by pay month
   const months=[];const d0=new Date();d0.setDate(1);for(let i=0;i<12;i++){const d=new Date(d0);d.setMonth(d0.getMonth()+i);months.push(iso(d).slice(0,7))}
@@ -3074,6 +3077,7 @@ document.addEventListener('click',e=>{
   else if(a==='sp-ccy'){S.spCcy=b.dataset.v;commit();if(S.spCcy==='USD')spEnsureFx()}
   else if(a==='inv-refresh'){refreshInv(true)}
   else if(a==='inv-keys'){showKeys=!showKeys;renderInvest()}
+  else if(a==='inv-keys-cancel'){showKeys=false;$('#invKey').value='';$('#avKey').value='';if(!/^Sign in first/.test($('#invKeyMsg').textContent))$('#invKeyMsg').textContent='';renderInvest()}
   else if(a==='del-hold'){removeWith('holdings',id,'Stock')}
   else if(a==='calc-add'){const sym=b.dataset.sym,q=+b.dataset.qty;S.holdings=S.holdings||[];const h=S.holdings.find(x=>x.sym===sym);if(h)h.qty=q;else S.holdings.push({id:newId(),sym,qty:q,cost:null});commit();toast(sym+' added to holdings')}
   else if(a==='pot-adj'){$('#potForm').hidden=!$('#potForm').hidden}
@@ -3188,7 +3192,7 @@ document.addEventListener('submit',e=>{
     $('#potAmt').value='';$('#potNote').value='';$('#potForm').hidden=true;commit();toast('Savings pot updated');
   }
   else if(k==='invkey'){
-    const v=$('#invKey').value.trim(),a2=$('#avKey').value.trim();if(!v&&!a2)return;
+    const v=$('#invKey').value.trim(),a2=$('#avKey').value.trim();if(!v&&!a2){if(fmpKey||avKey){showKeys=false;renderInvest();toast('Keys unchanged')}else $('#invKeyMsg').textContent='Paste at least one key.';return}
     if(!uid||!cloud||!cloud.setSecret){$('#invKeyMsg').textContent='Sign in first (Settings → Account & sync).';return}
     $('#invKeyMsg').textContent='Saving…';const upd={};if(v)upd.fmp=v;if(a2)upd.av=a2;
     cloud.setSecret(uid,upd).then(()=>{if(v)fmpKey=v;if(a2)avKey=a2;keyLoaded=true;showKeys=false;$('#invKey').value='';$('#avKey').value='';$('#invKeyMsg').textContent='';toast('Keys saved');refreshInv(true)}).catch(()=>{$('#invKeyMsg').textContent='Couldn\'t save. Try again.'});
