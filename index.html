@@ -521,12 +521,15 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div><label for="evTime">Start (optional)</label><input type="time" id="evTime"></div>
       </div>
       <div class="grid2"><div></div><div><label for="evEnd">End (optional)</label><input type="time" id="evEnd"></div></div>
+      <label style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:12px"><input type="checkbox" id="evRep" style="width:22px;min-height:22px;height:22px;flex:none"> Recurring (repeats every week)</label>
+      <p class="small muted" id="evRepHint" hidden style="margin:4px 0 0">Changes apply from this week on. Earlier weeks stay as they are. Untick to stop it after this week.</p>
       <label for="evRem">Reminder</label><select id="evRem"></select>
       <label>Type</label><div class="chips" id="evCats"></div>
       <label for="evNote">Notes (place, link, details)</label><input id="evNote" autocomplete="off">
       <p class="msg" id="evMsg"></p>
       <button class="btn" type="submit" id="evSave">Add event</button>
       <button type="button" class="link" id="evCancel" data-act="ev-cancel" hidden>Cancel editing</button>
+      <button type="button" class="link" id="evDelAll" data-act="ev-delall" hidden style="color:#d92d20">Delete all weeks</button>
     </form>
     <details class="card" style="margin-bottom:20px"><summary>Past events</summary><div id="evPast"></div></details>
   </div>
@@ -621,7 +624,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.3.2 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.4.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -929,7 +932,7 @@ function renderToday(){
   S.plans.forEach(p=>{const i=planInfo(p);if(i.dl<=60&&i.left>0)up.push({dl:i.dl,h:`<span><b>${esc(p.name)}</b><br><span class="small muted">${short(p.d)} · ${money(i.left)} still to save</span></span><span class="tag${i.dl<0?' hot':''}">${when(i.dl)}</span>`})});
   S.debts.forEach(d=>{const i=debtInfo(d);if(!i.done&&i.dl!=null&&i.dl<=30)up.push({dl:i.dl,h:`<span><b>${d.dir==='owe'?'Pay back '+esc(d.who):esc(d.who)+' pays you'}</b><br><span class="small muted">${money(i.left)} left · by ${short(d.due)}</span></span><span class="tag${i.dl<0?' hot':''}">${when(i.dl)}</span>`})});
   const nowMs=Date.now();
-  (S.events||[]).forEach(e=>{const n=days(today(),e.d);if(n<0||n>7||e.done)return;const dlc=e.cat==='academic'||e.cat==='work';let tag=`<span class="tag${n<=1&&dlc?' hot':''}">${when(n)}</span>`,k=n;
+  evOccs(today(),addDays(today(),7)).forEach(e=>{const n=days(today(),e.d);if(n<0||n>7||e.done)return;const dlc=e.cat==='academic'||e.cat==='work';let tag=`<span class="tag${n<=1&&dlc?' hot':''}">${when(n)}</span>`,k=n;
     if(e.time){const st=evMs(e.d,e.time),en=e.end&&e.end>e.time?evMs(e.d,e.end):st+3600e3;k=n+(+e.time.slice(0,2)*60+ +e.time.slice(3,5)+1)/1441;
       const c=evCount(e);if(c&&c.over){if(!dlc)return;tag='<span class="tag urg">passed</span>'}else if(c)tag=`<span class="tag ${c.cls}">${c.txt}</span>`}
     up.push({dl:k,h:`<span style="display:flex;gap:10px"><i style="flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;${evDot(e.cat)}"></i><span><b>${esc(e.title)}</b><br><span class="small muted">${dayLabel(e.d)}${e.time?' · '+e.time+(e.end?'–'+e.end:''):''}</span></span></span>${tag}`})});
@@ -1185,19 +1188,29 @@ let evCat='academic',evEdit=null,evDay='',evView=ym(today());
 const evColor=c=>(EVN[c]||EVN.other)[2];
 const evDot=(c,w)=>c==='class'?`background:#fff;box-shadow:inset 0 0 0 ${w||2.5}px #ef4444`:'background:'+evColor(c);
 const evSort=(a,b)=>a.d.localeCompare(b.d)||(a.time||'99').localeCompare(b.time||'99');
+let evOccD=''; // date of the occurrence being edited (recurring events)
+// expand events into dated occurrences within [from,to]; weekly ones repeat every 7 days until e.until (inclusive), minus skipped weeks
+function evOccs(from,to){const out=[];(S.events||[]).forEach(e=>{
+  if(e.rep!=='w'){if(e.d>=from&&e.d<=to)out.push(e);return}
+  const end=e.until&&e.until<to?e.until:to,sk=new Set(e.skip||[]),dn=new Set(e.dn||[]);let d=e.d;
+  if(d<from){d=addDays(e.d,7*Math.floor(days(e.d,from)/7));if(d<from)d=addDays(d,7)}
+  for(let g=0;d<=end&&g<600;d=addDays(d,7),g++)if(!sk.has(d))out.push(Object.assign({},e,{d,done:dn.has(d),od:e.d}))});
+  return out.sort(evSort)}
+const evFirst=()=>(S.events||[]).reduce((m,e)=>e.d<m?e.d:m,today());
 function dayLabel(d){const n=days(today(),d);return n===0?'Today':n===1?'Tomorrow':n>1&&n<7?pd(d).toLocaleDateString('en-GB',{weekday:'long'}):pd(d).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}
 function evRow(e){
   const n=days(today(),e.d),dl=e.cat==='academic'||e.cat==='work';
   return `<div class="li" style="align-items:flex-start${e.done?';opacity:.5':''}"><span style="display:flex;gap:10px;align-items:flex-start"><i style="flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;${evDot(e.cat)}"></i>
-    <span><b style="${e.done?'text-decoration:line-through':''}">${esc(e.title)}</b><br><span class="small muted">${e.time?e.time+(e.end?'–'+e.end:'')+' · ':''}${(EVN[e.cat]||EVN.other)[1]}${e.note?' · '+esc(e.note):''}</span>
-    <span class="evacts">${dl?`<button class="link" data-act="ev-done" data-id="${e.id}">${e.done?'Undo':'Done'}</button>`:''}<a class="link" href="${gcalUrl(e)}" target="_blank" rel="noopener" style="text-decoration:none">Add to GC</a><button class="link" data-act="ev-edit" data-id="${e.id}">Edit</button><button class="link" data-act="ev-del" data-id="${e.id}">Delete</button></span></span></span>
+    <span><b style="${e.done?'text-decoration:line-through':''}">${esc(e.title)}</b><br><span class="small muted">${e.time?e.time+(e.end?'–'+e.end:'')+' · ':''}${(EVN[e.cat]||EVN.other)[1]}${e.rep==='w'?' · ↻ weekly':''}${e.note?' · '+esc(e.note):''}</span>
+    <span class="evacts">${dl?`<button class="link" data-act="ev-done" data-id="${e.id}" data-d="${e.d}">${e.done?'Undo':'Done'}</button>`:''}<a class="link" href="${gcalUrl(e)}" target="_blank" rel="noopener" style="text-decoration:none">Add to GC</a><button class="link" data-act="ev-edit" data-id="${e.id}" data-d="${e.d}">Edit</button><button class="link" data-act="ev-del" data-id="${e.id}" data-d="${e.d}">Delete</button></span></span></span>
     ${n>=0&&!e.done?(()=>{const c=evCount(e);if(c&&c.over)return dl?'<span class="tag urg">passed</span>':'<span class="tag">ended</span>';if(c)return `<span class="tag ${c.cls}">${c.txt}</span>`;return `<span class="tag${n<=2&&dl?' hot':''}">${n===0?'today':n===1?'tomorrow':'in '+n+'d'}</span>`})():''}</div>`;
 }
 function renderEvents(){
   if(!$('#v-events'))return;
-  const ev=(S.events||[]).slice().sort(evSort),t=today();
+  const t=today();
   // month grid
   const [y,m]=evView.split('-').map(Number),first=new Date(y,m-1,1),off=(first.getDay()+6)%7,dim=daysIn(evView);
+  const ev=evOccs(evView+'-01',evView+'-'+pad(dim));
   $('#evMonth').textContent=first.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
   const byDay={};ev.forEach(e=>{(byDay[e.d]=byDay[e.d]||[]).push(e)});
   let g='MTWTFSS'.split('').map(x=>`<span class="cal-h">${x}</span>`).join('')+'<span></span>'.repeat(off);
@@ -1207,24 +1220,26 @@ function renderEvents(){
   $('#evLegend').innerHTML=EVC.map(c=>`<span class="small muted" style="display:inline-flex;align-items:center;gap:5px;margin-right:6px"><i style="width:9px;height:9px;border-radius:50%;${evDot(c[0])}"></i>${c[1]}</span>`).join('');
   // list
   let list,title;
-  if(evDay){list=byDay[evDay]||[];title=dayLabel(evDay)}
-  else{list=ev.filter(e=>e.d>=t&&e.d<=addDays(t,60));title='Coming up'}
+  if(evDay){list=evOccs(evDay,evDay);title=dayLabel(evDay)}
+  else{list=evOccs(t,addDays(t,60));title='Coming up'}
   $('#evListTitle').textContent=title;$('#evAll').hidden=!evDay;
   let h='',cur='';
   list.forEach(e=>{if(!evDay&&e.d!==cur){cur=e.d;h+=`<p class="small muted" style="margin:12px 0 2px;font-weight:600">${dayLabel(e.d)}</p>`}h+=evRow(e)});
   $('#evList').innerHTML=h||`<div class="empty">${evDay?'Nothing on this day. Add something below.':'Nothing in the next 60 days. Add your deadlines, events and meetings below.'}</div>`;
-  const past=ev.filter(e=>e.d<t).reverse().slice(0,40);
+  const past=evOccs(evFirst(),addDays(t,-1)).reverse().slice(0,40);
   $('#evPast').innerHTML=past.length?past.map(e=>`<p class="small muted" style="margin:10px 0 0">${short(e.d)}</p>`+evRow(e)).join(''):'<p class="small muted" style="padding:8px 0">No past events yet.</p>';
   $('#evCats').innerHTML=EVC.map(c=>`<button type="button" data-act="ev-cat" data-v="${c[0]}" class="${evCat===c[0]?'on':''}">${c[1]}</button>`).join('');
   $('#evFormTitle').textContent=evEdit?'Edit event':'Add an event';$('#evSave').textContent=evEdit?'Save changes':'Add event';$('#evCancel').hidden=!evEdit;
+  {const oe=evEdit&&(S.events||[]).find(x=>x.id===evEdit),rp=!!(oe&&oe.rep==='w');$('#evRepHint').hidden=!rp;$('#evDelAll').hidden=!rp}
 }
 function gcalUrl(e){const D=x=>x.replace(/-/g,'');let dates;
   if(e.time&&e.end&&e.end>e.time)dates=D(e.d)+'T'+e.time.replace(':','')+'00/'+D(e.d)+'T'+e.end.replace(':','')+'00';
   else if(e.time){const [h,m]=e.time.split(':').map(Number),eh=h+1,end=eh>=24?addDays(e.d,1)+'T'+String(eh-24).padStart(2,'0'):e.d+'T'+String(eh).padStart(2,'0');dates=D(e.d)+'T'+e.time.replace(':','')+'00/'+D(end.split('T')[0])+'T'+end.split('T')[1]+String(m).padStart(2,'0')+'00'}
   else dates=D(e.d)+'/'+D(addDays(e.d,1));
   const q=new URLSearchParams({action:'TEMPLATE',text:e.title,dates,ctz:'Europe/London'});if(e.note)q.set('details',e.note);
+  if(e.rep==='w')q.set('recur','RRULE:FREQ=WEEKLY'+(e.until?';UNTIL='+D(e.until)+'T235959Z':''));
   return 'https://calendar.google.com/calendar/render?'+q.toString()}
-function evReset(){evEdit=null;evCat='academic';['#evTitle','#evTime','#evEnd','#evNote'].forEach(x=>$(x).value='');$('#evDate').value=evDay||today();$('#evMsg').textContent='';fillRem('');renderEvents()}
+function evReset(){evEdit=null;evOccD='';$('#evRep').checked=false;evCat='academic';['#evTitle','#evTime','#evEnd','#evNote'].forEach(x=>$(x).value='');$('#evDate').value=evDay||today();$('#evMsg').textContent='';fillRem('');renderEvents()}
 const REM_T=[['none','No reminder'],['0','At start time'],['15','15 min before'],['30','30 min before'],['60','1 hour before'],['1440','1 day before'],['60+1440','1 day + 1 hour before']],REM_D=[['none','No reminder'],['am','On the day, 9:00'],['pm','Day before, 18:00'],['am+pm','Day before + on the day']];
 function fillRem(v){const sel=$('#evRem');if(!sel)return;const timed=!!$('#evTime').value,opts=timed?REM_T:REM_D;if(!v||!opts.some(o=>o[0]===v))v=timed?'60':'am';sel.innerHTML=opts.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');sel.value=v}
 function icsFor(e){
@@ -1233,7 +1248,7 @@ function icsFor(e){
   let start,end,alarm;
   if(e.time){const tm=e.time.replace(':','')+'00';start='DTSTART:'+dt+'T'+tm;const d2=new Date(e.d+'T'+e.time);d2.setHours(d2.getHours()+1);end='DTEND:'+iso(d2).replace(/-/g,'')+'T'+pad(d2.getHours())+pad(d2.getMinutes())+'00';alarm='-PT1H'}
   else{start='DTSTART;VALUE=DATE:'+dt;end='DTEND;VALUE=DATE:'+addDays(e.d,1).replace(/-/g,'');alarm='-PT15H'}
-  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Excelsior//EN','BEGIN:VEVENT','UID:'+e.id+'@excelsior','DTSTAMP:'+st,start,end,'SUMMARY:'+z(e.title),e.note?'DESCRIPTION:'+z(e.note):'','BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+z(e.title),'TRIGGER:'+alarm,'END:VALARM','END:VEVENT','END:VCALENDAR'].filter(Boolean).join('\r\n');
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Excelsior//EN','BEGIN:VEVENT','UID:'+e.id+'@excelsior','DTSTAMP:'+st,start,end,'SUMMARY:'+z(e.title),e.rep==='w'?'RRULE:FREQ=WEEKLY'+(e.until?';UNTIL='+e.until.replace(/-/g,'')+'T235959Z':''):'',e.note?'DESCRIPTION:'+z(e.note):'','BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+z(e.title),'TRIGGER:'+alarm,'END:VALARM','END:VEVENT','END:VCALENDAR'].filter(Boolean).join('\r\n');
 }
 
 /* ---------- Lingue: Write mode (type the word, scored by spelling) ---------- */
@@ -2863,7 +2878,7 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act,id=b.dataset.id,i=+b.dataset.i;
   if(finAct(a,b))return;
-  if(/^del-|^ev-del$/.test(a)&&b.dataset.armed!=='1'){ // two-tap delete: first tap asks, second tap deletes
+  if(/^del-|^ev-del/.test(a)&&b.dataset.armed!=='1'){ // two-tap delete: first tap asks, second tap deletes
     disarmAll();
     b.dataset.orig=b.innerHTML;b.dataset.armed='1';armAt=Date.now();armY=scrollY;b.innerHTML=b.textContent.trim()==='×'?'Delete?':'Sure? Tap again';b.classList.add('armed');
     clearTimeout(b._t);b._t=setTimeout(()=>disarm(b),4000);return}
@@ -2915,9 +2930,10 @@ document.addEventListener('click',e=>{
   else if(a==='ev-day'){evDay=b.dataset.v===evDay?'':b.dataset.v;if(!evEdit)$('#evDate').value=evDay||today();renderEvents()}
   else if(a==='ev-cat'){evCat=b.dataset.v;renderEvents()}
   else if(a==='ev-cancel'){evReset()}
-  else if(a==='ev-done'){const e=(S.events||[]).find(x=>x.id===id);if(e){e.done=!e.done;commit();if(e.done)toast('Nice, done')}}
-  else if(a==='ev-del'){if(evEdit===id)evReset();removeWith('events',id,'Event')}
-  else if(a==='ev-edit'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;evEdit=id;evCat=e.cat;$('#evTitle').value=e.title;$('#evDate').value=e.d;$('#evTime').value=e.time||'';$('#evEnd').value=e.end||'';$('#evNote').value=e.note||'';fillRem(e.rem||'');renderEvents();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();const ef=$('#evTitle').closest('form')||$('#evTitle');ef.scrollIntoView({block:'start',behavior:'smooth'})}
+  else if(a==='ev-done'){const e=(S.events||[]).find(x=>x.id===id);if(e){let on;if(e.rep==='w'){const d=b.dataset.d,dn=new Set(e.dn||[]);on=!dn.has(d);on?dn.add(d):dn.delete(d);e.dn=[...dn]}else on=e.done=!e.done;e.u=Date.now();commit();if(on)toast('Nice, done')}}
+  else if(a==='ev-del'){const e=(S.events||[]).find(x=>x.id===id);if(e&&e.rep==='w'){const d=b.dataset.d;if(evEdit===id)evReset();e.skip=[...new Set([...(e.skip||[]),d])];e.u=Date.now();commit();toast('Removed this week',()=>{e.skip=(e.skip||[]).filter(x=>x!==d);e.u=Date.now();commit()})}else{if(evEdit===id)evReset();removeWith('events',id,'Event')}}
+  else if(a==='ev-delall'){const x=evEdit;if(!x)return;evReset();removeWith('events',x,'Recurring event')}
+  else if(a==='ev-edit'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;evEdit=id;evOccD=b.dataset.d||e.d;evCat=e.cat;$('#evTitle').value=e.title;$('#evDate').value=evOccD;$('#evRep').checked=e.rep==='w';$('#evTime').value=e.time||'';$('#evEnd').value=e.end||'';$('#evNote').value=e.note||'';fillRem(e.rem||'');renderEvents();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();const ef=$('#evTitle').closest('form')||$('#evTitle');ef.scrollIntoView({block:'start',behavior:'smooth'})}
   else if(a==='ev-ics'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;const l=document.createElement('a');l.href='data:text/calendar;charset=utf-8,'+encodeURIComponent(icsFor(e));l.download=(e.title.replace(/[^a-z0-9]+/gi,'-').slice(0,40)||'event')+'.ics';document.body.appendChild(l);l.click();l.remove()}
   else if(a==='inv-ccy'){S.invCcy=b.dataset.v;commit()}
   else if(a==='inv-refresh'){refreshInv(true)}
@@ -3053,8 +3069,15 @@ document.addEventListener('submit',e=>{
     const title=$('#evTitle').value.trim(),d=$('#evDate').value;
     if(!title||!d){$('#evMsg').textContent='Add a title and a date.';return}
     if($('#evTime').value&&$('#evEnd').value&&$('#evEnd').value<=$('#evTime').value){$('#evMsg').textContent='End time must be after the start.';return}
-    S.events=S.events||[];const o={id:evEdit||newId(),title,d,time:$('#evTime').value||'',end:$('#evTime').value&&$('#evEnd').value?$('#evEnd').value:'',cat:evCat,note:$('#evNote').value.trim(),done:false,rem:$('#evRem').value,u:Date.now()};
-    if(evEdit){const i=S.events.findIndex(x=>x.id===evEdit);if(i>=0){o.done=S.events[i].done;S.events[i]=o}else S.events.push(o)}else S.events.push(o);
+    S.events=S.events||[];const rp=$('#evRep').checked,o={id:evEdit||newId(),title,d,time:$('#evTime').value||'',end:$('#evTime').value&&$('#evEnd').value?$('#evEnd').value:'',cat:evCat,note:$('#evNote').value.trim(),done:false,rem:$('#evRem').value,u:Date.now()};if(rp)o.rep='w';
+    const i=evEdit?S.events.findIndex(x=>x.id===evEdit):-1,old=i>=0?S.events[i]:null;
+    if(old&&old.rep==='w'&&evOccD&&evOccD>old.d){ // edit from a later week: earlier weeks keep the old version, this week onwards gets the new one
+      const same=['title','time','end','cat','note','rem'].every(f=>(old[f]||'')===(o[f]||''))&&d===evOccD&&rp;
+      if(!same){const ou=old.until;old.until=addDays(evOccD,-7);old.u=o.u;o.id=newId();
+        if(rp){if(ou&&ou>=d)o.until=ou;o.dn=(old.dn||[]).filter(x=>x>=evOccD);o.skip=(old.skip||[]).filter(x=>x>=evOccD)}else o.done=(old.dn||[]).includes(evOccD);
+        S.events.push(o)}}
+    else if(old){if(old.rep==='w'){if(rp){if(old.until)o.until=old.until;o.dn=old.dn||[];o.skip=old.skip||[]}else o.done=(old.dn||[]).includes(evOccD||old.d)}else o.done=old.done;S.events[i]=o}
+    else S.events.push(o);
     const was=!!evEdit;evView=d.slice(0,7);evReset();commit();toast(was?'Event updated':'Event added');
   }
   else if(k==='write'){checkWrite()}

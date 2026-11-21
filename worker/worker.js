@@ -163,6 +163,18 @@ export function zoned(dateStr, timeStr, tz) {
   return t;
 }
 const addDays = (s, n) => { const d = new Date(s + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+// weekly recurring events (rep 'w') repeat every 7 days from e.d until e.until (inclusive), minus e.skip; e.dn = weeks marked done.
+// Only occurrences near now matter (reminders are at most a day before), so expand a few days either side.
+function occurrences(list, now) {
+  const from = new Date(now - 3 * 864e5).toISOString().slice(0, 10), to = new Date(now + 3 * 864e5).toISOString().slice(0, 10), out = [];
+  for (const e of list) {
+    if (!e || e.rep !== 'w' || !e.d) { out.push(e); continue; }
+    const sk = new Set(e.skip || []), dn = new Set(e.dn || []);
+    for (let d = e.d, g = 0; d <= to && (!e.until || d <= e.until) && g < 2000; d = addDays(d, 7), g++)
+      if (d >= from && !sk.has(d) && !dn.has(d)) out.push({ ...e, d, done: false });
+  }
+  return out;
+}
 const CAT = { class: 'Class', academic: 'Academic', work: 'Jobs & careers', meeting: 'Meeting', social: 'Social', other: 'Other' };
 const lead = m => m === 0 ? 'Now' : m < 60 ? `In ${m} min` : m === 60 ? 'In 1 hour' : m === 1440 ? 'Tomorrow' : `In ${Math.round(m / 60)} hours`;
 export function remindersFor(e, tz) {
@@ -197,7 +209,7 @@ export async function runReminders(env, now = Date.now()) {
     const tz = (subs.find(([, s]) => s.tz) || [, {}])[1].tz || 'Europe/London';
     const del = st.del || {}, sent = (lg && lg.sent) || {};
     const due = [];
-    for (const e of (st.events || [])) {
+    for (const e of occurrences(st.events || [], now)) {
       if (!e || !e.id || !e.d || e.done || del[e.id]) continue;
       for (const r of remindersFor(e, tz)) if (r.at <= now && r.at > now - WINDOW_MIN * 60000 && !sent[r.key]) due.push(r);
     }
