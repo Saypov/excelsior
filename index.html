@@ -121,7 +121,7 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 .subtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:16px 0 4px}
 .subtabs button{background:var(--soft);font-weight:500;font-size:14px;padding:0 6px}
 .subtabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.subtabs .mkbtn,.subtabs .mkbtn.on{border:1.5px solid #7c5cff}
+.subtabs .mkbtn,.subtabs .mkbtn.on,[data-skin] .subtabs button.mkbtn,[data-skin] .subtabs button.mkbtn.on{border:1.5px solid #7c5cff}
 .subtabs .mkbtn{grid-column:1/-1;justify-self:center;width:68px;height:68px;min-height:68px;border-radius:50%;padding:0;margin-top:4px;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:16px;transition:background .2s,color .2s,transform .15s}
 .subtabs .mkbtn:active{transform:scale(.94)}
 .mkt{font-family:Sora,Inter,sans-serif;margin:18px 0 2px;font-size:26px;line-height:1.2}
@@ -130,6 +130,7 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 #mkSetBox summary{gap:8px}#mkSetBox summary::-webkit-details-marker{display:none}#mkSetBox summary svg{width:18px;height:18px;flex:none;transition:transform .3s}
 #mkSetBox[open] summary svg{transform:rotate(60deg)}
 #mkSetBox:not([open]){width:fit-content;margin:4px auto 20px;padding:0 18px;border-radius:999px}
+#mkBarBox .bar{background:var(--line)}
 #s-mk .kv{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .cat{margin:8px 0}.cat .row{font-size:14px}
 .empty{padding:18px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);text-align:center;font-size:15px}
@@ -413,6 +414,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <div class="card" style="margin-top:12px">
         <div class="row"><span class="muted small">With Майкл</span><span id="mkWarn"></span></div>
         <div class="big" style="font-size:44px" id="mkBal">£0</div>
+        <div id="mkBarBox"></div>
         <p class="small muted" id="mkSub"></p>
         <div id="mkLimBox"></div>
       </div>
@@ -683,7 +685,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.5.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.5.2 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1159,6 +1161,9 @@ let mkFilled=false;
 function renderMk(){if(!$('#s-mk'))return;S.mk=S.mk||[];const st=mkS(),i=mkInfo();
   $('#mkBal').textContent=(i.bal<0?'−':'')+money(Math.abs(i.bal));$('#mkBal').className='big '+(i.bal<0?'neg':'');
   $('#mkSub').textContent=money(i.inn)+' given · '+money(i.out)+' paid out'+(i.pend?' · '+money(i.pend)+' asked, not paid yet':'');
+  {const pct=i.inn>0?Math.max(0,Math.min(100,i.bal/i.inn*100)):0,hot=i.inn>0&&(i.bal<=0||(+st.low&&i.bal<+st.low));
+    $('#mkBarBox').innerHTML=i.inn>0?`<div class="bar${hot?' hot':''}" style="margin:2px 0 8px"><i style="width:${pct}%;transition:width .5s ease"></i></div>`:'';
+    if(i.inn>0)$('#mkSub').textContent=Math.round(pct)+'% left · '+$('#mkSub').textContent}
   const low=+st.low||0;$('#mkWarn').innerHTML=i.bal<=0&&i.inn?'<span class="tag hot">Empty</span>':low&&i.bal<low?'<span class="tag hot">Running low</span>':'';
   if(+st.lim>0){const pct=Math.min(100,i.month/st.lim*100),over=i.month>st.lim;
     $('#mkLimBox').innerHTML=`<div class="row small" style="margin-top:6px"><span class="muted">This month</span><span class="muted">${money(i.month)} of ${money(+st.lim)}${over?' · over':''}</span></div><div class="bar${over?' hot':''}"><i style="width:${pct}%"></i></div>`}
