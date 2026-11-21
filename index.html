@@ -695,7 +695,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.6.3 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.6.4 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1113,7 +1113,7 @@ function saveWo(){
 let sub='spend',expCat='food';
 let editExp=null;
 function expEditHtml(e){return `<li class="li" style="display:block"><form data-form="expedit" data-id="${e.id}" style="padding:6px 0">
-  <div class="grid2"><div><label for="eeAmt">Amount (${spUSD()?'$':'£'})</label><input id="eeAmt" inputmode="decimal" value="${spUSD()?(e.usd||r2s(e.amt*fxRate())):e.amt}" autocomplete="off"></div><div><label for="eeD">Date</label><input type="date" id="eeD" value="${e.d}"></div></div>
+  <div class="grid2"><div><label for="eeAmt">Amount (${spUSD()?'$':'£'})</label><input id="eeAmt" inputmode="decimal" value="${spUSD()?eUSD(e):e.amt}" autocomplete="off"></div><div><label for="eeD">Date</label><input type="date" id="eeD" value="${e.d}"></div></div>
   <label for="eeCat">Category</label><select id="eeCat">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>
   <label for="eeNote">Note</label><input id="eeNote" value="${esc(e.note||'')}" autocomplete="off">
   <label style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:12px"><input type="checkbox" id="eePot" ${e.fromPot?'checked':''} style="width:22px;min-height:22px;height:22px;flex:none"> Paid from savings pot</label>
@@ -1126,8 +1126,15 @@ const r2s=n=>Math.round(n*100)/100;
 const usdF=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
 const sm=n=>spUSD()?usdF.format(r2s((n||0)*fxRate())).replace(/\.00$/,''):money(n);
 const toGBP=n=>spUSD()?r2s(n/fxRate()):n;
+// v5.6.4: each expense keeps the GBP/USD rate of the day it was logged (e.fx, USD per GBP), so its $ value never moves.
+// Remainders (left today/this month, budget, pot) are converted at today's rate.
+const eUSD=e=>e.usd!=null?e.usd:r2s(e.amt*(e.fx||fxRate()||0));
+const smE=e=>spUSD()?usdF.format(eUSD(e)).replace(/\.00$/,''):money(e.amt);
+const smSum=(L)=>spUSD()?usdF.format(r2s(sum(L,eUSD))).replace(/\.00$/,''):money(sum(L,e=>e.amt));
+function fxStamp(){const r=fxRate();if(!r||!S.invFx||Date.now()-S.invFx.t>26*3600e3)return false;let ch=false;
+  (S.expenses||[]).forEach(e=>{if(e.fx)return;e.fx=e.usd!=null&&e.amt?r2s(e.usd/e.amt*1e4)/1e4:r;e.u=Date.now();ch=true});return ch}
 async function spEnsureFx(force){if(spFxBusy)return;const st=!S.invFx||Date.now()-S.invFx.t>20*3600e3;if(!st&&!force)return;if(!force&&Date.now()-spFxTry<6e5)return;spFxTry=Date.now();spFxBusy=true;renderMoney();
-  try{await ensureKey();await loadFx();commit()}catch(e){if(!S.invFx){S.spCcy='GBP';commit();toast('Couldn\'t get the GBP/USD rate. Check your API key in Invest.')}}
+  try{await ensureKey();await loadFx();commit()}catch(e){if(!S.invFx&&S.spCcy==='USD'){S.spCcy='GBP';commit();toast('Couldn\'t get the GBP/USD rate. Check your API key in Invest.')}}
   spFxBusy=false;renderMoney()}
 function renderMoney(){
   document.querySelectorAll('.subtabs [data-act=sub]').forEach(b=>{b.classList.toggle('on',b.dataset.v===sub);b.setAttribute('aria-selected',b.dataset.v===sub)});
@@ -1138,7 +1145,7 @@ function renderMoney(){
   if(S.spCcy==='USD'&&sub==='spend')setTimeout(()=>spEnsureFx(),0);
   const m=ym(today()),spent=monthSpent(m);
   $('#monLbl').textContent='Spent in '+new Date().toLocaleDateString('en-GB',{month:'long'});
-  $('#monSpent').textContent=sm(spent);
+  $('#monSpent').textContent=smSum(S.expenses.filter(e=>!e.fromPot&&ym(e.d)===m));
   const BB=budgetFor(m),left=BB-spent;
   $('#monLeft').textContent=left>=0?sm(left)+' of budget left':sm(-left)+' over budget';
   $('#monBar').style.width=Math.min(100,BB?spent/BB*100:0)+'%';
@@ -1151,10 +1158,10 @@ function renderMoney(){
   if(document.activeElement!==$('#budget'))$('#budget').value=spUSD()?Math.round(BB*fxRate()):BB;
   $('#cats').innerHTML=CATS.map(c=>`<button type="button" data-act="cat" data-v="${c[0]}" class="${expCat===c[0]?'on':''}">${c[1]}</button>`).join('');
   const mon=S.expenses.filter(e=>ym(e.d)===m).sort((a,b)=>b.d.localeCompare(a.d)||(b.t||0)-(a.t||0));
-  const by={};mon.forEach(e=>by[e.cat]=(by[e.cat]||0)+e.amt);
+  const by={},byL={};mon.forEach(e=>{by[e.cat]=(by[e.cat]||0)+e.amt;(byL[e.cat]=byL[e.cat]||[]).push(e)});
   const ks=Object.keys(by).sort((a,b)=>by[b]-by[a]);
-  $('#catBars').innerHTML=ks.length?ks.map(k=>`<div class="cat"><div class="row"><span>${CATN[k]||'Other'}</span><span class="amt">${sm(by[k])}</span></div><div class="bar"><i style="width:${by[k]/spent*100}%"></i></div></div>`).join(''):'<div class="empty">Add an expense to see where your money goes.</div>';
-  $('#expList').innerHTML=mon.length?mon.map(e=>e.id===editExp?expEditHtml(e):`<li class="li exprow"><b class="en">${esc(e.note||CATN[e.cat])}</b><span class="amt">${sm(e.amt)}</span><span class="em small muted">${e.fromPot?'<span class="tag">From pot</span> ':''}${e.auto?`<span class="tag">Apple Pay</span> <select data-catfor="${e.id}" aria-label="Category" style="width:auto;min-height:32px;padding:2px 24px 2px 8px;font-size:13px;display:inline-block;background-position:right 7px center;background-size:11px">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>`:(CATN[e.cat]||'Other')}<span style="white-space:nowrap">· ${short(e.d)}</span></span><span class="ea"><button class="x" data-act="edit-exp" data-id="${e.id}" aria-label="Edit expense" style="font-size:15px">✎</button><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
+  $('#catBars').innerHTML=ks.length?ks.map(k=>`<div class="cat"><div class="row"><span>${CATN[k]||'Other'}</span><span class="amt">${smSum(byL[k])}</span></div><div class="bar"><i style="width:${by[k]/spent*100}%"></i></div></div>`).join(''):'<div class="empty">Add an expense to see where your money goes.</div>';
+  $('#expList').innerHTML=mon.length?mon.map(e=>e.id===editExp?expEditHtml(e):`<li class="li exprow"><b class="en">${esc(e.note||CATN[e.cat])}</b><span class="amt">${smE(e)}</span><span class="em small muted">${e.fromPot?'<span class="tag">From pot</span> ':''}${e.auto?`<span class="tag">Apple Pay</span> <select data-catfor="${e.id}" aria-label="Category" style="width:auto;min-height:32px;padding:2px 24px 2px 8px;font-size:13px;display:inline-block;background-position:right 7px center;background-size:11px">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>`:(CATN[e.cat]||'Other')}<span style="white-space:nowrap">· ${short(e.d)}</span></span><span class="ea"><button class="x" data-act="edit-exp" data-id="${e.id}" aria-label="Edit expense" style="font-size:15px">✎</button><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
   const ps=S.plans.slice().sort((a,b)=>a.d.localeCompare(b.d));
   $('#planList').innerHTML=ps.length?ps.map(p=>{const i=planInfo(p);const full=i.left<=0.004;return `<div class="card${full&&i.dl<0?' done':''}">
     <div class="row"><b>${esc(p.name)}</b><span class="amt">${money(p.amt)}</span></div>
@@ -3003,7 +3010,7 @@ function show(){if(location.hash==='#invest'){sub='invest';renderMoney();setTime
   document.querySelectorAll('.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab===v));
   window.scrollTo(0,0);
 }
-function renderAll(){if(!S.potStart){S.potStart=ym(today());S.potStartDay=+today().slice(8);S.budgets=S.budgets||{};if(S.budgets[S.potStart]==null)S.budgets[S.potStart]=S.budget}try{const lk=localStorage.getItem('excelsior-dropkey');if(S.dropKey){if(lk!==S.dropKey)localStorage.setItem('excelsior-dropkey',S.dropKey)}else if(lk&&uid){S.dropKey=lk;commit()}}catch(e){}try{const b=$('#payBanner');let sy=null;try{sy=localStorage.getItem('excelsior-synced')}catch(e){}if(b)b.hidden=!(uid&&sy&&!S.dropKey)}catch(e){}try{watchDrop()}catch(e){}try{renderWeight()}catch(e){}renderPay();renderSettings();renderToday();renderFit();renderMoney();renderLang();renderFin();renderInvest();renderEvents()}
+function renderAll(){try{if(fxStamp())setTimeout(commit,0);if(uid&&(!S.invFx||Date.now()-S.invFx.t>20*3600e3))setTimeout(()=>spEnsureFx(),0)}catch(e){}if(!S.potStart){S.potStart=ym(today());S.potStartDay=+today().slice(8);S.budgets=S.budgets||{};if(S.budgets[S.potStart]==null)S.budgets[S.potStart]=S.budget}try{const lk=localStorage.getItem('excelsior-dropkey');if(S.dropKey){if(lk!==S.dropKey)localStorage.setItem('excelsior-dropkey',S.dropKey)}else if(lk&&uid){S.dropKey=lk;commit()}}catch(e){}try{const b=$('#payBanner');let sy=null;try{sy=localStorage.getItem('excelsior-synced')}catch(e){}if(b)b.hidden=!(uid&&sy&&!S.dropKey)}catch(e){}try{watchDrop()}catch(e){}try{renderWeight()}catch(e){}renderPay();renderSettings();renderToday();renderFit();renderMoney();renderLang();renderFin();renderInvest();renderEvents()}
 
 /* ---------- events ---------- */
 function disarm(x){if(x.dataset.armed!=='1')return;x.dataset.armed='';clearTimeout(x._t);x.classList.add('disarming');setTimeout(()=>{x.classList.remove('armed','disarming');x.innerHTML=x.dataset.orig},170)}
@@ -3159,7 +3166,7 @@ document.addEventListener('submit',e=>{
   else if(k==='exp'){
     const amt=num($('#expAmt').value);
     if(!(amt>0)){$('#expMsg').textContent='Enter the amount you spent.';return}
-    const ex={id:newId(),amt:toGBP(amt),cat:expCat,note:$('#expNote').value.trim(),d:$('#expDate').value||today(),t:Date.now()};if($('#expPot').checked)ex.fromPot=true;if(spUSD())ex.usd=r2s(amt);
+    const ex={id:newId(),amt:toGBP(amt),cat:expCat,note:$('#expNote').value.trim(),d:$('#expDate').value||today(),t:Date.now()};if($('#expPot').checked)ex.fromPot=true;if(spUSD())ex.usd=r2s(amt);if(fxRate()&&S.invFx&&Date.now()-S.invFx.t<26*3600e3)ex.fx=fxRate();
     S.expenses.push(ex);$('#expPot').checked=false;
     $('#expAmt').value='';$('#expNote').value='';$('#expDate').value=today();$('#expMsg').textContent='';
     commit();toast('Expense added');
@@ -3225,7 +3232,7 @@ document.addEventListener('submit',e=>{
   else if(k==='expedit'){const x=S.expenses.find(y=>y.id===f.dataset.id);if(!x){editExp=null;renderMoney();return}
     const amt=parseFloat(String($('#eeAmt').value).replace(',','.').replace(/[^0-9.]/g,'')),d=$('#eeD').value;
     if(!(amt>0)){$('#eeMsg').textContent='Enter an amount above £0.';return}if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){$('#eeMsg').textContent='Pick a date.';return}
-    if(spUSD()){const shown=x.usd||r2s(x.amt*fxRate());if(Math.abs(amt-shown)>0.004){x.amt=r2s(amt/fxRate());x.usd=r2s(amt)}}else if(Math.abs(amt-x.amt)>0.004){x.amt=Math.round(amt*100)/100;delete x.usd}x.d=d;x.cat=$('#eeCat').value;x.note=$('#eeNote').value.trim().slice(0,60);x.fromPot=$('#eePot').checked||undefined;if(!x.fromPot)delete x.fromPot;x.u=Date.now();
+    if(spUSD()){const shown=eUSD(x);if(Math.abs(amt-shown)>0.004){x.usd=r2s(amt);x.amt=r2s(amt/(x.fx||fxRate()))}}else if(Math.abs(amt-x.amt)>0.004){x.amt=Math.round(amt*100)/100;delete x.usd}x.d=d;x.cat=$('#eeCat').value;x.note=$('#eeNote').value.trim().slice(0,60);x.fromPot=$('#eePot').checked||undefined;if(!x.fromPot)delete x.fromPot;x.u=Date.now();
     editExp=null;commit();toast('Expense updated')}
   else if(k==='mkin'){const amt=num($('#mkInAmt').value);if(!(amt>0)){$('#mkInMsg').textContent='Add the amount.';return}
     S.mk=S.mk||[];S.mk.push({id:newId(),d:$('#mkInD').value||today(),amt:Math.round(amt*100)/100,k:'in',note:$('#mkInNote').value.trim().slice(0,60),u:Date.now()});
