@@ -700,7 +700,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.6.8 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.7.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1085,10 +1085,13 @@ function renderFit(){
   else{
     if(!names.some(n=>n.toLowerCase()===progEx.toLowerCase()))progEx=names[0];
     const k=progEx.toLowerCase();
-    pts=S.workouts.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(w=>{const e=w.ex.find(x=>x.name.toLowerCase()===k);return e?{d:w.d,v:sum(e.sets),u:e.unit}:null}).filter(Boolean);
+    // v5.7.0: Total (all sets added up) or Best set (highest single set) per session; repeated entries of the same exercise in one workout are combined
+    const pm=S.progMode==='max'?'max':'sum';
+    pts=S.workouts.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(w=>{const es=w.ex.filter(x=>x.name.toLowerCase()===k);if(!es.length)return null;const st=es.flatMap(e=>e.sets.map(Number).filter(n=>isFinite(n)));if(!st.length)return null;return {d:w.d,v:pm==='max'?Math.max(...st):sum(st),u:es[0].unit}}).filter(Boolean);
     const best=Math.max(...pts.map(p=>p.v)),last=pts[pts.length-1];
     $('#progWrap').innerHTML=`<select id="progSel" aria-label="Exercise to chart">${names.map(n=>`<option${n===progEx?' selected':''}>${esc(n)}</option>`).join('')}</select>
-      <p class="small muted" style="margin-top:8px">Total per session · best <b style="color:var(--ink)">${best} ${last.u}</b> · last <b style="color:var(--ink)">${last.v} ${last.u}</b> on ${short(last.d)}</p>
+      <div class="seg" role="group" aria-label="Chart measure" style="margin-top:10px"><button data-act="prog-mode" data-v="sum" class="${pm==='sum'?'on':''}">Total per session</button><button data-act="prog-mode" data-v="max" class="${pm==='max'?'on':''}">Best set</button></div>
+      <p class="small muted" style="margin-top:8px">${pm==='max'?'Best single set per session':'Total per session'} · best <b style="color:var(--ink)">${best} ${last.u}</b> · last <b style="color:var(--ink)">${last.v} ${last.u}</b> on ${short(last.d)}</p>
       ${pts.length>1?'<div class="fig"><svg id="chart" role="img" aria-label="Progress chart"></svg></div>':'<p class="hint">Log it once more to see a trend line.</p>'}`;
     const s=$('#chart');if(s)new ResizeObserver(()=>drawChart(s)).observe(s);
   }
@@ -3086,6 +3089,7 @@ document.addEventListener('click',e=>{
   else if(a==='ev-edit'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;evEdit=id;evOccD=b.dataset.d||e.d;evCat=e.cat;$('#evTitle').value=e.title;$('#evDate').value=evOccD;$('#evRep').checked=e.rep==='w';$('#evTime').value=e.time||'';$('#evEnd').value=e.end||'';$('#evNote').value=e.note||'';fillRem(e.rem||'');renderEvents();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();const ef=$('#evTitle').closest('form')||$('#evTitle');ef.scrollIntoView({block:'start',behavior:'smooth'})}
   else if(a==='ev-ics'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;const l=document.createElement('a');l.href='data:text/calendar;charset=utf-8,'+encodeURIComponent(icsFor(e));l.download=(e.title.replace(/[^a-z0-9]+/gi,'-').slice(0,40)||'event')+'.ics';document.body.appendChild(l);l.click();l.remove()}
   else if(a==='inv-ccy'){S.invCcy=b.dataset.v;commit()}
+  else if(a==='prog-mode'){S.progMode=b.dataset.v;commit()}
   else if(a==='sp-ccy'){S.spCcy=b.dataset.v;commit();if(S.spCcy==='USD')spEnsureFx()}
   else if(a==='inv-refresh'){refreshInv(true)}
   else if(a==='inv-keys'){showKeys=!showKeys;renderInvest()}
