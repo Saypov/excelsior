@@ -121,6 +121,12 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 .subtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:16px 0 4px}
 .subtabs button{background:var(--soft);font-weight:500;font-size:14px;padding:0 6px}
 .subtabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.subtabs .mkbtn{grid-column:1/-1;justify-self:center;width:68px;height:68px;min-height:68px;border-radius:50%;padding:0;margin-top:4px;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:16px;transition:background .2s,color .2s,transform .15s}
+.subtabs .mkbtn:active{transform:scale(.94)}
+.mkt{font-family:Sora,Inter,sans-serif;margin:18px 0 2px;font-size:26px;line-height:1.2}
+.mkt i{font-family:Georgia,'Times New Roman',serif;font-weight:500;font-size:1.08em}
+#s-mk .li .amt.in{color:var(--good)}
+#s-mk .kv{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .cat{margin:8px 0}.cat .row{font-size:14px}
 .empty{padding:18px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);text-align:center;font-size:15px}
 .fig{position:relative;min-height:200px;margin-top:8px}.fig>svg{position:absolute;inset:0;width:100%;height:100%}
@@ -318,6 +324,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <button data-act="sub" data-v="plans" role="tab">Planned</button>
       <button data-act="sub" data-v="debts" role="tab">Repayments</button>
       <button data-act="sub" data-v="invest" role="tab" class="invtab" style="grid-column:1/-1">Invest</button>
+      <button data-act="sub" data-v="mk" role="tab" class="mkbtn" lang="ru">Майкл</button>
     </div>
 
     <div id="s-spend">
@@ -395,6 +402,55 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <p class="msg" id="dMsg"></p>
         <button class="btn" type="submit">Add repayment</button>
       </form>
+    </div>
+    <div id="s-mk" hidden>
+      <h1 class="mkt"><i lang="ru">Майкл</i> &amp; <i>Say</i> Family Trust</h1>
+      <p class="small muted" style="margin:0 0 4px">Cash Майкл keeps for you. Ask him when you need to pay for something. Separate from your monthly budget.</p>
+      <div class="card" style="margin-top:12px">
+        <div class="row"><span class="muted small">With Майкл</span><span id="mkWarn"></span></div>
+        <div class="big" style="font-size:44px" id="mkBal">£0</div>
+        <p class="small muted" id="mkSub"></p>
+        <div id="mkLimBox"></div>
+      </div>
+      <div class="card" id="mkAsk">
+        <h2 style="margin-top:0">Ask Майкл</h2>
+        <div class="grid2">
+          <div><label for="mkAmt">Amount (£)</label><input id="mkAmt" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+          <div><label for="mkD">Date</label><input type="date" id="mkD"></div>
+        </div>
+        <label for="mkFor">What for</label><input id="mkFor" placeholder="e.g. Calisthenics social ticket" autocomplete="off">
+        <p class="msg" id="mkMsg"></p>
+        <button class="btn" type="button" data-act="mk-ask">Ask on Instagram</button>
+        <div class="grid2" style="margin-top:8px"><button class="ghost" type="button" data-act="mk-paid">Already paid · log it</button><button class="ghost" type="button" data-act="mk-call" id="mkCall">Call Майкл</button></div>
+      </div>
+      <div id="mkPend"></div>
+      <div class="row" style="align-items:baseline"><h2>History</h2></div>
+      <div class="card" style="padding-top:4px;padding-bottom:4px"><div id="mkList"></div></div>
+      <form data-form="mkin" class="card">
+        <h2 style="margin-top:0">Give Майкл money</h2>
+        <p class="small muted" style="margin:-4px 0 4px">Cash you hand over to the fund.</p>
+        <div class="grid2">
+          <div><label for="mkInAmt">Amount (£)</label><input id="mkInAmt" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+          <div><label for="mkInD">Date</label><input type="date" id="mkInD"></div>
+        </div>
+        <label for="mkInNote">Note (optional)</label><input id="mkInNote" placeholder="e.g. Start of term" autocomplete="off">
+        <p class="msg" id="mkInMsg"></p>
+        <button class="btn" type="submit">Add to the fund</button>
+      </form>
+      <details class="card" style="margin-bottom:20px" id="mkSetBox"><summary>Fund settings</summary>
+        <form data-form="mkset">
+          <label for="mkIg">Майкл's Instagram username</label><input id="mkIg" placeholder="e.g. michael.k" autocomplete="off" autocapitalize="off" spellcheck="false">
+          <label for="mkPh">Phone number (optional, for Call)</label><input id="mkPh" type="tel" placeholder="+44 7…" autocomplete="off">
+          <label for="mkLang">Request message language</label><select id="mkLang"><option value="en">English</option><option value="ru">Русский</option></select>
+          <div class="grid2">
+            <div><label for="mkLim">Monthly limit (£, optional)</label><input id="mkLim" inputmode="decimal" placeholder="none" autocomplete="off"></div>
+            <div><label for="mkLow">Warn below (£, optional)</label><input id="mkLow" inputmode="decimal" placeholder="none" autocomplete="off"></div>
+          </div>
+          <p class="small muted" style="margin-top:8px">The monthly limit counts what Майкл paid for you this month, so you can see when you're leaning on the fund too much.</p>
+          <p class="msg" id="mkSetMsg"></p>
+          <button class="btn" type="submit">Save settings</button>
+        </form>
+      </details>
     </div>
     <div id="s-invest" hidden>
     <div class="row" style="margin-top:12px;align-items:center"><span class="small muted">Dividend income</span>
@@ -624,7 +680,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.4.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.5.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -687,7 +743,7 @@ function commit(){
   if(uid){clearTimeout(timer);timer=setTimeout(flush,700)}
 }
 /* Merge two copies so nothing is ever lost: keep every item either side has, unless it was deleted on purpose. */
-const LISTS=['workouts','expenses','plans','debts','cards','holdings','events','potAdj','weights'];
+const LISTS=['workouts','expenses','plans','debts','cards','holdings','events','potAdj','weights','mk'];
 /* Settings (budget, theme, keys…) carry a per-setting 'last changed' time, so a fresh device's defaults never overwrite real values. */
 const NOSCALAR=new Set(['updated','mt','del','revLog','writeLog','rev_it','rev_fr','finLog'].concat(LISTS));
 const scalarKeys=o=>Object.keys(o||{}).filter(k=>!NOSCALAR.has(k));
@@ -1050,7 +1106,7 @@ function expEditHtml(e){return `<li class="li" style="display:block"><form data-
   <div class="grid2" style="margin-top:10px"><button class="ghost" type="button" data-act="edit-exp-cancel">Cancel</button><button class="btn" type="submit" style="margin:0">Save</button></div></form></li>`}
 function renderMoney(){
   document.querySelectorAll('.subtabs [data-act=sub]').forEach(b=>{b.classList.toggle('on',b.dataset.v===sub);b.setAttribute('aria-selected',b.dataset.v===sub)});
-  ['spend','plans','debts','invest'].forEach(k=>$('#s-'+k).hidden=k!==sub);
+  ['spend','plans','debts','invest','mk'].forEach(k=>$('#s-'+k).hidden=k!==sub);try{renderMk()}catch(e){console.error(e)}
   const m=ym(today()),spent=monthSpent(m);
   $('#monLbl').textContent='Spent in '+new Date().toLocaleDateString('en-GB',{month:'long'});
   $('#monSpent').textContent=money(spent);
@@ -1089,6 +1145,46 @@ function renderMoney(){
     ${i.done?'':`<form class="inline" data-form="pay" data-id="${d.id}"><input inputmode="decimal" placeholder="£ amount" aria-label="Payment amount"><button class="ghost" type="submit">Record payment</button></form>`}
     <div class="acts"><button class="link" data-act="del-debt" data-id="${d.id}">Delete</button></div></div>`}).join('');
 }
+
+/* ---------- Money → Майкл & Say Family Trust (v5.5.0) ---------- */
+// S.mk: {id,d,amt,k:'in'|'out'|'req',note,u}. in = cash given to Майкл, out = Майкл paid/transferred for you, req = asked, not paid yet.
+// S.mkSet: {ig, ph, lang, lim, low}
+const mkS=()=>S.mkSet||{};
+function mkInfo(){const L=S.mk||[],m=ym(today());const inn=sum(L.filter(x=>x.k==='in'),x=>x.amt),out=sum(L.filter(x=>x.k==='out'),x=>x.amt),pend=sum(L.filter(x=>x.k==='req'),x=>x.amt);
+  return {inn,out,pend,bal:inn-out,month:sum(L.filter(x=>x.k==='out'&&ym(x.d)===m),x=>x.amt)}}
+let mkFilled=false;
+function renderMk(){if(!$('#s-mk'))return;S.mk=S.mk||[];const st=mkS(),i=mkInfo();
+  $('#mkBal').textContent=(i.bal<0?'−':'')+money(Math.abs(i.bal));$('#mkBal').className='big '+(i.bal<0?'neg':'');
+  $('#mkSub').textContent=money(i.inn)+' given · '+money(i.out)+' paid out'+(i.pend?' · '+money(i.pend)+' asked, not paid yet':'');
+  const low=+st.low||0;$('#mkWarn').innerHTML=i.bal<=0&&i.inn?'<span class="tag hot">Empty</span>':low&&i.bal<low?'<span class="tag hot">Running low</span>':'';
+  if(+st.lim>0){const pct=Math.min(100,i.month/st.lim*100),over=i.month>st.lim;
+    $('#mkLimBox').innerHTML=`<div class="row small" style="margin-top:6px"><span class="muted">This month</span><span class="muted">${money(i.month)} of ${money(+st.lim)}${over?' · over':''}</span></div><div class="bar${over?' hot':''}"><i style="width:${pct}%"></i></div>`}
+  else $('#mkLimBox').innerHTML='';
+  $('#mkCall').hidden=!st.ph;$('#mkCall').parentElement.style.gridTemplateColumns=st.ph?'':'1fr';
+  const P=S.mk.filter(x=>x.k==='req').sort((a,b)=>a.d.localeCompare(b.d));
+  $('#mkPend').innerHTML=P.length?`<div class="card"><h2 style="margin-top:0">Waiting for Майкл</h2>${P.map(x=>`<div class="li"><span><b>${esc(x.note||'Request')}</b><br><span class="small muted">Asked ${short(x.d)}</span><span class="evacts"><button class="link" data-act="mk-ok" data-id="${x.id}">Paid ✓</button><button class="link" data-act="del-mk" data-id="${x.id}">Cancel</button></span></span><span class="amt">${money(x.amt)}</span></div>`).join('')}</div>`:'';
+  const H=S.mk.filter(x=>x.k!=='req').sort((a,b)=>b.d.localeCompare(a.d)||(b.u||0)-(a.u||0));
+  $('#mkList').innerHTML=H.length?H.slice(0,60).map(x=>`<div class="li"><span><b>${esc(x.note||(x.k==='in'?'Added to the fund':'Paid by Майкл'))}</b><br><span class="small muted">${short(x.d)} · ${x.k==='in'?'Given to Майкл':'Paid by Майкл'}</span><span class="evacts"><button class="link" data-act="del-mk" data-id="${x.id}">Delete</button></span></span><span class="amt${x.k==='in'?' in':''}">${x.k==='in'?'+':'−'}${money(x.amt)}</span></div>`).join(''):'<div class="empty">Nothing yet. Start by adding the cash you gave Майкл below.</div>';
+  if(!mkFilled||!$('#s-mk').contains(document.activeElement)){mkFilled=true;
+    $('#mkIg').value=st.ig||'';$('#mkPh').value=st.ph||'';$('#mkLang').value=st.lang||'en';$('#mkLim').value=st.lim||'';$('#mkLow').value=st.low||'';
+    if(!$('#mkD').value)$('#mkD').value=today();if(!$('#mkInD').value)$('#mkInD').value=today()}
+}
+function mkText(amt,what){const ru=mkS().lang==='ru',a=money(amt);
+  return ru?`Привет, Майкл! Можешь, пожалуйста, ${what?'оплатить/перевести '+a+' за: '+what:'перевести '+a}? Из фонда. Спасибо!`:`Hi Майкл! Could you ${what?'pay/transfer '+a+' for: '+what:'transfer '+a}? From the fund. Thanks!`}
+function mkForm(){const amt=num($('#mkAmt').value),what=$('#mkFor').value.trim().slice(0,80),d=$('#mkD').value||today();
+  if(!(amt>0)){$('#mkMsg').textContent='Add the amount.';return null}$('#mkMsg').textContent='';return {amt:Math.round(amt*100)/100,what,d}}
+function mkClear(){$('#mkAmt').value='';$('#mkFor').value='';$('#mkD').value=today()}
+function mkAct(a,b){
+  if(a==='mk-ask'){const f=mkForm();if(!f)return true;const ig=(mkS().ig||'').replace(/^@/,'').trim();
+    if(!ig){$('#mkMsg').textContent='Add Майкл\'s Instagram username in Fund settings first.';$('#mkSetBox').open=true;$('#mkSetBox').scrollIntoView({behavior:'smooth',block:'start'});return true}
+    const txt=mkText(f.amt,f.what);try{navigator.clipboard&&navigator.clipboard.writeText(txt)}catch(e){}
+    window.open('https://ig.me/m/'+encodeURIComponent(ig),'_blank');
+    S.mk.push({id:newId(),d:f.d,amt:f.amt,k:'req',note:f.what,u:Date.now()});mkClear();commit();toast('Message copied · paste it in Instagram');return true}
+  if(a==='mk-paid'){const f=mkForm();if(!f)return true;S.mk.push({id:newId(),d:f.d,amt:f.amt,k:'out',note:f.what,u:Date.now()});mkClear();commit();toast('Logged · paid by Майкл');return true}
+  if(a==='mk-call'){const ph=(mkS().ph||'').replace(/[^\d+]/g,'');if(ph)location.href='tel:'+ph;return true}
+  if(a==='mk-ok'){const x=(S.mk||[]).find(y=>y.id===b.dataset.id);if(x){x.k='out';x.d=today();x.u=Date.now();commit();toast('Marked as paid')}return true}
+  if(a==='del-mk'){const x=(S.mk||[]).find(y=>y.id===b.dataset.id);removeWith('mk',b.dataset.id,x&&x.k==='req'?'Request':'Entry');return true}
+  return false}
 
 /* ---------- Lingue: flashcards with spaced repetition ---------- */
 const LN={it:'Italian',fr:'French'};
@@ -2882,6 +2978,7 @@ document.addEventListener('click',e=>{
     disarmAll();
     b.dataset.orig=b.innerHTML;b.dataset.armed='1';armAt=Date.now();armY=scrollY;b.innerHTML=b.textContent.trim()==='×'?'Delete?':'Sure? Tap again';b.classList.add('armed');
     clearTimeout(b._t);b._t=setTimeout(()=>disarm(b),4000);return}
+  if(/^mk-|^del-mk$/.test(a)&&mkAct(a,b))return;
   if(a==='go'){location.hash=b.dataset.to}
   else if(a==='add-ex'){draft.push(blank());renderDraft();const ins=document.querySelectorAll('#exRows input[data-f=name]');ins[ins.length-1].focus()}
   else if(a==='rm-ex'){draft.splice(i,1);if(!draft.length)draft.push(blank());renderDraft()}
@@ -3087,6 +3184,12 @@ document.addEventListener('submit',e=>{
     if(!(amt>0)){$('#eeMsg').textContent='Enter an amount above £0.';return}if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){$('#eeMsg').textContent='Pick a date.';return}
     x.amt=Math.round(amt*100)/100;x.d=d;x.cat=$('#eeCat').value;x.note=$('#eeNote').value.trim().slice(0,60);x.fromPot=$('#eePot').checked||undefined;if(!x.fromPot)delete x.fromPot;x.u=Date.now();
     editExp=null;commit();toast('Expense updated')}
+  else if(k==='mkin'){const amt=num($('#mkInAmt').value);if(!(amt>0)){$('#mkInMsg').textContent='Add the amount.';return}
+    S.mk=S.mk||[];S.mk.push({id:newId(),d:$('#mkInD').value||today(),amt:Math.round(amt*100)/100,k:'in',note:$('#mkInNote').value.trim().slice(0,60),u:Date.now()});
+    $('#mkInAmt').value='';$('#mkInNote').value='';$('#mkInD').value=today();$('#mkInMsg').textContent='';commit();toast('Added to the fund')}
+  else if(k==='mkset'){const n=v=>{const x=num(v);return x>0?Math.round(x*100)/100:''};
+    S.mkSet={ig:$('#mkIg').value.trim().replace(/^@/,''),ph:$('#mkPh').value.trim(),lang:$('#mkLang').value,lim:n($('#mkLim').value),low:n($('#mkLow').value)};
+    mkFilled=false;$('#mkSetBox').open=false;commit();toast('Fund settings saved')}
   else if(k==='debt'){
     const who=$('#dWho').value.trim(),amt=num($('#dAmt').value);
     if(!who||!(amt>0)){$('#dMsg').textContent='Add the person and the amount.';return}
