@@ -692,7 +692,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.5.3 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.5.4 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1186,7 +1186,7 @@ function renderMk(){if(!$('#s-mk'))return;S.mk=S.mk||[];const st=mkS(),i=mkInfo(
 }
 // X = what's left before this payment (balance minus requests still waiting)
 function mkText(amt,what){const i=mkInfo(),left=i.bal-i.pend,a=money(amt);
-  return `Майкл, I’m once again asking for your financial support: ${a}${what?' to '+what:''}. ${a}/${(left<0?'−':'')+money(Math.abs(left))} left`}
+  return `Майкл, I’m once again asking for your financial support: ${a}${what?' to '+what:''}. ${a}/${(left<0?'−':'')+money(Math.abs(left))}.`}
 function mkForm(){const amt=num($('#mkAmt').value),what=$('#mkFor').value.trim().slice(0,80),d=$('#mkD').value||today();
   if(!(amt>0)){$('#mkMsg').textContent='Add the amount.';return null}$('#mkMsg').textContent='';return {amt:Math.round(amt*100)/100,what,d}}
 function mkClear(){$('#mkAmt').value='';$('#mkFor').value='';$('#mkD').value=today()}
