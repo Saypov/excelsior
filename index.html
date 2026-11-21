@@ -121,11 +121,15 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 .subtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:16px 0 4px}
 .subtabs button{background:var(--soft);font-weight:500;font-size:14px;padding:0 6px}
 .subtabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.subtabs .mkbtn,.subtabs .mkbtn.on{border:1.5px solid #7c5cff}
 .subtabs .mkbtn{grid-column:1/-1;justify-self:center;width:68px;height:68px;min-height:68px;border-radius:50%;padding:0;margin-top:4px;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:16px;transition:background .2s,color .2s,transform .15s}
 .subtabs .mkbtn:active{transform:scale(.94)}
 .mkt{font-family:Sora,Inter,sans-serif;margin:18px 0 2px;font-size:26px;line-height:1.2}
 .mkt i{font-family:Georgia,'Times New Roman',serif;font-weight:500;font-size:1.08em}
 #s-mk .li .amt.in{color:var(--good)}
+#mkSetBox summary{gap:8px}#mkSetBox summary::-webkit-details-marker{display:none}#mkSetBox summary svg{width:18px;height:18px;flex:none;transition:transform .3s}
+#mkSetBox[open] summary svg{transform:rotate(60deg)}
+#mkSetBox:not([open]){width:fit-content;margin:4px auto 20px;padding:0 18px;border-radius:999px}
 #s-mk .kv{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .cat{margin:8px 0}.cat .row{font-size:14px}
 .empty{padding:18px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);text-align:center;font-size:15px}
@@ -437,11 +441,10 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <p class="msg" id="mkInMsg"></p>
         <button class="btn" type="submit">Add to the fund</button>
       </form>
-      <details class="card" style="margin-bottom:20px" id="mkSetBox"><summary>Fund settings</summary>
+      <details class="card" style="margin-bottom:20px" id="mkSetBox"><summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Fund settings</summary>
         <form data-form="mkset">
           <label for="mkIg">Майкл's Instagram username</label><input id="mkIg" placeholder="e.g. michael.k" autocomplete="off" autocapitalize="off" spellcheck="false">
           <label for="mkPh">Phone number (optional, for Call)</label><input id="mkPh" type="tel" placeholder="+44 7…" autocomplete="off">
-          <label for="mkLang">Request message language</label><select id="mkLang"><option value="en">English</option><option value="ru">Русский</option></select>
           <div class="grid2">
             <div><label for="mkLim">Monthly limit (£, optional)</label><input id="mkLim" inputmode="decimal" placeholder="none" autocomplete="off"></div>
             <div><label for="mkLow">Warn below (£, optional)</label><input id="mkLow" inputmode="decimal" placeholder="none" autocomplete="off"></div>
@@ -680,7 +683,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.5.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.5.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1166,11 +1169,12 @@ function renderMk(){if(!$('#s-mk'))return;S.mk=S.mk||[];const st=mkS(),i=mkInfo(
   const H=S.mk.filter(x=>x.k!=='req').sort((a,b)=>b.d.localeCompare(a.d)||(b.u||0)-(a.u||0));
   $('#mkList').innerHTML=H.length?H.slice(0,60).map(x=>`<div class="li"><span><b>${esc(x.note||(x.k==='in'?'Added to the fund':'Paid by Майкл'))}</b><br><span class="small muted">${short(x.d)} · ${x.k==='in'?'Given to Майкл':'Paid by Майкл'}</span><span class="evacts"><button class="link" data-act="del-mk" data-id="${x.id}">Delete</button></span></span><span class="amt${x.k==='in'?' in':''}">${x.k==='in'?'+':'−'}${money(x.amt)}</span></div>`).join(''):'<div class="empty">Nothing yet. Start by adding the cash you gave Майкл below.</div>';
   if(!mkFilled||!$('#s-mk').contains(document.activeElement)){mkFilled=true;
-    $('#mkIg').value=st.ig||'';$('#mkPh').value=st.ph||'';$('#mkLang').value=st.lang||'en';$('#mkLim').value=st.lim||'';$('#mkLow').value=st.low||'';
+    $('#mkIg').value=st.ig||'';$('#mkPh').value=st.ph||'';$('#mkLim').value=st.lim||'';$('#mkLow').value=st.low||'';
     if(!$('#mkD').value)$('#mkD').value=today();if(!$('#mkInD').value)$('#mkInD').value=today()}
 }
-function mkText(amt,what){const ru=mkS().lang==='ru',a=money(amt);
-  return ru?`Привет, Майкл! Можешь, пожалуйста, ${what?'оплатить/перевести '+a+' за: '+what:'перевести '+a}? Из фонда. Спасибо!`:`Hi Майкл! Could you ${what?'pay/transfer '+a+' for: '+what:'transfer '+a}? From the fund. Thanks!`}
+// X = what's left before this payment (balance minus requests still waiting)
+function mkText(amt,what){const i=mkInfo(),left=i.bal-i.pend,a=money(amt);
+  return `Майкл, I’m once again asking for your financial support: ${a}${what?' to '+what:''}. ${a}/${(left<0?'−':'')+money(Math.abs(left))} left`}
 function mkForm(){const amt=num($('#mkAmt').value),what=$('#mkFor').value.trim().slice(0,80),d=$('#mkD').value||today();
   if(!(amt>0)){$('#mkMsg').textContent='Add the amount.';return null}$('#mkMsg').textContent='';return {amt:Math.round(amt*100)/100,what,d}}
 function mkClear(){$('#mkAmt').value='';$('#mkFor').value='';$('#mkD').value=today()}
@@ -3188,7 +3192,7 @@ document.addEventListener('submit',e=>{
     S.mk=S.mk||[];S.mk.push({id:newId(),d:$('#mkInD').value||today(),amt:Math.round(amt*100)/100,k:'in',note:$('#mkInNote').value.trim().slice(0,60),u:Date.now()});
     $('#mkInAmt').value='';$('#mkInNote').value='';$('#mkInD').value=today();$('#mkInMsg').textContent='';commit();toast('Added to the fund')}
   else if(k==='mkset'){const n=v=>{const x=num(v);return x>0?Math.round(x*100)/100:''};
-    S.mkSet={ig:$('#mkIg').value.trim().replace(/^@/,''),ph:$('#mkPh').value.trim(),lang:$('#mkLang').value,lim:n($('#mkLim').value),low:n($('#mkLow').value)};
+    S.mkSet={ig:$('#mkIg').value.trim().replace(/^@/,''),ph:$('#mkPh').value.trim(),lim:n($('#mkLim').value),low:n($('#mkLow').value)};
     mkFilled=false;$('#mkSetBox').open=false;commit();toast('Fund settings saved')}
   else if(k==='debt'){
     const who=$('#dWho').value.trim(),amt=num($('#dAmt').value);
