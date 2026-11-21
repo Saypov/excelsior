@@ -694,7 +694,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.6.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.6.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1603,7 +1603,7 @@ function conv(usdOrGbp,from){ // from: 'USD' or 'GBP' -> display ccy
   const to=invCcy(),r=fxRate();if(from===to)return usdOrGbp;if(!r)return null;
   return from==='USD'?usdOrGbp/r:usdOrGbp*r;
 }
-const fmtC=(v,ccy)=>v==null?'—':new Intl.NumberFormat('en-GB',{style:'currency',currency:ccy||invCcy(),maximumFractionDigits:2}).format(v);
+const fmtC=(v,ccy)=>v==null?'—':new Intl.NumberFormat('en-GB',{style:'currency',currency:ccy||invCcy(),currencyDisplay:'narrowSymbol',maximumFractionDigits:2}).format(v);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));let avLast=0;
 async function av(params){
   if(!avKey)throw new Error('add an Alpha Vantage key');
