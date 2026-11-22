@@ -119,7 +119,10 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 .hint{font-size:13px;color:var(--muted);margin-top:8px}
 .hint b{color:var(--ink)}
 .inline{display:flex;gap:8px;margin-top:10px}.inline input{flex:1}
-.inline.payf{flex-wrap:wrap}.inline.payf input[type=date]{flex:1 1 140px;min-width:0}.inline.payf input[inputmode]{flex:1 1 100px;min-width:0}.inline.payf button{flex:1 1 100%}
+.inline.payf{flex-wrap:wrap}
+.paydel{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;min-height:22px;padding:0;margin:0 0 0 6px;border-radius:50%;border:0;background:var(--line);color:var(--muted);font-size:12px;line-height:1;vertical-align:middle;cursor:pointer;transition:background .2s,color .2s,transform .15s}
+.paydel:active{transform:scale(.9)}
+.paydel[data-armed="1"]{width:auto;padding:0 10px;border-radius:999px;background:#d92d20;color:#fff;font-weight:600}.inline.payf input[type=date]{flex:1 1 140px;min-width:0}.inline.payf input[inputmode]{flex:1 1 100px;min-width:0}.inline.payf button{flex:1 1 100%}
 .subtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:16px 0 4px}
 .subtabs button{background:var(--soft);font-weight:500;font-size:14px;padding:0 6px}
 .subtabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -701,7 +704,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.7.2 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.7.3 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1186,7 +1189,7 @@ function renderMoney(){
     <div class="row"><b>${d.dir==='owe'?'You owe '+esc(d.who):esc(d.who)+' owes you'}</b><span class="amt">${money(i.left)}</span></div>
     <div class="row small muted" style="margin:2px 0 10px"><span>${esc(d.note||'')}${d.note?' · ':''}of ${money(d.amt)}</span>${i.done?'<span class="tag">Settled</span>':d.due?`<span class="tag${i.dl<0?' hot':''}">${i.dl<0?when(i.dl):'by '+short(d.due)}</span>`:''}</div>
     <div class="bar"><i style="width:${Math.min(100,i.paid/d.amt*100)}%"></i></div>
-    ${d.pays.length?`<p class="small muted" style="margin-top:8px">Paid: ${d.pays.map((p,i)=>`<span style="white-space:nowrap">${money(p.amt)} on ${short(p.d)}<button class="link small" data-act="del-pay" data-id="${d.id}" data-i="${i}" aria-label="Remove this payment" style="padding:0 4px;margin-left:2px">✕</button></span>`).join(', ')}</p>`:''}
+    ${d.pays.length?`<p class="small muted" style="margin-top:8px">Paid: ${d.pays.map((p,i)=>`<span style="white-space:nowrap">${money(p.amt)} on ${short(p.d)}<button class="paydel" type="button" data-act="del-pay" data-id="${d.id}" data-i="${i}" aria-label="Remove this payment">✕</button></span>`).join(', ')}</p>`:''}
     ${i.done?'':`<form class="inline payf" data-form="pay" data-id="${d.id}"><input inputmode="decimal" placeholder="£ amount" aria-label="Payment amount"><input type="date" value="${today()}" max="${today()}" aria-label="Payment date"><button class="ghost" type="submit">Record payment</button></form>`}
     <div class="acts"><button class="link" data-act="del-debt" data-id="${d.id}">Delete</button></div></div>`}).join('');
 }
@@ -3085,13 +3088,13 @@ document.addEventListener('click',e=>{
   else if(a==='ev-cat'){evCat=b.dataset.v;renderEvents()}
   else if(a==='ev-cancel'){evReset()}
   else if(a==='ev-done'){const e=(S.events||[]).find(x=>x.id===id);if(e){let on;if(e.rep==='w'){const d=b.dataset.d,dn=new Set(e.dn||[]);on=!dn.has(d);on?dn.add(d):dn.delete(d);e.dn=[...dn]}else on=e.done=!e.done;e.u=Date.now();commit();if(on)toast('Nice, done')}}
-  else if(a==='ev-del'){const e=(S.events||[]).find(x=>x.id===id);if(e&&e.rep==='w'){const d=b.dataset.d;if(evEdit===id)evReset();e.skip=[...new Set([...(e.skip||[]),d])];e.u=Date.now();commit();toast('Removed this week',()=>{e.skip=(e.skip||[]).filter(x=>x!==d);e.u=Date.now();commit()})}else{if(evEdit===id)evReset();removeWith('events',id,'Event')}}
+  else if(a==='ev-del'){const e=(S.events||[]).find(x=>x.id===id);if(e&&e.rep==='w'){const d=b.dataset.d;if(evEdit===id)evReset();e.skip=[...new Set([...(e.skip||[]),d])];e.u=Date.now();commit();toast('Removed this week',()=>{const y=(S.events||[]).find(z=>z.id===id);if(!y)return;y.skip=(y.skip||[]).filter(x=>x!==d);y.u=Date.now();commit()})}else{if(evEdit===id)evReset();removeWith('events',id,'Event')}}
   else if(a==='ev-delall'){const x=evEdit;if(!x)return;evReset();removeWith('events',x,'Recurring event')}
   else if(a==='ev-edit'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;evEdit=id;evOccD=b.dataset.d||e.d;evCat=e.cat;$('#evTitle').value=e.title;$('#evDate').value=evOccD;$('#evRep').checked=e.rep==='w';$('#evTime').value=e.time||'';$('#evEnd').value=e.end||'';$('#evNote').value=e.note||'';fillRem(e.rem||'');renderEvents();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();const ef=$('#evTitle').closest('form')||$('#evTitle');ef.scrollIntoView({block:'start',behavior:'smooth'})}
   else if(a==='ev-ics'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;const l=document.createElement('a');l.href='data:text/calendar;charset=utf-8,'+encodeURIComponent(icsFor(e));l.download=(e.title.replace(/[^a-z0-9]+/gi,'-').slice(0,40)||'event')+'.ics';document.body.appendChild(l);l.click();l.remove()}
   else if(a==='inv-ccy'){S.invCcy=b.dataset.v;commit()}
   else if(a==='del-pay'){const x=S.debts.find(y=>y.id===id),i=+b.dataset.i;if(!x||!x.pays[i])return;const pay=x.pays.splice(i,1)[0];x.u=Date.now();commit();
-    toast('Payment removed · '+money(pay.amt),()=>{x.pays.splice(Math.min(i,x.pays.length),0,pay);x.u=Date.now();commit()})}
+    toast('Payment removed · '+money(pay.amt),()=>{const y=(S.debts||[]).find(z=>z.id===id);if(!y)return;y.pays=y.pays||[];y.pays.push(pay);y.pays.sort((a,b)=>a.d.localeCompare(b.d));y.u=Date.now();commit();toast('Payment restored')})}
   else if(a==='prog-mode'){S.progMode=b.dataset.v;commit()}
   else if(a==='sp-ccy'){S.spCcy=b.dataset.v;commit();if(S.spCcy==='USD')spEnsureFx()}
   else if(a==='inv-refresh'){refreshInv(true)}
