@@ -741,7 +741,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.9.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.9.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1911,14 +1911,16 @@ async function ensureKey(){
 }
 async function refreshInv(force){
   if(invBusy)return;await ensureKey();renderInvest();alLoadState();if(!fmpKey&&!avKey&&!fhKey)return;
+  // force: true = reload everything (after saving keys); 'px' = Refresh button: live prices now, dividends only if >20 h old (saves Alpha Vantage calls)
+  if(force==='px'&&!fhKey)force=true;const all=force===true,px=!!force;
   const hs=S.holdings||[],stale=c=>!c||Date.now()-c.t>20*3600e3;
-  const need=hs.map(h=>h.sym).filter((s,i,a)=>a.indexOf(s)===i).filter(s=>force||stale((S.invCache||{})[s]));
-  const liveNeed=fhKey?hs.map(h=>h.sym).filter((s,i,a)=>a.indexOf(s)===i).filter(s=>!isUK(s)&&!need.includes(s)&&Date.now()-(((S.invCache||{})[s]||{}).pt||0)>15*60e3):[];
+  const need=hs.map(h=>h.sym).filter((s,i,a)=>a.indexOf(s)===i).filter(s=>all||stale((S.invCache||{})[s]));
+  const liveNeed=fhKey?hs.map(h=>h.sym).filter((s,i,a)=>a.indexOf(s)===i).filter(s=>!isUK(s)&&!need.includes(s)&&(px||Date.now()-(((S.invCache||{})[s]||{}).pt||0)>15*60e3)):[];
   const fxStale=!S.invFx||Date.now()-S.invFx.t>20*3600e3;
-  if(!need.length&&!liveNeed.length&&!fxStale&&!force)return;
+  if(!need.length&&!liveNeed.length&&!fxStale&&!all)return;
   invBusy=true;$('#invMsg').textContent='Updating prices and dividends…';
   const errs=[];
-  try{if(fxStale||force)await loadFx()}catch(e){errs.push('Exchange rate: '+e.message)}
+  try{if(fxStale||all)await loadFx()}catch(e){errs.push('Exchange rate: '+e.message)}
   for(const s of need){try{await loadSym(s)}catch(e){errs.push(s+': '+e.message)}}
   for(const s of liveNeed){try{await livePrice(s)}catch(e){errs.push(s+': '+e.message)}}
   invBusy=false;$('#invMsg').textContent=errs.join(' · ');commit();
@@ -3304,7 +3306,7 @@ document.addEventListener('click',e=>{
     toast('Payment removed · '+money(pay.amt),()=>{const y=(S.debts||[]).find(z=>z.id===id);if(!y)return;y.pays=y.pays||[];y.pays.push(pay);y.pays.sort((a,b)=>a.d.localeCompare(b.d));y.u=Date.now();commit();toast('Payment restored')})}
   else if(a==='prog-mode'){S.progMode=b.dataset.v;commit()}
   else if(a==='sp-ccy'){S.spCcy=b.dataset.v;commit();if(S.spCcy==='USD')spEnsureFx()}
-  else if(a==='inv-refresh'){refreshInv(true)}
+  else if(a==='inv-refresh'){refreshInv('px')}
   else if(a==='inv-keys'){showKeys=!showKeys;renderInvest()}
   else if(a==='inv-keys-cancel'){showKeys=false;$('#invKey').value='';$('#avKey').value='';$('#fhKey').value='';if(!/^Sign in first/.test($('#invKeyMsg').textContent))$('#invKeyMsg').textContent='';renderInvest()}
   else if(a==='del-hold'){removeWith('holdings',id,'Stock')}
