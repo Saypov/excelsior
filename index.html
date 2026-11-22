@@ -129,6 +129,10 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 .skms{flex:none;width:26px;height:26px;min-height:26px;padding:0;border-radius:50%;border:2px solid var(--line);background:none;color:#fff;font-size:14px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s,transform .15s}
 .skms.on{background:var(--good);border-color:var(--good)}.skms:active{transform:scale(.9)}
 .skdone{text-decoration:line-through;opacity:.6}
+.skms-row>.skgrip,.skgrip{flex:none;width:22px;height:30px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted);opacity:.7;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;margin-right:-4px}
+.skgrip svg{width:10px;height:15px}
+.skms-row.dragging{position:relative;z-index:2;background:var(--card,var(--bg));border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.18);transition:none!important}
+.skms-row.dragging .skgrip{cursor:grabbing;opacity:1}
 .skbox{margin-top:12px;padding:12px;border-radius:12px;background:var(--soft);animation:mkin .2s ease}
 #areaSk details>summary{font-weight:600}
 .paydel{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;min-height:22px;padding:0;margin:0 0 0 6px;border-radius:50%;border:0;background:var(--line);color:var(--muted);font-size:12px;line-height:1;vertical-align:middle;cursor:pointer;transition:background .2s,color .2s,transform .15s}
@@ -717,7 +721,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.8.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.8.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1260,7 +1264,24 @@ function mkAct(a,b){
 /* ---------- Study → Skills (v5.8.0) ---------- */
 // S.skills: {id,name,due,start,ms:[{id,t,done,dd}],links:[{id,t,url}],log:[{id,d,min,note}],u}
 // Long-term things to learn (e.g. lezginka before the Qazaq ball), with target date, steps, practice log and pace.
-let skOpen=null,skLogFor=null,skEdit=null;
+let skOpen=null,skLogFor=null,skEdit=null,skDrag=null;
+// drag-to-reorder steps by the ⠿ handle (pointer events; displaced rows slide into place)
+document.addEventListener('pointerdown',e=>{const g=e.target.closest('.skgrip');if(!g)return;const row=g.closest('.skms-row'),list=row&&row.parentElement;if(!list)return;
+  e.preventDefault();try{g.setPointerCapture(e.pointerId)}catch(_){}skDrag={row,list,y0:e.clientY,g};row.classList.add('dragging')});
+document.addEventListener('pointermove',e=>{if(!skDrag)return;e.preventDefault();const {row,list}=skDrag,y=e.clientY;
+  const sib=[...list.children].filter(r=>r!==row&&r.classList.contains('skms-row'));
+  const prev=row.previousElementSibling,next=row.nextElementSibling;let tgt=null,before=true;
+  if(prev&&y<prev.getBoundingClientRect().top+prev.offsetHeight/2){tgt=prev;before=true}
+  else if(next&&y>next.getBoundingClientRect().top+next.offsetHeight/2){tgt=next;before=false}
+  if(tgt){const t0=tgt.getBoundingClientRect().top,r0=row.getBoundingClientRect().top-(parseFloat(row.dataset.dy)||0);
+    list.insertBefore(row,before?tgt:tgt.nextElementSibling);
+    const t1=tgt.getBoundingClientRect().top,r1=row.getBoundingClientRect().top-(parseFloat(row.dataset.dy)||0);skDrag.y0+=r1-r0;
+    tgt.style.transition='none';tgt.style.transform=`translateY(${t0-t1}px)`;void tgt.offsetHeight;tgt.style.transition='transform .18s ease';tgt.style.transform=''}
+  const dy=y-skDrag.y0;row.dataset.dy=dy;row.style.transform=`translateY(${dy}px)`},{passive:false});
+function skDrop(){if(!skDrag)return;const {row,list}=skDrag;skDrag=null;row.classList.remove('dragging');row.style.transition='transform .15s ease';row.style.transform='';delete row.dataset.dy;
+  const k=(S.skills||[]).find(x=>x.id===list.dataset.id);if(!k)return;const ids=[...list.querySelectorAll('.skms-row[data-m]')].map(r=>r.dataset.m),old=(k.ms||[]).map(m=>m.id);
+  if(ids.join()===old.join())return;const by=Object.fromEntries(k.ms.map(m=>[m.id,m]));k.ms=ids.map(i=>by[i]).filter(Boolean).concat(k.ms.filter(m=>!ids.includes(m.id)));k.u=Date.now();setTimeout(commit,160)}
+document.addEventListener('pointerup',skDrop);document.addEventListener('pointercancel',skDrop);
 const skWk=d=>{const x=new Date(d+'T12:00:00'),dw=(x.getDay()+6)%7;x.setDate(x.getDate()-dw);return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate())};
 function skInfo(k){
   const ms=k.ms||[],done=ms.filter(m=>m.done).length,tot=ms.length,pct=tot?done/tot:0;
@@ -1290,7 +1311,7 @@ function skCard(k){
       <div class="grid2" style="margin-top:10px"><button class="ghost" type="button" data-act="sk-logx">Cancel</button><button class="btn" type="submit" style="margin:0">Save</button></div></form>`;
   else h+=`<div class="grid2" style="margin-top:10px"><button class="btn" type="button" data-act="sk-log" data-id="${k.id}" style="margin:0">Practised</button><button class="ghost" type="button" data-act="sk-open" data-id="${k.id}">${open?'Close':'Details'}</button></div>`;
   if(open){
-    h+=`<div class="skdet"><h3>Steps</h3>${(k.ms||[]).map(m=>`<div class="skms-row"><button type="button" class="skms${m.done?' on':''}" data-act="sk-ms" data-id="${k.id}" data-m="${m.id}" aria-pressed="${!!m.done}" aria-label="Mark step done">${m.done?'✓':''}</button><span class="${m.done?'skdone':''}">${esc(m.t)}${m.done&&m.dd?` <span class="small muted">· ${short(m.dd)}</span>`:''}</span><button type="button" class="paydel" data-act="del-skms" data-id="${k.id}" data-m="${m.id}" aria-label="Remove step">✕</button></div>`).join('')||'<p class="small muted">Break it into small steps you can tick off.</p>'}
+    h+=`<div class="skdet"><h3>Steps</h3><div class="skmslist" data-id="${k.id}">${(k.ms||[]).map(m=>`<div class="skms-row" data-m="${m.id}">${(k.ms||[]).length>1?'<span class="skgrip" aria-label="Drag to reorder" title="Drag to reorder"><svg viewBox="0 0 12 18" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="3" r="1.6"/><circle cx="9" cy="3" r="1.6"/><circle cx="3" cy="9" r="1.6"/><circle cx="9" cy="9" r="1.6"/><circle cx="3" cy="15" r="1.6"/><circle cx="9" cy="15" r="1.6"/></g></svg></span>':''}<button type="button" class="skms${m.done?' on':''}" data-act="sk-ms" data-id="${k.id}" data-m="${m.id}" aria-pressed="${!!m.done}" aria-label="Mark step done">${m.done?'✓':''}</button><span class="${m.done?'skdone':''}">${esc(m.t)}${m.done&&m.dd?` <span class="small muted">· ${short(m.dd)}</span>`:''}</span><button type="button" class="paydel" data-act="del-skms" data-id="${k.id}" data-m="${m.id}" aria-label="Remove step">✕</button></div>`).join('')||'<p class="small muted">Break it into small steps you can tick off.</p>'}</div>
       <form data-form="skstep" data-id="${k.id}" class="inline"><input name="t" placeholder="Add a step, e.g. basic step in place" autocomplete="off"><button class="ghost" type="submit">Add</button></form>
       <h3>Links</h3>${(k.links||[]).map(l=>`<div class="skms-row"><a class="link" href="${esc(l.url)}" target="_blank" rel="noopener" style="padding:0;flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.t||l.url)}</a><button type="button" class="paydel" data-act="del-sklink" data-id="${k.id}" data-m="${l.id}" aria-label="Remove link">✕</button></div>`).join('')||'<p class="small muted">Tutorials or videos you learn from.</p>'}
       <form data-form="sklink" data-id="${k.id}"><div class="grid2"><input name="t" placeholder="Title (optional)" autocomplete="off"><input name="url" inputmode="url" placeholder="Link" autocomplete="off" autocapitalize="off" spellcheck="false"></div><button class="ghost" type="submit" style="width:100%;margin-top:8px">Add link</button></form>
@@ -1302,7 +1323,7 @@ function skCard(k){
 function renderSkills(){
   const t=$('#skToday');if(t){const L=(S.skills||[]),N=L.map(skNudge).filter(Boolean);
     t.textContent=N.length?N.slice(0,2).map(x=>x.k.name+': '+(x.i.since==null?'not started yet':'no practice for '+x.i.since+' days')).join(' · '):L.length?'Skills: '+L.length+' in progress':''}
-  const box=$('#skBox');if(!box||area!=='skills')return;S.skills=S.skills||[];
+  const box=$('#skBox');if(!box||area!=='skills'||skDrag)return;S.skills=S.skills||[];
   const ae=document.activeElement;if(ae&&box.contains(ae)&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName))return;
   const L=S.skills.slice().sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||a.name.localeCompare(b.name));
   const wk=sum(L,k=>skInfo(k).wkN),xp=sum(L,k=>skInfo(k).xp);
