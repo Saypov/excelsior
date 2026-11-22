@@ -129,6 +129,7 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 .skms{flex:none;width:26px;height:26px;min-height:26px;padding:0;border-radius:50%;border:2px solid var(--line);background:none;color:#fff;font-size:14px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s,transform .15s}
 .skms.on{background:var(--good);border-color:var(--good)}.skms:active{transform:scale(.9)}
 .skdone{text-decoration:line-through;opacity:.6}
+.skta{flex:1;min-height:48px;resize:none;overflow:auto;line-height:1.4;font:inherit}
 .skms-row>.skgrip,.skgrip{flex:none;width:22px;height:30px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted);opacity:.7;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;margin-right:-4px}
 .skgrip svg{width:10px;height:15px}
 .skms-row.dragging{position:relative;z-index:2;background:var(--card,var(--bg));border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.18);transition:none!important}
@@ -721,7 +722,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.8.2 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.8.3 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1281,7 +1282,8 @@ document.addEventListener('pointermove',e=>{if(!skDrag)return;e.preventDefault()
 function skDrop(){if(!skDrag)return;const {row,list}=skDrag;skDrag=null;row.classList.remove('dragging');row.style.transition='transform .15s ease';row.style.transform='';delete row.dataset.dy;
   const k=(S.skills||[]).find(x=>x.id===list.dataset.id);if(!k)return;const ids=[...list.querySelectorAll('.skms-row[data-m]')].map(r=>r.dataset.m),old=(k.ms||[]).map(m=>m.id);
   if(ids.join()===old.join())return;const by=Object.fromEntries(k.ms.map(m=>[m.id,m]));k.ms=ids.map(i=>by[i]).filter(Boolean).concat(k.ms.filter(m=>!ids.includes(m.id)));k.u=Date.now();setTimeout(commit,160)}
-document.addEventListener('pointerup',skDrop);document.addEventListener('pointercancel',skDrop);
+document.addEventListener('pointerup',skDrop);
+document.addEventListener('input',e=>{const t=e.target;if(t.classList&&t.classList.contains('skta')){t.style.height='auto';t.style.height=Math.min(t.scrollHeight,240)+'px'}});document.addEventListener('pointercancel',skDrop);
 const skWk=d=>{const x=new Date(d+'T12:00:00'),dw=(x.getDay()+6)%7;x.setDate(x.getDate()-dw);return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate())};
 function skInfo(k){
   const ms=k.ms||[],done=ms.filter(m=>m.done).length,tot=ms.length,pct=tot?done/tot:0;
@@ -1312,7 +1314,7 @@ function skCard(k){
   else h+=`<div class="grid2" style="margin-top:10px"><button class="btn" type="button" data-act="sk-log" data-id="${k.id}" style="margin:0">Practised</button><button class="ghost" type="button" data-act="sk-open" data-id="${k.id}">${open?'Close':'Details'}</button></div>`;
   if(open){
     h+=`<div class="skdet"><h3>Steps</h3><div class="skmslist" data-id="${k.id}">${(k.ms||[]).map(m=>`<div class="skms-row" data-m="${m.id}">${(k.ms||[]).length>1?'<span class="skgrip" aria-label="Drag to reorder" title="Drag to reorder"><svg viewBox="0 0 12 18" aria-hidden="true"><g fill="currentColor"><circle cx="3" cy="3" r="1.6"/><circle cx="9" cy="3" r="1.6"/><circle cx="3" cy="9" r="1.6"/><circle cx="9" cy="9" r="1.6"/><circle cx="3" cy="15" r="1.6"/><circle cx="9" cy="15" r="1.6"/></g></svg></span>':''}<button type="button" class="skms${m.done?' on':''}" data-act="sk-ms" data-id="${k.id}" data-m="${m.id}" aria-pressed="${!!m.done}" aria-label="Mark step done">${m.done?'✓':''}</button><span class="${m.done?'skdone':''}">${esc(m.t)}${m.done&&m.dd?` <span class="small muted">· ${short(m.dd)}</span>`:''}</span><button type="button" class="paydel" data-act="del-skms" data-id="${k.id}" data-m="${m.id}" aria-label="Remove step">✕</button></div>`).join('')||'<p class="small muted">Break it into small steps you can tick off.</p>'}</div>
-      <form data-form="skstep" data-id="${k.id}" class="inline"><input name="t" placeholder="Add a step, e.g. basic step in place" autocomplete="off"><button class="ghost" type="submit">Add</button></form>
+      <form data-form="skstep" data-id="${k.id}" class="inline" style="align-items:flex-start"><textarea name="t" rows="1" class="skta" placeholder="Add steps, one per line" autocomplete="off"></textarea><button class="ghost" type="submit">Add</button></form>
       <h3>Links</h3>${(k.links||[]).map(l=>`<div class="skms-row"><a class="link" href="${esc(l.url)}" target="_blank" rel="noopener" style="padding:0;flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.t||l.url)}</a><button type="button" class="paydel" data-act="del-sklink" data-id="${k.id}" data-m="${l.id}" aria-label="Remove link">✕</button></div>`).join('')||'<p class="small muted">Tutorials or videos you learn from.</p>'}
       <form data-form="sklink" data-id="${k.id}"><div class="grid2"><input name="t" placeholder="Title (optional)" autocomplete="off"><input name="url" inputmode="url" placeholder="Link" autocomplete="off" autocapitalize="off" spellcheck="false"></div><button class="ghost" type="submit" style="width:100%;margin-top:8px">Add link</button></form>
       <h3>Practice log</h3>${i.log.slice(0,10).map(l=>`<div class="skms-row"><span style="flex:1">${short(l.d)}${l.min?' · '+skMin(+l.min):''}${l.note?` · <span class="muted">${esc(l.note)}</span>`:''}</span><button type="button" class="paydel" data-act="del-sklog" data-id="${k.id}" data-m="${l.id}" aria-label="Remove session">✕</button></div>`).join('')||'<p class="small muted">Nothing logged yet.</p>'}${i.n>10?`<p class="small muted">+ ${i.n-10} older</p>`:''}`;
@@ -1351,12 +1353,12 @@ function skAct(a,b){const id=b.dataset.id,k=(S.skills||[]).find(x=>x.id===id),m=
 function skForm(k,f){const blurC=()=>{try{document.activeElement&&document.activeElement.blur()}catch(e){}};
   if(k==='skill'){const name=$('#skName').value.trim().slice(0,60),due=$('#skDue').value||'';if(!name){$('#skMsg').textContent='Give it a name.';return true}
     const due2=due&&due>today()?due:''; // iOS fills today's date as soon as the picker opens, so today/past = no date
-    const ms=$('#skSteps').value.split('\n').map(x=>x.trim()).filter(Boolean).slice(0,30).map(t=>({id:newId(),t:t.slice(0,80),done:false}));
+    const ms=$('#skSteps').value.split('\n').map(x=>x.replace(/^\s*(?:[-•*]|\d+[.)])\s+/,'').trim()).filter(Boolean).slice(0,30).map(t=>({id:newId(),t:t.slice(0,80),done:false}));
     S.skills=S.skills||[];const o={id:newId(),name,due:due2,start:today(),ms,links:[],log:[],u:Date.now()};S.skills.push(o);
     if(due2&&$('#skEv').checked){S.events=S.events||[];S.events.push({id:newId(),title:name+' — target',d:due2,time:'',end:'',cat:'other',note:'From Study → Skills',done:false,rem:'am',u:Date.now()})}
     skOpen=o.id;blurC();commit();toast('Skill added');return true}
   const x=(S.skills||[]).find(y=>y.id===f.dataset.id);if(!x)return true;const v=n=>{const el=f.querySelector(`[name=${n}]`);return el?el.value.trim():''};
-  if(k==='skstep'){const t=v('t').slice(0,80);if(!t)return true;x.ms=x.ms||[];x.ms.push({id:newId(),t,done:false});x.u=Date.now();f.querySelector('[name=t]').value='';commit();setTimeout(()=>{const n=document.querySelector(`form[data-form=skstep][data-id="${x.id}"] [name=t]`);if(n)n.focus()},0);return true}
+  if(k==='skstep'){const L=f.querySelector('[name=t]').value.split('\n').map(t=>t.replace(/^\s*(?:[-•*]|\d+[.)])\s+/,'').trim().slice(0,80)).filter(Boolean).slice(0,30);if(!L.length)return true;x.ms=x.ms||[];L.forEach(t=>x.ms.push({id:newId(),t,done:false}));x.u=Date.now();f.querySelector('[name=t]').value='';blurC();commit();toast(L.length>1?L.length+' steps added':'Step added');return true}
   if(k==='sklink'){let u=v('url');if(!u)return true;if(!/^https?:\/\//i.test(u))u='https://'+u;x.links=x.links||[];x.links.push({id:newId(),t:v('t').slice(0,60),url:u.slice(0,500)});x.u=Date.now();blurC();commit();return true}
   if(k==='sklog'){const d=/^\d{4}-\d{2}-\d{2}$/.test(v('d'))&&v('d')<=today()?v('d'):today(),mn=Math.max(0,Math.min(600,Math.round(num(v('min'))||0)));
     const first=!(x.log||[]).some(l=>l.d===d);x.log=x.log||[];x.log.push({id:newId(),d,min:mn||0,note:v('note').slice(0,80)});x.u=Date.now();skLogFor=null;blurC();commit();toast(first?'Practice logged · +10 XP':'Practice logged');return true}
