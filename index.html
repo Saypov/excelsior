@@ -497,10 +497,11 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
 
     <div class="card" id="invKeyCard" hidden style="margin-top:12px">
       <b>Connect market data</b>
-      <p class="small muted" style="margin-top:4px">Keys are stored privately in your account, not in the app's code. FMP's free plan only covers some stocks, so add a free Alpha Vantage key too (alphavantage.co → Get free API key). The app uses whichever works for each stock.</p>
+      <p class="small muted" style="margin-top:4px">Keys are stored privately in your account, not in the app's code. Finnhub gives live US prices and powers price alerts (finnhub.io → Get free API key). Alpha Vantage gives dividends (alphavantage.co → Get free API key). FMP is a backup.</p>
       <form data-form="invkey">
-        <label for="invKey">Financial Modeling Prep key</label><input id="invKey" autocomplete="off" autocapitalize="off" placeholder="leave empty to keep current">
-        <label for="avKey">Alpha Vantage key</label><input id="avKey" autocomplete="off" autocapitalize="off" placeholder="leave empty to keep current">
+        <label for="invKey">Financial Modeling Prep key (backup)</label><input id="invKey" autocomplete="off" autocapitalize="off" placeholder="leave empty to keep current">
+        <label for="fhKey">Finnhub key (live prices + alerts)</label><input id="fhKey" autocomplete="off" autocapitalize="off" placeholder="leave empty to keep current">
+        <label for="avKey">Alpha Vantage key (dividends)</label><input id="avKey" autocomplete="off" autocapitalize="off" placeholder="leave empty to keep current">
         <button class="btn" type="submit">Save keys</button>
         <button class="ghost" type="button" data-act="inv-keys-cancel" id="invKeyCancel" style="width:100%;margin-top:8px">Cancel</button></form>
       <p class="msg" id="invKeyMsg"></p>
@@ -531,6 +532,24 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <p class="msg" id="hMsg"></p>
       <button class="btn" type="submit">Add</button>
     </form>
+
+    <h2>Price alerts</h2>
+    <div class="card" id="alCard">
+      <p class="small muted" style="margin-top:0" id="alNote"></p>
+      <div id="alList"></div>
+      <form data-form="alert" style="margin-top:6px">
+        <div class="grid2">
+          <div><label for="alSym">Ticker</label><input id="alSym" list="alSyms" autocomplete="off" autocapitalize="characters" placeholder="e.g. O"><datalist id="alSyms"></datalist></div>
+          <div><label for="alVal" id="alValLbl">Price ($)</label><input id="alVal" inputmode="decimal" placeholder="e.g. 50" autocomplete="off"></div>
+        </div>
+        <label>Alert me when it</label>
+        <div class="seg" role="group" aria-label="Alert type" style="margin-top:4px"><button type="button" data-act="al-type" data-v="px">Hits a price</button><button type="button" data-act="al-type" data-v="drop">Falls by %</button></div>
+        <div id="alWinBox" hidden><label for="alWin">Measured from</label><select id="alWin"><option value="1d">Yesterday's close (within a day)</option><option value="1w" selected>Highest price of the last week</option><option value="1m">Highest price of the last month</option></select></div>
+        <p class="msg" id="alMsg"></p>
+        <button class="btn" type="submit">Add alert</button>
+      </form>
+      <button class="link" type="button" data-act="al-check" id="alCheck" style="margin-top:8px">Check prices now</button>
+    </div>
 
     <h2>Calculator</h2>
     <form data-form="calc" class="card">
@@ -722,7 +741,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.8.3 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.9.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -785,7 +804,7 @@ function commit(){
   if(uid){clearTimeout(timer);timer=setTimeout(flush,700)}
 }
 /* Merge two copies so nothing is ever lost: keep every item either side has, unless it was deleted on purpose. */
-const LISTS=['workouts','expenses','plans','debts','cards','holdings','events','potAdj','weights','mk','skills'];
+const LISTS=['workouts','expenses','plans','debts','cards','holdings','events','potAdj','weights','mk','skills','alerts'];
 /* Settings (budget, theme, keys…) carry a per-setting 'last changed' time, so a fresh device's defaults never overwrite real values. */
 const NOSCALAR=new Set(['updated','mt','del','revLog','writeLog','rev_it','rev_fr','finLog'].concat(LISTS));
 const scalarKeys=o=>Object.keys(o||{}).filter(k=>!NOSCALAR.has(k));
@@ -852,7 +871,7 @@ function onInbox(items,delFn){
 }
 function onUser(u){
   user=u;if(unsub){unsub();unsub=null}if(unsubIn){unsubIn();unsubIn=null}if(unsubDrop){unsubDrop();unsubDrop=null}
-  uid=u?u.uid:null;keyLoaded=false;fmpKey=null;avKey=null;renderAccount();if(uid&&location.hash==='#invest')setTimeout(()=>refreshInv(false),300);
+  uid=u?u.uid:null;keyLoaded=false;fmpKey=null;avKey=null;fhKey=null;alSt=null;alStT=0;renderAccount();if(uid&&location.hash==='#invest')setTimeout(()=>refreshInv(false),300);
   if(!uid){setSync('Not signed in');return}
   setSync('Connecting…');
   const t=setTimeout(()=>setSync('Offline · saved on this device'),10000);
@@ -1758,9 +1777,9 @@ async function av(params){
   if(j['Error Message'])throw new Error('Alpha Vantage: ticker not found');
   return j;
 }
-async function avLoad(sym){
+async function avLoad(sym,livePx){
   const s=isUK(sym)?sym.replace(/\.L$/i,'.LON'):sym;
-  const q=await av({function:'GLOBAL_QUOTE',symbol:s});const g=q['Global Quote']||{};const price=+g['05. price'];
+  let price=livePx||0;if(!price){const q=await av({function:'GLOBAL_QUOTE',symbol:s});const g=q['Global Quote']||{};price=+g['05. price']} // price from Finnhub when available saves an Alpha Vantage call
   if(!price)throw new Error('no price found, check the ticker');
   let divs=[],divErr=null;
   try{const d=await av({function:'DIVIDENDS',symbol:s});divs=(d.data||[]).map(x=>({ex:x.ex_dividend_date,pay:x.payment_date&&x.payment_date!=='None'?x.payment_date:null,amt:+x.amount,freq:''})).filter(x=>x.ex&&x.amt>0).sort((a,b)=>b.ex.localeCompare(a.ex)).slice(0,30)}catch(e){divErr=e.message}
@@ -1777,10 +1796,13 @@ async function fmp(path,params){
   return j;
 }
 async function loadSym(sym){
-  let c=null,why='';
+  let c=null,why='',live=null;
+  if(fhKey&&!isUK(sym)){try{live=await fhQuote(sym)}catch(e){}}
   if(fmpKey){try{c=await fmpLoad(sym)}catch(e){why=e.message}}
-  if(!c&&avKey){try{c=await avLoad(sym)}catch(e){throw new Error((why?'FMP: '+why+'; ':'')+'Alpha Vantage: '+e.message)}}
+  if(!c&&avKey){try{c=await avLoad(sym,live&&live.c)}catch(e){if(!live)throw new Error((why?'FMP: '+why+'; ':'')+'Alpha Vantage: '+e.message);why=e.message}}
+  if(!c&&live){const o=(S.invCache||{})[sym];c={sym,name:o&&o.name||sym,price:live.c,exchange:'US',divs:o&&o.divs||[],t:Date.now(),divErr:why||'dividends need an Alpha Vantage key',src:'Finnhub'}}
   if(!c)throw new Error(why?(why+(avKey?'':'. Add an Alpha Vantage key (Keys) to cover this stock.')):'Add a data key first.');
+  if(live){c.price=live.c;c.pt=Date.now();c.psrc='Finnhub'}
   c.ccy=isUK(sym)?'GBP':'USD';if(isUK(sym)){c.price=c.price/100;c.divs.forEach(d=>d.amt=d.amt/100)}
   S.invCache=S.invCache||{};S.invCache[sym]=c;return c;
 }
@@ -1794,7 +1816,7 @@ async function loadFx(){
   let p=null;
   if(fmpKey){try{const q=await fmp('quote',{symbol:'GBPUSD'});p=Array.isArray(q)&&q[0]&&+q[0].price}catch(e){}}
   if(!p&&avKey){const j=await av({function:'CURRENCY_EXCHANGE_RATE',from_currency:'GBP',to_currency:'USD'});p=+((j['Realtime Currency Exchange Rate']||{})['5. Exchange Rate'])}
-  if(p)S.invFx={rate:p,t:Date.now()};else throw new Error('no exchange rate available');
+  if(p)S.invFx={rate:p,t:Date.now()};else throw new Error(fmpKey||avKey?'no exchange rate available':'needs an FMP or Alpha Vantage key');
 }
 function freqOf(c){
   const f=(c.divs[0]&&c.divs[0].freq||'').toLowerCase();
@@ -1820,32 +1842,94 @@ function holdingCalc(h){
   const f=freqOf(c),last=c.divs[0]?c.divs[0].amt:0,annPS=last*f;
   return {c,f,annPS,annGross:annPS*h.qty,annNet:annPS*h.qty*netF(c),value:c.price*h.qty,yld:c.price?annPS/c.price:0,next:events(c)[0]||null};
 }
+/* ---------- Invest → Finnhub live prices + price alerts (v5.9.0) ---------- */
+// Finnhub (free key, 60 calls/min, US stocks) = prices; Alpha Vantage = dividends; FMP = fallback.
+// S.alerts: {id,sym,type:'px'|'drop',val,win:'1d'|'1w'|'1m',paused,u}. The Cloudflare Worker checks them every 15 min
+// in US market hours and writes status to users/{uid}/app/alerts ({st:{id:{armed,c,ref,drop,t,ft,fp,u}}, last:{SYM:{c,pc,t}}}).
+let fhKey=null,alSt=null,alStT=0,alType='px',alBusy=false;
+async function fhQuote(sym){
+  if(!fhKey)throw new Error('add a Finnhub key');
+  let r;try{r=await fetch('https://finnhub.io/api/v1/quote?'+new URLSearchParams({symbol:sym,token:fhKey}))}catch(e){throw new Error('couldn\'t reach Finnhub')}
+  if(r.status===401||r.status===403)throw new Error('Finnhub key not accepted');
+  if(r.status===429)throw new Error('Finnhub busy, try again in a minute');
+  const j=await r.json().catch(()=>null);if(!j||!(+j.c>0))throw new Error('Finnhub has no price for '+sym);
+  return {c:+j.c,pc:+j.pc||0,t:+j.t||0}}
+async function livePrice(sym){const c=(S.invCache||{})[sym];if(!c)return loadSym(sym);const q=await fhQuote(sym);c.price=q.c;c.pt=Date.now();c.psrc='Finnhub';return c}
+async function alLoadState(force){if(!uid||!cloud||!cloud.getAlerts)return;if(!force&&Date.now()-alStT<60e3)return;alStT=Date.now();try{alSt=await cloud.getAlerts(uid)}catch(e){}renderAlerts()}
+const usdA=n=>n==null||!isFinite(n)?'—':'$'+(Math.round(n*100)/100).toFixed(2).replace(/\.00$/,'');
+const agoA=t=>{const m=Math.round((Date.now()-t)/6e4);return m<1?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+'h ago':short(new Date(t).toISOString().slice(0,10))};
+const alDesc=a=>a.type==='px'?'at or below '+usdA(+a.val):'falls '+a.val+'% '+(a.win==='1d'?'in a day':'from its '+(a.win==='1m'?'1-month':'1-week')+' high');
+function alStatus(a){
+  if(a.paused)return 'Paused';
+  const s=alSt&&alSt.st&&alSt.st[a.id],L=alSt&&alSt.last&&alSt.last[a.sym];
+  if(s&&s.u===(a.u||0)){
+    if(s.armed===false)return '🔔 Alert sent '+agoA(s.ft)+' at '+usdA(s.fp)+' · re-arms '+(a.type==='px'?'above '+usdA(a.val*1.02):'once the fall is under '+(Math.round(a.val/2*10)/10)+'%');
+    return 'Watching · '+usdA(s.c)+(a.type==='drop'?' · '+(s.drop>0?'down '+s.drop+'%':'no fall')+' from '+usdA(s.ref):a.val>0&&s.c?' · '+(Math.round((s.c/a.val-1)*1000)/10)+'% above target':'')+' · checked '+agoA(s.t)}
+  if(L)return 'Watching · last price '+usdA(L.c);
+  return 'Waiting for the first check'}
+function renderAlerts(){
+  const box=$('#alList');if(!box)return;S.alerts=S.alerts||[];
+  document.querySelectorAll('[data-act=al-type]').forEach(b=>b.classList.toggle('on',b.dataset.v===alType));
+  $('#alValLbl').textContent=alType==='px'?'Price ($)':'Fall (%)';$('#alVal').placeholder=alType==='px'?'e.g. 50':'e.g. 8';$('#alWinBox').hidden=alType!=='drop';
+  $('#alSyms').innerHTML=[...new Set((S.holdings||[]).map(h=>h.sym).filter(s=>!isUK(s)))].map(s=>`<option value="${esc(s)}">`).join('');
+  $('#alNote').textContent=!uid?'Sign in to use alerts.':keyLoaded&&!fhKey?'Add a free Finnhub key (Keys, above) to turn alerts on: finnhub.io → Get free API key.':'Checked every 15 minutes while the US market is open (about 2:30–9 pm UK). You get one notification, then it re-arms once the price recovers. Notifications must be on in Settings.';
+  const L=S.alerts.slice().sort((a,b)=>a.sym.localeCompare(b.sym));
+  box.innerHTML=L.length?L.map(a=>`<div class="li" style="align-items:flex-start"><span style="flex:1"><b>${esc(a.sym)}</b> <span class="muted">${esc(alDesc(a))}</span><br><span class="small muted">${esc(alStatus(a))}</span>
+    <span class="evacts"><button class="link" data-act="al-pause" data-id="${a.id}">${a.paused?'Resume':'Pause'}</button><button class="link" data-act="del-alert" data-id="${a.id}">Delete</button></span></span></div>`).join(''):'<p class="small muted" style="margin:6px 0">No alerts yet.</p>';
+}
+async function alCheckNow(){
+  if(alBusy)return;if(!uid||!cloud||!cloud.idToken){toast('Sign in first');return}
+  if(!(S.alerts||[]).some(a=>!a.paused)){toast('Add an alert first');return}
+  alBusy=true;const b=$('#alCheck');if(b)b.textContent='Checking…';
+  try{const tok=await cloud.idToken();const r=await fetch(NOTIFY_URL+'/alerts',{method:'POST',headers:{authorization:'Bearer '+tok,'content-type':'application/json'},body:'{}'});
+    const txt=await r.text();let j=null;try{j=JSON.parse(txt)}catch(e){}
+    if(!j)toast('Update the Worker in Cloudflare first (alerts need the new version)');
+    else if(j.error==='no-finnhub-key')toast('Add your Finnhub key first (Keys)');
+    else if(!j.ok&&j.error)toast('Check failed: '+(j.detail||j.error));
+    else toast('Checked '+j.checked+' stock'+(j.checked===1?'':'s')+(j.sent?' · '+j.sent+' alert'+(j.sent===1?'':'s')+' sent':''));
+  }catch(e){toast('Couldn\'t reach the alert server')}
+  alBusy=false;if(b)b.textContent='Check prices now';await alLoadState(true)}
+function alAct(a,b){const id=b.dataset.id;
+  if(a==='al-type'){alType=b.dataset.v;renderAlerts();return true}
+  if(a==='al-pause'){const x=(S.alerts||[]).find(y=>y.id===id);if(x){x.paused=!x.paused;x.u=Date.now();commit();toast(x.paused?'Alert paused':'Alert resumed')}return true}
+  if(a==='del-alert'){removeWith('alerts',id,'Alert');return true}
+  if(a==='al-check'){alCheckNow();return true}
+  return false}
+function alForm(){
+  const sym=$('#alSym').value.trim().toUpperCase().replace(/^\$/,''),val=num($('#alVal').value),win=$('#alWin').value;
+  if(!/^[A-Z][A-Z0-9.\-]{0,9}$/.test(sym)){$('#alMsg').textContent='Enter a ticker, e.g. O.';return}
+  if(isUK(sym)){$('#alMsg').textContent='UK stocks aren\'t covered by Finnhub\'s free plan. US tickers only.';return}
+  if(!(val>0)||(alType==='drop'&&val>=90)){$('#alMsg').textContent=alType==='px'?'Enter the price in $.':'Enter a fall between 1 and 90%.';return}
+  S.alerts=S.alerts||[];S.alerts.push({id:newId(),sym,type:alType,val:Math.round(val*100)/100,win:alType==='drop'?win:'',paused:false,u:Date.now()});
+  $('#alSym').value='';$('#alVal').value='';$('#alMsg').textContent='';try{document.activeElement.blur()}catch(e){}commit();toast('Alert added')}
+
 async function ensureKey(){
   if(keyLoaded)return fmpKey;
   if(!uid||!cloud||!cloud.getSecret)return null;
-  try{const s=await cloud.getSecret(uid);fmpKey=s&&s.fmp||null;avKey=s&&s.av||null}catch(e){}
+  try{const s=await cloud.getSecret(uid);fmpKey=s&&s.fmp||null;avKey=s&&s.av||null;fhKey=s&&s.fh||null}catch(e){}
   keyLoaded=true;return fmpKey;
 }
 async function refreshInv(force){
-  if(invBusy)return;await ensureKey();renderInvest();if(!fmpKey&&!avKey)return;
+  if(invBusy)return;await ensureKey();renderInvest();alLoadState();if(!fmpKey&&!avKey&&!fhKey)return;
   const hs=S.holdings||[],stale=c=>!c||Date.now()-c.t>20*3600e3;
   const need=hs.map(h=>h.sym).filter((s,i,a)=>a.indexOf(s)===i).filter(s=>force||stale((S.invCache||{})[s]));
+  const liveNeed=fhKey?hs.map(h=>h.sym).filter((s,i,a)=>a.indexOf(s)===i).filter(s=>!isUK(s)&&!need.includes(s)&&Date.now()-(((S.invCache||{})[s]||{}).pt||0)>15*60e3):[];
   const fxStale=!S.invFx||Date.now()-S.invFx.t>20*3600e3;
-  if(!need.length&&!fxStale&&!force)return;
-  if(!fmpKey&&!avKey)return;
+  if(!need.length&&!liveNeed.length&&!fxStale&&!force)return;
   invBusy=true;$('#invMsg').textContent='Updating prices and dividends…';
   const errs=[];
   try{if(fxStale||force)await loadFx()}catch(e){errs.push('Exchange rate: '+e.message)}
   for(const s of need){try{await loadSym(s)}catch(e){errs.push(s+': '+e.message)}}
+  for(const s of liveNeed){try{await livePrice(s)}catch(e){errs.push(s+': '+e.message)}}
   invBusy=false;$('#invMsg').textContent=errs.join(' · ');commit();
 }
 function renderInvest(){
   if(!$('#s-invest'))return;
   document.querySelectorAll('[data-act=inv-ccy]').forEach(b=>b.classList.toggle('on',b.dataset.v===invCcy()));
-  $('#invKeyCard').hidden=!showKeys&&(!!(fmpKey||avKey)||!keyLoaded&&!!uid);
+  $('#invKeyCard').hidden=!showKeys&&(!!(fmpKey||avKey||fhKey)||!keyLoaded&&!!uid);
   if(!uid){$('#invKeyCard').hidden=false;$('#invKeyMsg').textContent='Sign in first (Settings → Account & sync), so your key is stored safely.'}
   else if(/^Sign in first/.test($('#invKeyMsg').textContent))$('#invKeyMsg').textContent=''; // clear the stale message once signed in
-  $('#invKeyCancel').hidden=!(fmpKey||avKey);
+  $('#invKeyCancel').hidden=!(fmpKey||avKey||fhKey);try{renderAlerts()}catch(e){console.error(e)}
   const hs=(S.holdings||[]).slice().sort((a,b)=>(b.qty>0)-(a.qty>0)||a.sym.localeCompare(b.sym));
   // forecast by pay month
   const months=[];const d0=new Date();d0.setDate(1);for(let i=0;i<12;i++){const d=new Date(d0);d.setMonth(d0.getMonth()+i);months.push(iso(d).slice(0,7))}
@@ -3161,6 +3245,7 @@ document.addEventListener('click',e=>{
     clearTimeout(b._t);b._t=setTimeout(()=>disarm(b),4000);return}
   if(/^mk-|^del-mk$/.test(a)&&mkAct(a,b))return;
   if(/^sk-|^del-sk/.test(a)&&skAct(a,b))return;
+  if(/^al-|^del-alert$/.test(a)&&alAct(a,b))return;
   if(a==='go'){location.hash=b.dataset.to}
   else if(a==='add-ex'){draft.push(blank());renderDraft();const ins=document.querySelectorAll('#exRows input[data-f=name]');ins[ins.length-1].focus()}
   else if(a==='rm-ex'){draft.splice(i,1);if(!draft.length)draft.push(blank());renderDraft()}
@@ -3221,7 +3306,7 @@ document.addEventListener('click',e=>{
   else if(a==='sp-ccy'){S.spCcy=b.dataset.v;commit();if(S.spCcy==='USD')spEnsureFx()}
   else if(a==='inv-refresh'){refreshInv(true)}
   else if(a==='inv-keys'){showKeys=!showKeys;renderInvest()}
-  else if(a==='inv-keys-cancel'){showKeys=false;$('#invKey').value='';$('#avKey').value='';if(!/^Sign in first/.test($('#invKeyMsg').textContent))$('#invKeyMsg').textContent='';renderInvest()}
+  else if(a==='inv-keys-cancel'){showKeys=false;$('#invKey').value='';$('#avKey').value='';$('#fhKey').value='';if(!/^Sign in first/.test($('#invKeyMsg').textContent))$('#invKeyMsg').textContent='';renderInvest()}
   else if(a==='del-hold'){removeWith('holdings',id,'Stock')}
   else if(a==='calc-add'){const sym=b.dataset.sym,q=+b.dataset.qty;S.holdings=S.holdings||[];const h=S.holdings.find(x=>x.sym===sym);if(h)h.qty=q;else S.holdings.push({id:newId(),sym,qty:q,cost:null});commit();toast(sym+' added to holdings')}
   else if(a==='pot-adj'){$('#potForm').hidden=!$('#potForm').hidden}
@@ -3337,10 +3422,10 @@ document.addEventListener('submit',e=>{
     $('#potAmt').value='';$('#potNote').value='';$('#potForm').hidden=true;commit();toast('Savings pot updated');
   }
   else if(k==='invkey'){
-    const v=$('#invKey').value.trim(),a2=$('#avKey').value.trim();if(!v&&!a2){if(fmpKey||avKey){showKeys=false;renderInvest();toast('Keys unchanged')}else $('#invKeyMsg').textContent='Paste at least one key.';return}
+    const v=$('#invKey').value.trim(),a2=$('#avKey').value.trim(),f3=$('#fhKey').value.trim();if(!v&&!a2&&!f3){if(fmpKey||avKey||fhKey){showKeys=false;renderInvest();toast('Keys unchanged')}else $('#invKeyMsg').textContent='Paste at least one key.';return}
     if(!uid||!cloud||!cloud.setSecret){$('#invKeyMsg').textContent='Sign in first (Settings → Account & sync).';return}
-    $('#invKeyMsg').textContent='Saving…';const upd={};if(v)upd.fmp=v;if(a2)upd.av=a2;
-    cloud.setSecret(uid,upd).then(()=>{if(v)fmpKey=v;if(a2)avKey=a2;keyLoaded=true;showKeys=false;$('#invKey').value='';$('#avKey').value='';$('#invKeyMsg').textContent='';toast('Keys saved');refreshInv(true)}).catch(()=>{$('#invKeyMsg').textContent='Couldn\'t save. Try again.'});
+    $('#invKeyMsg').textContent='Saving…';const upd={};if(v)upd.fmp=v;if(a2)upd.av=a2;if(f3)upd.fh=f3;
+    cloud.setSecret(uid,upd).then(()=>{if(v)fmpKey=v;if(a2)avKey=a2;if(f3)fhKey=f3;keyLoaded=true;showKeys=false;$('#invKey').value='';$('#avKey').value='';$('#fhKey').value='';$('#invKeyMsg').textContent='';toast('Keys saved');refreshInv(true)}).catch(()=>{$('#invKeyMsg').textContent='Couldn\'t save. Try again.'});
   }
   else if(k==='hold'){
     const sym=$('#hSym').value.trim().toUpperCase(),qty=$('#hQty').value.trim()===''?0:num($('#hQty').value),cost=num($('#hCost').value);
@@ -3373,6 +3458,7 @@ document.addEventListener('submit',e=>{
     if(spUSD()){const shown=eUSD(x);if(Math.abs(amt-shown)>0.004){x.usd=r2s(amt);x.amt=r2s(amt/(x.fx||fxRate()))}}else if(Math.abs(amt-x.amt)>0.004){x.amt=Math.round(amt*100)/100;delete x.usd}x.d=d;x.cat=$('#eeCat').value;x.note=$('#eeNote').value.trim().slice(0,60);x.fromPot=$('#eePot').checked||undefined;if(!x.fromPot)delete x.fromPot;x.u=Date.now();
     editExp=null;commit();toast('Expense updated')}
   else if(/^sk/.test(k)&&skForm(k,f)){}
+  else if(k==='alert')alForm();
   else if(k==='mkin'){const amt=num($('#mkInAmt').value);if(!(amt>0)){$('#mkInMsg').textContent='Add the amount.';return}
     S.mk=S.mk||[];S.mk.push({id:newId(),d:$('#mkInD').value||today(),amt:Math.round(amt*100)/100,k:'in',note:$('#mkInNote').value.trim().slice(0,60),u:Date.now()});
     $('#mkInAmt').value='';$('#mkInNote').value='';$('#mkInD').value=today();$('#mkInMsg').textContent='';commit();toast('Added to the fund')}
@@ -3443,6 +3529,7 @@ window.saroCloud={
   save:(uid,data)=>setDoc(ref(uid),data),
   watchInbox:(uid,next)=>onSnapshot(collection(db,'users',uid,'inbox'),q=>next(q.docs.map(d=>({id:d.id,data:d.data()}))),()=>{}),
   getSecret:async uid=>{const s=await getDoc(doc(db,'users',uid,'app','secrets'));return s.exists()?s.data():null},
+  getAlerts:async uid=>{const s=await getDoc(doc(db,'users',uid,'app','alerts'));return s.exists()?s.data():null},
   idToken:()=>auth.currentUser?auth.currentUser.getIdToken():Promise.reject(new Error('not signed in')),
   savePush:(uid,dev,sub)=>setDoc(doc(db,'users',uid,'app','push'),{subs:{[dev]:sub}},{merge:true}),
   setSecret:(uid,data)=>setDoc(doc(db,'users',uid,'app','secrets'),data,{merge:true}),

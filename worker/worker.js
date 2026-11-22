@@ -198,6 +198,7 @@ export function remindersFor(e, tz) {
 export async function runReminders(env, now = Date.now()) {
   const fs = new Firestore(env);
   let sentTotal = 0, checked = 0;
+  const mkt = marketCheckDue(now);
   for (const uid of await fs.userIds()) {
     const P = n => `users/${uid}/app/${n}`;
     const docs = await fs.getDocs([P('state'), P('push'), P('pushlog')]);
@@ -228,11 +229,131 @@ export async function runReminders(env, now = Date.now()) {
       }
       newSent[r.key] = now; if (ok) sentTotal++;
     }
+    if (mkt && (st.alerts || []).length) {
+      try { const ar = await runAlerts(fs, uid, st, subs, env, now, mkt, dead); sentTotal += ar.sent; }
+      catch (err) { console.error('alerts error', uid, err.message); }
+    }
     const prune = Object.keys(sent).filter(k => !(k in newSent) && sent[k] < now - KEEP_SENT_DAYS * 864e5);
     await fs.patchMap(P('pushlog'), 'sent', newSent, prune);
     if (dead.size) await fs.patchMap(P('push'), 'subs', Object.fromEntries([...dead].map(d => [d, null])));
   }
   return { checked, sent: sentTotal };
+}
+
+// ---------- price alerts (v5.9.0) ----------
+// Alerts live in state.alerts: {id, sym, type:'px'|'drop', val, win:'1d'|'1w'|'1m', paused, u}.
+// Every 15 min while the US market is open (9:30–16:00 New York, Mon–Fri) the Worker asks Finnhub for each
+// symbol's quote (key in users/{uid}/app/secrets.fh), keeps each day's high, and pushes when an alert's condition
+// becomes true. An alert fires once, then re-arms only after the price recovers (above target +2%, or the drop
+// halves), so a price wobbling around the line doesn't spam. Status goes to users/{uid}/app/alerts (read by the app).
+const ALERT_EVERY_MIN = 15;
+const toVal = v => v === null || v === undefined || (typeof v === 'number' && !isFinite(v)) ? { nullValue: null }
+  : typeof v === 'boolean' ? { booleanValue: v } : typeof v === 'number' ? numVal(v) : typeof v === 'string' ? { stringValue: v }
+  : Array.isArray(v) ? { arrayValue: { values: v.map(toVal) } } : { mapValue: { fields: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, toVal(x)])) } };
+Firestore.prototype.setFields = async function (path, obj) {   // replace whole top-level fields of one doc (creates the doc)
+  const keys = Object.keys(obj);
+  await this.req(':commit', { method: 'POST', body: JSON.stringify({ writes: [{
+    update: { name: this.root + '/' + path, fields: Object.fromEntries(keys.map(k => [k, toVal(obj[k])])) },
+    updateMask: { fieldPaths: keys.map(quotePath) }
+  }] }) });
+};
+export function etParts(now) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+    .formatToParts(new Date(now)).map(x => [x.type, x.value]));
+  return { wd: p.weekday, date: `${p.year}-${p.month}-${p.day}`, min: +p.hour * 60 + +p.minute };
+}
+export function marketCheckDue(now) {
+  const e = etParts(now);
+  if (e.wd === 'Sat' || e.wd === 'Sun' || e.min < 570 || e.min > 960 || e.min % ALERT_EVERY_MIN) return null;
+  return e;
+}
+async function fhQuote(sym, key) {
+  const r = await fetch('https://finnhub.io/api/v1/quote?' + new URLSearchParams({ symbol: sym, token: key }));
+  if (!r.ok) throw new Error('Finnhub ' + r.status);
+  const q = await r.json();
+  if (!q || !(+q.c > 0)) throw new Error('no price for ' + sym);
+  return { c: +q.c, pc: +q.pc || 0, h: +q.h || +q.c, t: +q.t || 0 };
+}
+const money2 = n => '$' + (Math.round(n * 100) / 100).toFixed(2).replace(/\.00$/, '');
+const WIN = { '1d': [1, "yesterday's close"], '1w': [7, '1-week high'], '1m': [30, '1-month high'] };
+export function alertRef(a, q, hist, etDate) {
+  if (a.type !== 'drop' || a.win === '1d' || !WIN[a.win]) return q.pc || q.c;
+  const from = addDays(etDate, -WIN[a.win][0]);
+  let ref = Math.max(q.h || 0, q.pc || 0);
+  for (const [d, v] of Object.entries(hist || {})) if (d > from && +v > ref) ref = +v;
+  return ref || q.c;
+}
+export function evalAlert(a, q, hist, prev, etDate, now) {
+  let s = prev && prev.u === (a.u || 0) ? { ...prev } : { armed: true, u: a.u || 0 };
+  if (s.armed === undefined) s.armed = true;
+  const val = +a.val, ref = alertRef(a, q, hist, etDate), drop = ref > 0 ? (ref - q.c) / ref * 100 : 0;
+  const hit = a.type === 'px' ? q.c <= val : drop >= val;
+  const recovered = a.type === 'px' ? q.c > val * 1.02 : drop < val / 2;
+  s.c = q.c; s.ref = Math.round(ref * 100) / 100; s.drop = Math.round(drop * 10) / 10; s.t = now;
+  let fire = null;
+  if (s.armed && hit) {
+    s.armed = false; s.ft = now; s.fp = q.c;
+    const sym = a.sym.toUpperCase();
+    fire = a.type === 'px'
+      ? { title: `${sym} is at ${money2(q.c)}`, body: `At or below your ${money2(val)} alert.` }
+      : { title: `${sym} is down ${drop.toFixed(1)}%`, body: `Now ${money2(q.c)}, from ${a.win === '1d' ? '' : 'its '}${WIN[a.win] ? WIN[a.win][1] : 'reference'} of ${money2(ref)}.` };
+  } else if (!s.armed && recovered) s.armed = true;
+  return { state: s, fire };
+}
+async function pushAll(subs, payload, env, dead) {
+  let ok = false;
+  for (const [dev, s] of subs) {
+    if (dead.has(dev)) continue;
+    try {
+      const res = await sendPush(s, payload, env);
+      if (res.ok) ok = true; else if (res.status === 404 || res.status === 410) dead.add(dev); else console.error('push failed', dev, res.status, res.text);
+    } catch (err) { console.error('push error', dev, err.message); }
+  }
+  return ok;
+}
+export async function runAlerts(fs, uid, st, subs, env, now, e, dead, force = false) {
+  const del = st.del || {};
+  const A = (st.alerts || []).filter(a => a && a.id && a.sym && !del[a.id] && !a.paused && +a.val > 0);
+  if (!A.length) return { checked: 0, sent: 0 };
+  const P = n => `users/${uid}/app/${n}`;
+  const docs = await fs.getDocs([P('secrets'), P('alerts')]);
+  const key = (docs[P('secrets')] || {}).fh;
+  if (!key) return { checked: 0, sent: 0, error: 'no-finnhub-key' };
+  const prev = docs[P('alerts')] || {}, hi = prev.hi || {}, stt = prev.st || {}, last = prev.last || {};
+  const quotes = {}, errs = {};
+  for (const sym of [...new Set(A.map(a => a.sym.toUpperCase()))].slice(0, 25)) {
+    try {
+      const q = await fhQuote(sym, key); quotes[sym] = q;
+      const qd = q.t ? etParts(q.t * 1000).date : e.date;
+      const h = hi[sym] = hi[sym] || {};
+      h[qd] = Math.max(+h[qd] || 0, q.h || q.c);
+      for (const d of Object.keys(h)) if (d < addDays(e.date, -35)) delete h[d];
+      last[sym] = { c: q.c, pc: q.pc, h: q.h, t: now };
+    } catch (err) { errs[sym] = err.message; }
+  }
+  let sent = 0;
+  const live = new Set(A.map(a => a.id));
+  for (const a of A) {
+    const q = quotes[a.sym.toUpperCase()]; if (!q) continue;
+    const r = evalAlert(a, q, hi[a.sym.toUpperCase()], stt[a.id], e.date, now);
+    stt[a.id] = r.state;
+    if (r.fire && await pushAll(subs, JSON.stringify({ ...r.fire, tag: 'alert-' + a.id, url: './#money' }), env, dead)) sent++;
+  }
+  for (const id of Object.keys(stt)) if (!live.has(id) && !(st.alerts || []).some(a => a && a.id === id)) delete stt[id];
+  await fs.setFields(P('alerts'), { hi, st: stt, last, t: now, errs });
+  return { checked: Object.keys(quotes).length, sent, errs };
+}
+async function handleAlertCheck(request, env) {   // app's "Check now": runs this user's alerts once, any time of day
+  const tok = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  let uid;
+  try { uid = await verifyIdToken(tok, sa(env).project_id, await googleKeys()); }
+  catch (e) { return { status: 401, body: { ok: false, error: 'auth', detail: e.message } }; }
+  const fs = new Firestore(env), P = n => `users/${uid}/app/${n}`;
+  const docs = await fs.getDocs([P('state'), P('push')]);
+  const st = docs[P('state')] || {}, subs = Object.entries((docs[P('push')] || {}).subs || {}).filter(([, s]) => s && s.endpoint && s.keys);
+  const now = Date.now(), dead = new Set();
+  const r = await runAlerts(fs, uid, st, subs, env, now, etParts(now), dead, true);
+  return { status: 200, body: { ok: !r.error, ...r } };
 }
 
 // ---------- Firebase ID token check (for /test) ----------
@@ -289,9 +410,9 @@ export default {
     const cors = ALLOWED_ORIGINS.includes(origin) ? { 'access-control-allow-origin': origin, 'access-control-allow-methods': 'POST, OPTIONS', 'access-control-allow-headers': 'authorization, content-type', 'access-control-max-age': '86400', vary: 'origin' } : {};
     const url = new URL(request.url);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
-    if (url.pathname === '/test' && request.method === 'POST') {
+    if ((url.pathname === '/test' || url.pathname === '/alerts') && request.method === 'POST') {
       let out;
-      try { out = await handleTest(request, env); } catch (e) { console.error('test error', e.message); out = { status: 500, body: { ok: false, error: 'server', detail: e.message } }; }
+      try { out = url.pathname === '/alerts' ? await handleAlertCheck(request, env) : await handleTest(request, env); } catch (e) { console.error('test error', e.message); out = { status: 500, body: { ok: false, error: 'server', detail: e.message } }; }
       return new Response(JSON.stringify(out.body), { status: out.status, headers: { 'content-type': 'application/json', ...cors } });
     }
     return new Response('Excelsior notify: OK', { headers: { 'content-type': 'text/plain' } });
