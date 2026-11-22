@@ -120,6 +120,17 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 .hint b{color:var(--ink)}
 .inline{display:flex;gap:8px;margin-top:10px}.inline input{flex:1}
 .inline.payf{flex-wrap:wrap}
+.skhead{display:block;width:100%;background:none;border:0;padding:0;margin:0;color:inherit;text-align:left;min-height:0;cursor:pointer}
+.skc .bar{position:relative}.skpace{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.45;border-radius:1px;text-decoration:none}
+.sk-ok{background:color-mix(in srgb,var(--good) 16%,transparent)!important;color:var(--good)!important}
+.sk-behind{background:color-mix(in srgb,#f79009 18%,transparent)!important;color:#c26a00!important}
+.skdet{margin-top:14px;border-top:1px solid var(--line);padding-top:4px;animation:mkin .2s ease}.skdet h3{font-size:15px;margin:14px 0 6px}
+.skms-row{display:flex;align-items:center;gap:10px;padding:6px 0}.skms-row>span{flex:1}
+.skms{flex:none;width:26px;height:26px;min-height:26px;padding:0;border-radius:50%;border:2px solid var(--line);background:none;color:#fff;font-size:14px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s,transform .15s}
+.skms.on{background:var(--good);border-color:var(--good)}.skms:active{transform:scale(.9)}
+.skdone{text-decoration:line-through;opacity:.6}
+.skbox{margin-top:12px;padding:12px;border-radius:12px;background:var(--soft);animation:mkin .2s ease}
+#areaSk details>summary{font-weight:600}
 .paydel{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;min-height:22px;padding:0;margin:0 0 0 6px;border-radius:50%;border:0;background:var(--line);color:var(--muted);font-size:12px;line-height:1;vertical-align:middle;cursor:pointer;transition:background .2s,color .2s,transform .15s}
 .paydel:active{transform:scale(.9)}
 .paydel[data-armed="1"]{width:auto;padding:0 10px;border-radius:999px;background:#d92d20;color:#fff;font-weight:600}.inline.payf input[type=date]{flex:1 1 140px;min-width:0}.inline.payf input[inputmode]{flex:1 1 100px;min-width:0}.inline.payf button{flex:1 1 100%}
@@ -296,7 +307,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
     <button class="ghost" data-act="go" data-to="fitness">+ Workout</button>
   </div>
   <div class="pad"><div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:12px">
-    <span><b>Study</b><br><span class="small muted" id="langToday"></span><br><span class="small muted" id="finToday"></span></span>
+    <span><b>Study</b><br><span class="small muted" id="langToday"></span><br><span class="small muted" id="finToday"></span><br><span class="small muted" id="skToday"></span></span>
     <button class="ghost" data-act="go" data-to="lingue">Practise</button>
   </div></div>
   <div class="pad">
@@ -535,11 +546,13 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
 <section class="view" id="v-lingue">
   <div class="pad">
     <h1 style="margin-top:22px">Study</h1>
-    <div class="subtabs" style="grid-template-columns:1fr 1fr" role="tablist">
+    <div class="subtabs" style="grid-template-columns:1fr 1fr 1fr" role="tablist">
       <button class="invtab" data-act="area" data-v="lingue" role="tab">Lingue</button>
       <button class="invtab" data-act="area" data-v="fin" role="tab">Finance</button>
+      <button class="invtab" data-act="area" data-v="skills" role="tab">Skills</button>
     </div>
     <div id="areaFin" hidden><div id="finBox"></div></div>
+    <div id="areaSk" hidden><div id="skBox"></div></div>
     <div id="areaLingue">
     <div class="chips" style="margin:14px 0 2px" role="tablist">
       <button data-act="lang" data-v="it" role="tab">Italiano</button>
@@ -704,7 +717,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.7.3 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.8.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -767,7 +780,7 @@ function commit(){
   if(uid){clearTimeout(timer);timer=setTimeout(flush,700)}
 }
 /* Merge two copies so nothing is ever lost: keep every item either side has, unless it was deleted on purpose. */
-const LISTS=['workouts','expenses','plans','debts','cards','holdings','events','potAdj','weights','mk'];
+const LISTS=['workouts','expenses','plans','debts','cards','holdings','events','potAdj','weights','mk','skills'];
 /* Settings (budget, theme, keys…) carry a per-setting 'last changed' time, so a fresh device's defaults never overwrite real values. */
 const NOSCALAR=new Set(['updated','mt','del','revLog','writeLog','rev_it','rev_fr','finLog'].concat(LISTS));
 const scalarKeys=o=>Object.keys(o||{}).filter(k=>!NOSCALAR.has(k));
@@ -1242,6 +1255,90 @@ function mkAct(a,b){
   if(a==='mk-call'){const ph=(mkS().ph||'').replace(/[^\d+]/g,'');if(ph)location.href='tel:'+ph;return true}
   if(a==='mk-ok'){const x=(S.mk||[]).find(y=>y.id===b.dataset.id);if(x){x.k='out';x.d=today();x.u=Date.now();commit();toast('Marked as paid')}return true}
   if(a==='del-mk'){const x=(S.mk||[]).find(y=>y.id===b.dataset.id);removeWith('mk',b.dataset.id,x&&x.k==='req'?'Request':'Entry');return true}
+  return false}
+
+/* ---------- Study → Skills (v5.8.0) ---------- */
+// S.skills: {id,name,due,start,ms:[{id,t,done,dd}],links:[{id,t,url}],log:[{id,d,min,note}],u}
+// Long-term things to learn (e.g. lezginka before the Qazaq ball), with target date, steps, practice log and pace.
+let skOpen=null,skLogFor=null,skEdit=null;
+const skWk=d=>{const x=new Date(d+'T12:00:00'),dw=(x.getDay()+6)%7;x.setDate(x.getDate()-dw);return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate())};
+function skInfo(k){
+  const ms=k.ms||[],done=ms.filter(m=>m.done).length,tot=ms.length,pct=tot?done/tot:0;
+  const log=(k.log||[]).slice().sort((a,b)=>b.d.localeCompare(a.d)),last=log[0]?log[0].d:null,since=last?days(last,today()):null;
+  let left=null,exp=0,behind=false,overdue=false;
+  if(k.due){left=days(today(),k.due);overdue=left<0;const st=k.start||today(),span=Math.max(1,days(st,k.due)),el=Math.min(span,Math.max(0,days(st,today())));exp=el/span;behind=!overdue&&tot>0&&pct<exp-0.15}
+  const W=new Set(log.map(l=>skWk(l.d)));let streak=0,w=skWk(today());if(!W.has(w))w=addDays(w,-7);while(W.has(w)){streak++;w=addDays(w,-7)}
+  const days1=new Set(log.map(l=>l.d)).size;
+  return {done,tot,pct,last,since,left,exp,behind,overdue,streak,mins:sum(log,l=>+l.min||0),n:log.length,wkN:log.filter(l=>skWk(l.d)===skWk(today())).length,log,xp:days1*10+done*25}}
+const skMin=m=>m>=60?Math.floor(m/60)+'h'+(m%60?' '+m%60+'m':''):m+' min';
+const skLeft=i=>i.left==null?'No target date':i.overdue?'Target date passed':i.left===0?'Target is today':i.left===1?'1 day left':i.left<21?i.left+' days left':Math.round(i.left/7)+' weeks left';
+const skNudge=k=>{const i=skInfo(k);return k.due&&!i.overdue&&(i.since==null||i.since>=5)?{k,i}:null};
+function skCard(k){
+  const i=skInfo(k),open=skOpen===k.id;
+  const tag=i.overdue?'<span class="tag hot">Date passed</span>':i.behind?'<span class="tag sk-behind">Behind</span>':k.due&&i.tot?'<span class="tag sk-ok">On track</span>':'';
+  const last=i.last?'Last practised '+(i.since===0?'today':i.since===1?'yesterday':i.since+' days ago'):'Not practised yet';
+  let h=`<div class="card skc${open?' open':''}">
+    <button class="skhead" type="button" data-act="sk-open" data-id="${k.id}" aria-expanded="${open}">
+      <span class="row" style="gap:8px"><b style="font-size:18px;text-align:left">${esc(k.name)}</b>${tag}</span>
+      <span class="small muted" style="display:block;text-align:left;margin-top:2px">${skLeft(i)}${k.due?' · '+short(k.due):''} · ${i.tot?i.done+' of '+i.tot+(i.tot===1?' step':' steps'):'no steps yet'}</span>
+    </button>
+    ${i.tot?`<div class="bar${i.behind||i.overdue?' hot':''}" style="margin:10px 0 4px"><i style="width:${Math.round(i.pct*100)}%;transition:width .4s ease"></i>${k.due&&!i.overdue&&i.exp>0?`<s class="skpace" style="left:${Math.round(i.exp*100)}%" title="Where you'd be on an even pace"></s>`:''}</div>`:''}
+    <p class="small muted" style="margin:6px 0 0">${last}${i.streak?' · '+i.streak+'-week streak':''}${i.mins?' · '+skMin(i.mins)+' total':''}</p>`;
+  if(skLogFor===k.id)h+=`<form data-form="sklog" data-id="${k.id}" class="skbox">
+      <div class="grid2"><div><label>Date</label><input type="date" name="d" value="${today()}" max="${today()}"></div><div><label>Minutes (optional)</label><input name="min" inputmode="numeric" placeholder="e.g. 20" autocomplete="off"></div></div>
+      <label>Note (optional)</label><input name="note" placeholder="What did you work on?" autocomplete="off">
+      <div class="grid2" style="margin-top:10px"><button class="ghost" type="button" data-act="sk-logx">Cancel</button><button class="btn" type="submit" style="margin:0">Save</button></div></form>`;
+  else h+=`<div class="grid2" style="margin-top:10px"><button class="btn" type="button" data-act="sk-log" data-id="${k.id}" style="margin:0">Practised</button><button class="ghost" type="button" data-act="sk-open" data-id="${k.id}">${open?'Close':'Details'}</button></div>`;
+  if(open){
+    h+=`<div class="skdet"><h3>Steps</h3>${(k.ms||[]).map(m=>`<div class="skms-row"><button type="button" class="skms${m.done?' on':''}" data-act="sk-ms" data-id="${k.id}" data-m="${m.id}" aria-pressed="${!!m.done}" aria-label="Mark step done">${m.done?'✓':''}</button><span class="${m.done?'skdone':''}">${esc(m.t)}${m.done&&m.dd?` <span class="small muted">· ${short(m.dd)}</span>`:''}</span><button type="button" class="paydel" data-act="del-skms" data-id="${k.id}" data-m="${m.id}" aria-label="Remove step">✕</button></div>`).join('')||'<p class="small muted">Break it into small steps you can tick off.</p>'}
+      <form data-form="skstep" data-id="${k.id}" class="inline"><input name="t" placeholder="Add a step, e.g. basic step in place" autocomplete="off"><button class="ghost" type="submit">Add</button></form>
+      <h3>Links</h3>${(k.links||[]).map(l=>`<div class="skms-row"><a class="link" href="${esc(l.url)}" target="_blank" rel="noopener" style="padding:0;flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.t||l.url)}</a><button type="button" class="paydel" data-act="del-sklink" data-id="${k.id}" data-m="${l.id}" aria-label="Remove link">✕</button></div>`).join('')||'<p class="small muted">Tutorials or videos you learn from.</p>'}
+      <form data-form="sklink" data-id="${k.id}"><div class="grid2"><input name="t" placeholder="Title (optional)" autocomplete="off"><input name="url" inputmode="url" placeholder="Link" autocomplete="off" autocapitalize="off" spellcheck="false"></div><button class="ghost" type="submit" style="width:100%;margin-top:8px">Add link</button></form>
+      <h3>Practice log</h3>${i.log.slice(0,10).map(l=>`<div class="skms-row"><span style="flex:1">${short(l.d)}${l.min?' · '+skMin(+l.min):''}${l.note?` · <span class="muted">${esc(l.note)}</span>`:''}</span><button type="button" class="paydel" data-act="del-sklog" data-id="${k.id}" data-m="${l.id}" aria-label="Remove session">✕</button></div>`).join('')||'<p class="small muted">Nothing logged yet.</p>'}${i.n>10?`<p class="small muted">+ ${i.n-10} older</p>`:''}`;
+    if(skEdit===k.id)h+=`<form data-form="skedit" data-id="${k.id}" class="skbox"><label>Name</label><input name="name" value="${esc(k.name)}" autocomplete="off"><label>Target date (optional)</label><input type="date" name="due" value="${k.due||''}"><div class="grid2" style="margin-top:10px"><button class="ghost" type="button" data-act="sk-editx">Cancel</button><button class="btn" type="submit" style="margin:0">Save</button></div></form>`;
+    else h+=`<div class="evacts" style="justify-content:flex-end;margin-top:12px"><button class="link" type="button" data-act="sk-edit" data-id="${k.id}">Edit name/date</button><button class="link" type="button" data-act="del-skill" data-id="${k.id}" style="color:#d92d20">Delete skill</button></div>`;
+    h+='</div>'}
+  return h+'</div>'}
+function renderSkills(){
+  const t=$('#skToday');if(t){const L=(S.skills||[]),N=L.map(skNudge).filter(Boolean);
+    t.textContent=N.length?N.slice(0,2).map(x=>x.k.name+': '+(x.i.since==null?'not started yet':'no practice for '+x.i.since+' days')).join(' · '):L.length?'Skills: '+L.length+' in progress':''}
+  const box=$('#skBox');if(!box||area!=='skills')return;S.skills=S.skills||[];
+  const ae=document.activeElement;if(ae&&box.contains(ae)&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName))return;
+  const L=S.skills.slice().sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||a.name.localeCompare(b.name));
+  const wk=sum(L,k=>skInfo(k).wkN),xp=sum(L,k=>skInfo(k).xp);
+  box.innerHTML=`<p class="small muted" style="margin:14px 0 2px">${L.length?L.length+' skill'+(L.length>1?'s':'')+' · '+wk+' session'+(wk===1?'':'s')+' this week · '+xp+' XP':'Long-term things you want to learn, with a target date and small steps.'}</p>`
+   +L.map(skCard).join('')
+   +`<details class="card" id="skNewBox"${L.length?'':' open'}><summary>+ New skill</summary><form data-form="skill">
+      <label for="skName">What do you want to learn?</label><input id="skName" placeholder="e.g. Lezginka" autocomplete="off">
+      <label for="skDue">Target date (optional)</label><input type="date" id="skDue">
+      <label for="skSteps">Steps (optional, one per line)</label><textarea id="skSteps" rows="4" placeholder="Basic step&#10;Arm positions&#10;1-minute routine&#10;Full dance to music"></textarea>
+      <label style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:12px"><input type="checkbox" id="skEv" checked style="width:22px;min-height:22px;height:22px;flex:none"> Add the target date to Events</label>
+      <p class="msg" id="skMsg"></p><button class="btn" type="submit">Add skill</button></form></details>`}
+function skAct(a,b){const id=b.dataset.id,k=(S.skills||[]).find(x=>x.id===id),m=b.dataset.m;
+  const blurC=()=>{try{document.activeElement&&document.activeElement.blur()}catch(e){}};
+  if(a==='sk-open'){skOpen=skOpen===id?null:id;skEdit=null;blurC();renderSkills();return true}
+  if(a==='sk-log'){skLogFor=id;renderSkills();const f=document.querySelector('form[data-form=sklog] input[name=min]');if(f)f.focus();return true}
+  if(a==='sk-logx'){skLogFor=null;blurC();renderSkills();return true}
+  if(a==='sk-edit'){skEdit=id;renderSkills();return true}
+  if(a==='sk-editx'){skEdit=null;blurC();renderSkills();return true}
+  if(a==='sk-ms'&&k){const x=(k.ms||[]).find(y=>y.id===m);if(!x)return true;x.done=!x.done;x.dd=x.done?today():'';k.u=Date.now();commit();if(x.done)toast('Step done · +25 XP');return true}
+  if(a==='del-skms'||a==='del-sklink'||a==='del-sklog'){if(!k)return true;const f=a==='del-skms'?'ms':a==='del-sklink'?'links':'log',arr=k[f]||[],ix=arr.findIndex(y=>y.id===m);if(ix<0)return true;const it=arr.splice(ix,1)[0];k.u=Date.now();commit();
+    toast((f==='ms'?'Step':f==='links'?'Link':'Session')+' removed',()=>{const y=(S.skills||[]).find(z=>z.id===id);if(!y)return;y[f]=y[f]||[];y[f].splice(Math.min(ix,y[f].length),0,it);y.u=Date.now();commit()});return true}
+  if(a==='del-skill'){if(skOpen===id)skOpen=null;removeWith('skills',id,'Skill');return true}
+  return false}
+function skForm(k,f){const blurC=()=>{try{document.activeElement&&document.activeElement.blur()}catch(e){}};
+  if(k==='skill'){const name=$('#skName').value.trim().slice(0,60),due=$('#skDue').value||'';if(!name){$('#skMsg').textContent='Give it a name.';return true}
+    if(due&&due<today()){$('#skMsg').textContent='Pick a target date in the future.';return true}
+    const ms=$('#skSteps').value.split('\n').map(x=>x.trim()).filter(Boolean).slice(0,30).map(t=>({id:newId(),t:t.slice(0,80),done:false}));
+    S.skills=S.skills||[];const o={id:newId(),name,due,start:today(),ms,links:[],log:[],u:Date.now()};S.skills.push(o);
+    if(due&&$('#skEv').checked){S.events=S.events||[];S.events.push({id:newId(),title:name+' — target',d:due,time:'',end:'',cat:'other',note:'From Study → Skills',done:false,rem:'am',u:Date.now()})}
+    skOpen=o.id;blurC();commit();toast('Skill added');return true}
+  const x=(S.skills||[]).find(y=>y.id===f.dataset.id);if(!x)return true;const v=n=>{const el=f.querySelector(`[name=${n}]`);return el?el.value.trim():''};
+  if(k==='skstep'){const t=v('t').slice(0,80);if(!t)return true;x.ms=x.ms||[];x.ms.push({id:newId(),t,done:false});x.u=Date.now();f.querySelector('[name=t]').value='';commit();setTimeout(()=>{const n=document.querySelector(`form[data-form=skstep][data-id="${x.id}"] [name=t]`);if(n)n.focus()},0);return true}
+  if(k==='sklink'){let u=v('url');if(!u)return true;if(!/^https?:\/\//i.test(u))u='https://'+u;x.links=x.links||[];x.links.push({id:newId(),t:v('t').slice(0,60),url:u.slice(0,500)});x.u=Date.now();blurC();commit();return true}
+  if(k==='sklog'){const d=/^\d{4}-\d{2}-\d{2}$/.test(v('d'))&&v('d')<=today()?v('d'):today(),mn=Math.max(0,Math.min(600,Math.round(num(v('min'))||0)));
+    const first=!(x.log||[]).some(l=>l.d===d);x.log=x.log||[];x.log.push({id:newId(),d,min:mn||0,note:v('note').slice(0,80)});x.u=Date.now();skLogFor=null;blurC();commit();toast(first?'Practice logged · +10 XP':'Practice logged');return true}
+  if(k==='skedit'){const n=v('name').slice(0,60);if(!n)return true;x.name=n;x.due=v('due');if(x.due&&!x.start)x.start=today();x.u=Date.now();skEdit=null;blurC();commit();toast('Saved');return true}
   return false}
 
 /* ---------- Lingue: flashcards with spaced repetition ---------- */
@@ -2880,7 +2977,7 @@ function sortCalc(){
 /* ---------- rendering ---------- */
 function renderStudy(){
   document.querySelectorAll('[data-act=area]').forEach(b=>{b.classList.toggle('on',b.dataset.v===area);b.setAttribute('aria-selected',b.dataset.v===area)});
-  const a=$('#areaLingue'),f=$('#areaFin');if(a)a.hidden=area!=='lingue';if(f)f.hidden=area!=='fin';
+  const a=$('#areaLingue'),f=$('#areaFin'),sk=$('#areaSk');if(a)a.hidden=area!=='lingue';if(f)f.hidden=area!=='fin';if(sk)sk.hidden=area!=='skills';
   const t=$('#finToday');if(t){const x=totalXP(),st=finStreak();t.textContent=x?'Finance: '+rankOf(x).name+' · '+x+' XP'+(st?' · '+st+'-day streak':''):'Finance quizzes: valuation and statements'}
 }
 function renderFin(){
@@ -2951,7 +3048,7 @@ function renderSort(box){
 document.addEventListener('submit',e=>{const f=e.target;if(f.id==='finForm'){e.preventDefault();checkTyped()}else if(f.id==='sortForm'){e.preventDefault();sortCalc()}});
 function finAct(a,b){
   if(learnAct(a,b))return true;
-  if(a==='area'){area=b.dataset.v;try{localStorage.setItem('excelsior-area',area)}catch(e){}renderStudy();if(area==='fin')renderFin();else renderLang();return true}
+  if(a==='area'){area=b.dataset.v;try{localStorage.setItem('excelsior-area',area)}catch(e){}renderStudy();if(area==='fin')renderFin();else if(area==='skills')renderSkills();else renderLang();return true}
   if(a==='fin-sub'){fsub=b.dataset.v;try{localStorage.setItem('excelsior-fsub',fsub)}catch(e){}renderFin();return true}
   if(a==='fin-play'){finStart(b.dataset.m,b.dataset.t);window.scrollTo(0,0);return true}
   if(a==='fin-opt'){if(F.done)return true;F.pick=+b.dataset.i;answer(F.pick===F.q.ans);return true}
@@ -3022,7 +3119,7 @@ function show(){if(location.hash==='#invest'){sub='invest';renderMoney();setTime
   document.querySelectorAll('.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab===v));
   window.scrollTo(0,0);
 }
-function renderAll(){try{if(fxStamp())setTimeout(commit,0);if(uid&&(!S.invFx||Date.now()-S.invFx.t>20*3600e3))setTimeout(()=>spEnsureFx(),0)}catch(e){}if(!S.potStart){S.potStart=ym(today());S.potStartDay=+today().slice(8);S.budgets=S.budgets||{};if(S.budgets[S.potStart]==null)S.budgets[S.potStart]=S.budget}try{const lk=localStorage.getItem('excelsior-dropkey');if(S.dropKey){if(lk!==S.dropKey)localStorage.setItem('excelsior-dropkey',S.dropKey)}else if(lk&&uid){S.dropKey=lk;commit()}}catch(e){}try{const b=$('#payBanner');let sy=null;try{sy=localStorage.getItem('excelsior-synced')}catch(e){}if(b)b.hidden=!(uid&&sy&&!S.dropKey)}catch(e){}try{watchDrop()}catch(e){}try{renderWeight()}catch(e){}renderPay();renderSettings();renderToday();renderFit();renderMoney();renderLang();renderFin();renderInvest();renderEvents()}
+function renderAll(){try{if(fxStamp())setTimeout(commit,0);if(uid&&(!S.invFx||Date.now()-S.invFx.t>20*3600e3))setTimeout(()=>spEnsureFx(),0)}catch(e){}if(!S.potStart){S.potStart=ym(today());S.potStartDay=+today().slice(8);S.budgets=S.budgets||{};if(S.budgets[S.potStart]==null)S.budgets[S.potStart]=S.budget}try{const lk=localStorage.getItem('excelsior-dropkey');if(S.dropKey){if(lk!==S.dropKey)localStorage.setItem('excelsior-dropkey',S.dropKey)}else if(lk&&uid){S.dropKey=lk;commit()}}catch(e){}try{const b=$('#payBanner');let sy=null;try{sy=localStorage.getItem('excelsior-synced')}catch(e){}if(b)b.hidden=!(uid&&sy&&!S.dropKey)}catch(e){}try{watchDrop()}catch(e){}try{renderWeight()}catch(e){}renderPay();renderSettings();renderToday();renderFit();renderMoney();renderLang();renderFin();try{renderSkills()}catch(e){console.error(e)}renderInvest();renderEvents()}
 
 /* ---------- events ---------- */
 function disarm(x){if(x.dataset.armed!=='1')return;x.dataset.armed='';clearTimeout(x._t);x.classList.add('disarming');setTimeout(()=>{x.classList.remove('armed','disarming');x.innerHTML=x.dataset.orig},170)}
@@ -3039,6 +3136,7 @@ document.addEventListener('click',e=>{
     b.dataset.orig=b.innerHTML;b.dataset.armed='1';armAt=Date.now();armY=scrollY;b.innerHTML=b.textContent.trim()==='×'?'Delete?':'Sure? Tap again';b.classList.add('armed');
     clearTimeout(b._t);b._t=setTimeout(()=>disarm(b),4000);return}
   if(/^mk-|^del-mk$/.test(a)&&mkAct(a,b))return;
+  if(/^sk-|^del-sk/.test(a)&&skAct(a,b))return;
   if(a==='go'){location.hash=b.dataset.to}
   else if(a==='add-ex'){draft.push(blank());renderDraft();const ins=document.querySelectorAll('#exRows input[data-f=name]');ins[ins.length-1].focus()}
   else if(a==='rm-ex'){draft.splice(i,1);if(!draft.length)draft.push(blank());renderDraft()}
@@ -3250,6 +3348,7 @@ document.addEventListener('submit',e=>{
     if(!(amt>0)){$('#eeMsg').textContent='Enter an amount above £0.';return}if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){$('#eeMsg').textContent='Pick a date.';return}
     if(spUSD()){const shown=eUSD(x);if(Math.abs(amt-shown)>0.004){x.usd=r2s(amt);x.amt=r2s(amt/(x.fx||fxRate()))}}else if(Math.abs(amt-x.amt)>0.004){x.amt=Math.round(amt*100)/100;delete x.usd}x.d=d;x.cat=$('#eeCat').value;x.note=$('#eeNote').value.trim().slice(0,60);x.fromPot=$('#eePot').checked||undefined;if(!x.fromPot)delete x.fromPot;x.u=Date.now();
     editExp=null;commit();toast('Expense updated')}
+  else if(/^sk/.test(k)&&skForm(k,f)){}
   else if(k==='mkin'){const amt=num($('#mkInAmt').value);if(!(amt>0)){$('#mkInMsg').textContent='Add the amount.';return}
     S.mk=S.mk||[];S.mk.push({id:newId(),d:$('#mkInD').value||today(),amt:Math.round(amt*100)/100,k:'in',note:$('#mkInNote').value.trim().slice(0,60),u:Date.now()});
     $('#mkInAmt').value='';$('#mkInNote').value='';$('#mkInD').value=today();$('#mkInMsg').textContent='';commit();toast('Added to the fund')}
