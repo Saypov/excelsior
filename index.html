@@ -119,6 +119,7 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 .hint{font-size:13px;color:var(--muted);margin-top:8px}
 .hint b{color:var(--ink)}
 .inline{display:flex;gap:8px;margin-top:10px}.inline input{flex:1}
+.inline.payf{flex-wrap:wrap}.inline.payf input[type=date]{flex:1 1 140px;min-width:0}.inline.payf input[inputmode]{flex:1 1 100px;min-width:0}.inline.payf button{flex:1 1 100%}
 .subtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:16px 0 4px}
 .subtabs button{background:var(--soft);font-weight:500;font-size:14px;padding:0 6px}
 .subtabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -700,7 +701,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.7.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.7.2 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1186,7 +1187,7 @@ function renderMoney(){
     <div class="row small muted" style="margin:2px 0 10px"><span>${esc(d.note||'')}${d.note?' · ':''}of ${money(d.amt)}</span>${i.done?'<span class="tag">Settled</span>':d.due?`<span class="tag${i.dl<0?' hot':''}">${i.dl<0?when(i.dl):'by '+short(d.due)}</span>`:''}</div>
     <div class="bar"><i style="width:${Math.min(100,i.paid/d.amt*100)}%"></i></div>
     ${d.pays.length?`<p class="small muted" style="margin-top:8px">Paid: ${d.pays.map((p,i)=>`<span style="white-space:nowrap">${money(p.amt)} on ${short(p.d)}<button class="link small" data-act="del-pay" data-id="${d.id}" data-i="${i}" aria-label="Remove this payment" style="padding:0 4px;margin-left:2px">✕</button></span>`).join(', ')}</p>`:''}
-    ${i.done?'':`<form class="inline" data-form="pay" data-id="${d.id}"><input inputmode="decimal" placeholder="£ amount" aria-label="Payment amount"><button class="ghost" type="submit">Record payment</button></form>`}
+    ${i.done?'':`<form class="inline payf" data-form="pay" data-id="${d.id}"><input inputmode="decimal" placeholder="£ amount" aria-label="Payment amount"><input type="date" value="${today()}" max="${today()}" aria-label="Payment date"><button class="ghost" type="submit">Record payment</button></form>`}
     <div class="acts"><button class="link" data-act="del-debt" data-id="${d.id}">Delete</button></div></div>`}).join('');
 }
 
@@ -3192,7 +3193,8 @@ document.addEventListener('submit',e=>{
   else if(k==='contrib'||k==='pay'){
     const amt=num(f.querySelector('input').value);if(!(amt>0))return;
     const x=(k==='contrib'?S.plans:S.debts).find(y=>y.id===f.dataset.id);if(!x)return;
-    (k==='contrib'?x.contribs:x.pays).push({d:today(),amt});x.u=Date.now();
+    const pdt=k==='pay'&&f.querySelector('input[type=date]')?f.querySelector('input[type=date]').value:'';
+    const P=k==='contrib'?x.contribs:x.pays;P.push({d:/^\d{4}-\d{2}-\d{2}$/.test(pdt)?pdt:today(),amt});if(k==='pay')P.sort((a,b)=>a.d.localeCompare(b.d));x.u=Date.now();
     commit();toast(k==='contrib'?'Savings added · +10 XP':(debtInfo(x).done?'Settled · +40 XP':'Payment recorded · +10 XP'));
   }
   else if(k==='card'){
