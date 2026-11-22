@@ -700,7 +700,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.7.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.7.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1185,7 +1185,7 @@ function renderMoney(){
     <div class="row"><b>${d.dir==='owe'?'You owe '+esc(d.who):esc(d.who)+' owes you'}</b><span class="amt">${money(i.left)}</span></div>
     <div class="row small muted" style="margin:2px 0 10px"><span>${esc(d.note||'')}${d.note?' · ':''}of ${money(d.amt)}</span>${i.done?'<span class="tag">Settled</span>':d.due?`<span class="tag${i.dl<0?' hot':''}">${i.dl<0?when(i.dl):'by '+short(d.due)}</span>`:''}</div>
     <div class="bar"><i style="width:${Math.min(100,i.paid/d.amt*100)}%"></i></div>
-    ${d.pays.length?`<p class="small muted" style="margin-top:8px">Paid: ${d.pays.map(p=>money(p.amt)+' on '+short(p.d)).join(', ')}</p>`:''}
+    ${d.pays.length?`<p class="small muted" style="margin-top:8px">Paid: ${d.pays.map((p,i)=>`<span style="white-space:nowrap">${money(p.amt)} on ${short(p.d)}<button class="link small" data-act="del-pay" data-id="${d.id}" data-i="${i}" aria-label="Remove this payment" style="padding:0 4px;margin-left:2px">✕</button></span>`).join(', ')}</p>`:''}
     ${i.done?'':`<form class="inline" data-form="pay" data-id="${d.id}"><input inputmode="decimal" placeholder="£ amount" aria-label="Payment amount"><button class="ghost" type="submit">Record payment</button></form>`}
     <div class="acts"><button class="link" data-act="del-debt" data-id="${d.id}">Delete</button></div></div>`}).join('');
 }
@@ -3089,6 +3089,8 @@ document.addEventListener('click',e=>{
   else if(a==='ev-edit'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;evEdit=id;evOccD=b.dataset.d||e.d;evCat=e.cat;$('#evTitle').value=e.title;$('#evDate').value=evOccD;$('#evRep').checked=e.rep==='w';$('#evTime').value=e.time||'';$('#evEnd').value=e.end||'';$('#evNote').value=e.note||'';fillRem(e.rem||'');renderEvents();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();const ef=$('#evTitle').closest('form')||$('#evTitle');ef.scrollIntoView({block:'start',behavior:'smooth'})}
   else if(a==='ev-ics'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;const l=document.createElement('a');l.href='data:text/calendar;charset=utf-8,'+encodeURIComponent(icsFor(e));l.download=(e.title.replace(/[^a-z0-9]+/gi,'-').slice(0,40)||'event')+'.ics';document.body.appendChild(l);l.click();l.remove()}
   else if(a==='inv-ccy'){S.invCcy=b.dataset.v;commit()}
+  else if(a==='del-pay'){const x=S.debts.find(y=>y.id===id),i=+b.dataset.i;if(!x||!x.pays[i])return;const pay=x.pays.splice(i,1)[0];x.u=Date.now();commit();
+    toast('Payment removed · '+money(pay.amt),()=>{x.pays.splice(Math.min(i,x.pays.length),0,pay);x.u=Date.now();commit()})}
   else if(a==='prog-mode'){S.progMode=b.dataset.v;commit()}
   else if(a==='sp-ccy'){S.spCcy=b.dataset.v;commit();if(S.spCcy==='USD')spEnsureFx()}
   else if(a==='inv-refresh'){refreshInv(true)}
@@ -3190,7 +3192,7 @@ document.addEventListener('submit',e=>{
   else if(k==='contrib'||k==='pay'){
     const amt=num(f.querySelector('input').value);if(!(amt>0))return;
     const x=(k==='contrib'?S.plans:S.debts).find(y=>y.id===f.dataset.id);if(!x)return;
-    (k==='contrib'?x.contribs:x.pays).push({d:today(),amt});
+    (k==='contrib'?x.contribs:x.pays).push({d:today(),amt});x.u=Date.now();
     commit();toast(k==='contrib'?'Savings added · +10 XP':(debtInfo(x).done?'Settled · +40 XP':'Payment recorded · +10 XP'));
   }
   else if(k==='card'){
