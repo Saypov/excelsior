@@ -746,7 +746,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.11.2 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.11.3 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -995,7 +995,7 @@ function periodOf(d,R=payRules()){
   const key=s.slice(8)==='01'?ym(s):s,B=budgetFor(key);
   const cal=s.slice(8)==='01'&&e===ym(s)+'-'+pad(daysIn(ym(s)));
   return {s,e,sx,len:days(s,e)+1,B,cal,day,key,cut}}
-const pLabel=P=>P.cal?monthName(ym(P.s)):short(P.s)+' – '+short(P.e);
+const pLabel=P=>P.cal?monthName(ym(P.s)):short(P.sx&&P.sx<P.s?P.sx:P.s)+' – '+short(P.e); // label covers every day whose spending counts
 const pWord=P=>P.cal?'month':'period';
 const inP=(P,e)=>e.d>=(P.sx||P.s)&&e.d<=P.e;
 const spentIn=(P,f)=>sum(S.expenses.filter(e=>!e.fromPot&&inP(P,e)&&(!f||f(e))),e=>e.amt);
@@ -1024,7 +1024,7 @@ function renderHistory(){
     const lbl=P.cal?monthName(ym(P.s))+(P.s.slice(0,4)!==yr?' '+P.s.slice(0,4):''):pLabel(P)+(P.e.slice(0,4)!==yr?' '+P.e.slice(0,4):'');
     let h=`<div class="card hist${open?' open':''}"><button class="skhead" type="button" data-act="hist-open" data-k="${P.key}" aria-expanded="${open}">
       <span class="row"><b>${esc(lbl)}</b><span class="amt${lo<0?' neg':''}" style="font-size:15px">${lo>=0?'saved '+sm(lo):'over by '+sm(-lo)}</span></span>
-      <span class="small muted" style="display:block;margin-top:2px">Spent ${smSum(B)} of ${sm(P.B)} · ${E.length} expense${E.length===1?'':'s'}${P.len!==(P.cal?daysIn(ym(P.s)):-1)&&!P.cal?' · '+P.len+' days':''}</span></button>
+      <span class="small muted" style="display:block;margin-top:2px">Spent ${smSum(B)} of ${sm(P.B)} · ${E.length} expense${E.length===1?'':'s'}${P.sx&&P.sx<P.s?' · budget from '+short(P.s):!P.cal?' · '+P.len+' days':''}</span></button>
       <div class="bar${lo<0?' hot':''}" style="margin-top:8px"><i style="width:${P.B?Math.min(100,sp/P.B*100):0}%"></i></div>`;
     if(open){const by={},byL={};B.forEach(e=>{const c=CATN[e.cat]?e.cat:'other';by[c]=(by[c]||0)+e.amt;(byL[c]=byL[c]||[]).push(e)});const ks=Object.keys(by).sort((a,b)=>by[b]-by[a]);
       h+=`<div class="skdet"><p class="small muted" style="margin:8px 0 0">Budget for this period: ${sm(P.B)} · <button class="link" type="button" data-act="hist-bud" data-k="${P.key}" style="padding:0">Change</button></p>
