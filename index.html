@@ -405,6 +405,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <div id="catBars"></div>
       <h2 id="expHead">This month</h2>
       <ul class="list" id="expList"></ul>
+      <div id="histWrap"><h2>Past periods</h2><div id="histBox"></div></div>
     </div>
 
     <div id="s-plans" hidden>
@@ -745,7 +746,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.10.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.11.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1012,6 +1013,22 @@ function closedPeriods(){
 }
 {const sel=document.getElementById('payDay'),o=n=>n+(n%10===1&&n!==11?'st':n%10===2&&n!==12?'nd':n%10===3&&n!==13?'rd':'th');
   if(sel)sel.innerHTML=Array.from({length:31},(_,i)=>`<option value="${i+1}">${i===0?'1st of the month (calendar months)':'The '+o(i+1)}</option>`).join('')}
+// Past periods (v5.11.0): read-only history of closed budget periods, newest first; tap one for its categories and expenses.
+let histOpen=null,histAll=false;
+function renderHistory(){
+  const box=$('#histBox');if(!box)return;const L=closedPeriods().slice().reverse();$('#histWrap').hidden=!L.length;if(!L.length){box.innerHTML='';return}
+  const show=histAll?L:L.slice(0,6),yr=today().slice(0,4);
+  box.innerHTML=show.map(P=>{const E=S.expenses.filter(e=>e.d>=P.s&&e.d<=P.e),B=E.filter(e=>!e.fromPot),sp=sum(B,e=>e.amt),lo=P.B-sp,open=histOpen===P.key;
+    const lbl=P.cal?monthName(ym(P.s))+(P.s.slice(0,4)!==yr?' '+P.s.slice(0,4):''):pLabel(P)+(P.e.slice(0,4)!==yr?' '+P.e.slice(0,4):'');
+    let h=`<div class="card hist${open?' open':''}"><button class="skhead" type="button" data-act="hist-open" data-k="${P.key}" aria-expanded="${open}">
+      <span class="row"><b>${esc(lbl)}</b><span class="amt${lo<0?' neg':''}" style="font-size:15px">${lo>=0?'saved '+sm(lo):'over by '+sm(-lo)}</span></span>
+      <span class="small muted" style="display:block;margin-top:2px">Spent ${smSum(B)} of ${sm(P.B)} · ${E.length} expense${E.length===1?'':'s'}${P.len!==(P.cal?daysIn(ym(P.s)):-1)&&!P.cal?' · '+P.len+' days':''}</span></button>
+      <div class="bar${lo<0?' hot':''}" style="margin-top:8px"><i style="width:${P.B?Math.min(100,sp/P.B*100):0}%"></i></div>`;
+    if(open){const by={},byL={};B.forEach(e=>{const c=CATN[e.cat]?e.cat:'other';by[c]=(by[c]||0)+e.amt;(byL[c]=byL[c]||[]).push(e)});const ks=Object.keys(by).sort((a,b)=>by[b]-by[a]);
+      h+=`<div class="skdet"><h3>By category</h3>${ks.length?ks.map(k=>`<div class="cat"><div class="row"><span>${CATN[k]||'Other'}</span><span class="amt">${smSum(byL[k])}</span></div><div class="bar"><i style="width:${by[k]/sp*100}%"></i></div></div>`).join(''):'<p class="small muted">No everyday spending.</p>'}
+        <h3>Expenses</h3><ul class="list">${E.slice().sort((a,b)=>b.d.localeCompare(a.d)||(b.t||0)-(a.t||0)).map(e=>`<li class="li"><span><b class="en">${esc(e.note||CATN[e.cat]||'Expense')}</b><br><span class="small muted">${short(e.d)} · ${CATN[e.cat]||'Other'}${e.fromPot?' · from pot':''}</span></span><span class="amt">${smE(e)}</span></li>`).join('')||'<p class="small muted">Nothing logged.</p>'}</ul></div>`}
+    return h+'</div>'}).join('')+(L.length>6?`<button class="link" type="button" data-act="hist-all" style="width:100%">${histAll?'Show fewer':'Show all '+L.length+' periods'}</button>`:'');
+}
 function setPayDay(day){
   day=Math.max(1,Math.min(31,Math.round(day)||1));const t=today();
   let R=payRules();const cur=periodOf(t,R).s;R=R.filter(r=>r.from<cur); // a change made earlier in this same period is replaced, not stacked
@@ -1250,6 +1267,7 @@ function renderMoney(){
   const by={},byL={};mon.forEach(e=>{by[e.cat]=(by[e.cat]||0)+e.amt;(byL[e.cat]=byL[e.cat]||[]).push(e)});
   const ks=Object.keys(by).sort((a,b)=>by[b]-by[a]);
   $('#catBars').innerHTML=ks.length?ks.map(k=>`<div class="cat"><div class="row"><span>${CATN[k]||'Other'}</span><span class="amt">${smSum(byL[k])}</span></div><div class="bar"><i style="width:${by[k]/spent*100}%"></i></div></div>`).join(''):'<div class="empty">Add an expense to see where your money goes.</div>';
+  try{renderHistory()}catch(err){console.error(err)}
   $('#expList').innerHTML=mon.length?mon.map(e=>e.id===editExp?expEditHtml(e):`<li class="li exprow"><b class="en">${esc(e.note||CATN[e.cat])}</b><span class="amt">${smE(e)}</span><span class="em small muted">${e.fromPot?'<span class="tag">From pot</span> ':''}${e.auto?`<span class="tag">Apple Pay</span> <select data-catfor="${e.id}" aria-label="Category" style="width:auto;min-height:32px;padding:2px 24px 2px 8px;font-size:13px;display:inline-block;background-position:right 7px center;background-size:11px">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>`:(CATN[e.cat]||'Other')}<span style="white-space:nowrap">· ${short(e.d)}</span></span><span class="ea"><button class="x" data-act="edit-exp" data-id="${e.id}" aria-label="Edit expense" style="font-size:15px">✎</button><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
   const ps=S.plans.slice().sort((a,b)=>a.d.localeCompare(b.d));
   $('#planList').innerHTML=ps.length?ps.map(p=>{const i=planInfo(p);const full=i.left<=0.004;return `<div class="card${full&&i.dl<0?' done':''}">
@@ -3352,6 +3370,8 @@ document.addEventListener('click',e=>{
   else if(a==='del-hold'){removeWith('holdings',id,'Stock')}
   else if(a==='calc-add'){const sym=b.dataset.sym,q=+b.dataset.qty;S.holdings=S.holdings||[];const h=S.holdings.find(x=>x.sym===sym);if(h)h.qty=q;else S.holdings.push({id:newId(),sym,qty:q,cost:null});commit();toast(sym+' added to holdings')}
   else if(a==='pot-adj'){$('#potForm').hidden=!$('#potForm').hidden}
+  else if(a==='hist-open'){histOpen=histOpen===b.dataset.k?null:b.dataset.k;renderHistory()}
+  else if(a==='hist-all'){histAll=!histAll;renderHistory()}
   else if(a==='me-bud'){const f=$('#meBudF');if(f){f.hidden=!f.hidden;if(!f.hidden)f.querySelector('input').focus()}}
   else if(a==='me-ok'){S.monthAck=S.monthAck||{};S.monthAck[b.dataset.v]=true;commit();toast('Kept in your savings pot')}
   else if(a==='me-put'){const lm=b.dataset.v,p=S.plans.find(x=>x.id===$('#meSel').value),lo=periodLeftover(periodByKey(lm));if(!p||!(lo>0))return;const amt=Math.min(lo,planInfo(p).left);p.contribs.push({d:today(),amt});S.monthAck=S.monthAck||{};S.monthAck[lm]=true;commit();toast(money(amt)+' put towards '+p.name)}
