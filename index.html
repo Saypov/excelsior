@@ -129,7 +129,7 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 .skms{flex:none;width:26px;height:26px;min-height:26px;padding:0;border-radius:50%;border:2px solid var(--line);background:none;color:#fff;font-size:14px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s,transform .15s}
 .skms.on{background:var(--good);border-color:var(--good)}.skms:active{transform:scale(.9)}
 .skdone{text-decoration:line-through;opacity:.6}
-#meBudF[hidden]{display:none}
+#meBudF[hidden],.histbud[hidden]{display:none}
 .skta{flex:1;min-height:48px;resize:none;overflow:auto;line-height:1.4;font:inherit}
 .skms-row>.skgrip,.skgrip{flex:none;width:22px;height:30px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted);opacity:.7;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;margin-right:-4px}
 .skgrip svg{width:10px;height:15px}
@@ -746,7 +746,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.11.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.11.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1025,7 +1025,9 @@ function renderHistory(){
       <span class="small muted" style="display:block;margin-top:2px">Spent ${smSum(B)} of ${sm(P.B)} · ${E.length} expense${E.length===1?'':'s'}${P.len!==(P.cal?daysIn(ym(P.s)):-1)&&!P.cal?' · '+P.len+' days':''}</span></button>
       <div class="bar${lo<0?' hot':''}" style="margin-top:8px"><i style="width:${P.B?Math.min(100,sp/P.B*100):0}%"></i></div>`;
     if(open){const by={},byL={};B.forEach(e=>{const c=CATN[e.cat]?e.cat:'other';by[c]=(by[c]||0)+e.amt;(byL[c]=byL[c]||[]).push(e)});const ks=Object.keys(by).sort((a,b)=>by[b]-by[a]);
-      h+=`<div class="skdet"><h3>By category</h3>${ks.length?ks.map(k=>`<div class="cat"><div class="row"><span>${CATN[k]||'Other'}</span><span class="amt">${smSum(byL[k])}</span></div><div class="bar"><i style="width:${by[k]/sp*100}%"></i></div></div>`).join(''):'<p class="small muted">No everyday spending.</p>'}
+      h+=`<div class="skdet"><p class="small muted" style="margin:8px 0 0">Budget for this period: ${sm(P.B)} · <button class="link" type="button" data-act="hist-bud" data-k="${P.key}" style="padding:0">Change</button></p>
+        <form data-form="mebud" data-k="${P.key}" class="inline histbud" hidden style="margin-top:6px"><input inputmode="decimal" placeholder="Budget for that period (${spUSD()?'$':'£'})" aria-label="Budget for that period"><button class="ghost" type="submit">Save</button></form>
+        <h3>By category</h3>${ks.length?ks.map(k=>`<div class="cat"><div class="row"><span>${CATN[k]||'Other'}</span><span class="amt">${smSum(byL[k])}</span></div><div class="bar"><i style="width:${by[k]/sp*100}%"></i></div></div>`).join(''):'<p class="small muted">No everyday spending.</p>'}
         <h3>Expenses</h3><ul class="list">${E.slice().sort((a,b)=>b.d.localeCompare(a.d)||(b.t||0)-(a.t||0)).map(e=>`<li class="li"><span><b class="en">${esc(e.note||CATN[e.cat]||'Expense')}</b><br><span class="small muted">${short(e.d)} · ${CATN[e.cat]||'Other'}${e.fromPot?' · from pot':''}</span></span><span class="amt">${smE(e)}</span></li>`).join('')||'<p class="small muted">Nothing logged.</p>'}</ul></div>`}
     return h+'</div>'}).join('')+(L.length>6?`<button class="link" type="button" data-act="hist-all" style="width:100%">${histAll?'Show fewer':'Show all '+L.length+' periods'}</button>`:'');
 }
@@ -3371,6 +3373,7 @@ document.addEventListener('click',e=>{
   else if(a==='calc-add'){const sym=b.dataset.sym,q=+b.dataset.qty;S.holdings=S.holdings||[];const h=S.holdings.find(x=>x.sym===sym);if(h)h.qty=q;else S.holdings.push({id:newId(),sym,qty:q,cost:null});commit();toast(sym+' added to holdings')}
   else if(a==='pot-adj'){$('#potForm').hidden=!$('#potForm').hidden}
   else if(a==='hist-open'){histOpen=histOpen===b.dataset.k?null:b.dataset.k;renderHistory()}
+  else if(a==='hist-bud'){const f=b.closest('.skdet').querySelector('.histbud');if(f){f.hidden=!f.hidden;if(!f.hidden)f.querySelector('input').focus()}}
   else if(a==='hist-all'){histAll=!histAll;renderHistory()}
   else if(a==='me-bud'){const f=$('#meBudF');if(f){f.hidden=!f.hidden;if(!f.hidden)f.querySelector('input').focus()}}
   else if(a==='me-ok'){S.monthAck=S.monthAck||{};S.monthAck[b.dataset.v]=true;commit();toast('Kept in your savings pot')}
