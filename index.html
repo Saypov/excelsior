@@ -398,6 +398,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <label for="expNote">Note</label>
         <input id="expNote" placeholder="e.g. Tesco, Uber, Pret" autocomplete="off">
         <label style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:12px"><input type="checkbox" id="expPot" style="width:22px;min-height:22px;height:22px;flex:none"> Pay from savings pot (big one-off, not today's budget)</label>
+        <label style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:8px"><input type="checkbox" id="expSpread" style="width:22px;min-height:22px;height:22px;flex:none"> Spread over the rest of the period (lowers every remaining day a little, not just today)</label>
         <p class="msg" id="expMsg"></p>
         <button class="btn" type="submit">Add expense</button>
       </form>
@@ -746,7 +747,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.11.4 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.12.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -778,7 +779,7 @@ const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const num=v=>{const n=parseFloat(String(v).replace(/[£,\s]/g,''));return isFinite(n)?n:NaN};
 const when=dl=>dl<0?(-dl)+' days overdue':dl===0?'today':dl===1?'tomorrow':'in '+dl+' days';
 
-const CATS=[['food','Food'],['groc','Groceries'],['trans','Transport'],['out','Going out'],['shop','Shopping'],['cloth','Clothing'],['subs','Subscriptions'],['bills','Bills'],['other','Other']];
+const CATS=[['food','Food'],['groc','Groceries'],['trans','Transport'],['out','Going out'],['shop','Shopping'],['cloth','Clothing'],['subs','Subscriptions'],['bills','Bills'],['debt','Repayments'],['other','Other']];
 const CATN=Object.fromEntries(CATS);
 const FEELS=[['easier','Easier'],['same','Same'],['harder','Harder']];
 const EXS=['Pull-ups','Chin-ups','Push-ups','Dips','Muscle-ups','Australian rows','Pike push-ups','Handstand push-ups','Pistol squats','Squats','Lunges','Hanging leg raises','Front lever hold','Back lever hold','Planche lean','Handstand hold','L-sit','Plank'];
@@ -1002,8 +1003,9 @@ const spentIn=(P,f)=>sum(S.expenses.filter(e=>!e.fromPot&&inP(P,e)&&(!f||f(e))),
 const monthSpent=()=>spentIn(periodOf(today()));
 function dayInfo(){
   const t=today(),P=periodOf(t),D=P.len,dl=days(t,P.e)+1,B=P.B,a=B/D;
-  const before=spentIn(P,e=>e.d<t),R=B-before;
-  const allow=Math.max(0,Math.min(a,R/dl)),saved=Math.max(0,R-a*dl),todaySpent=spentIn(P,e=>e.d===t);
+  // e.spread (v5.12.0, e.g. repayments): counted as if spent before today, so the cost is shared evenly by all remaining days at once
+  const before=spentIn(P,e=>e.d<t||(e.spread&&e.d===t)),R=B-before;
+  const allow=Math.max(0,Math.min(a,R/dl)),saved=Math.max(0,R-a*dl),todaySpent=spentIn(P,e=>e.d===t&&!e.spread);
   return {a,allow,saved,todaySpent,left:allow-todaySpent,B,spent:before+todaySpent,dl,reduced:allow<a-0.005,P};
 }
 const periodLeftover=P=>P.B-spentIn(P);
@@ -1042,7 +1044,7 @@ function potInfo(){
   const months=closedPeriods().reduce((t,P)=>t+periodLeftover(P),0);
   const adj=sum(S.potAdj||[],x=>x.amt);
   const plansOut=sum(S.plans,p=>sum(p.contribs.filter(c=>c.d!=='1970-01-01'),c=>c.amt));
-  const debts=sum(S.debts,d=>sum(d.pays,c=>c.amt)*(d.dir==='owe'?-1:1));
+  const debts=sum(S.debts,d=>sum(d.pays.filter(c=>!c.bud),c=>c.amt)*(d.dir==='owe'?-1:1)); // c.bud: repayment booked as a budget expense instead (v5.12.0)
   const big=sum(S.expenses.filter(e=>e.fromPot),e=>e.amt);
   return {pot:months+adj-plansOut+debts-big,months,adj,plansOut,debts,big};
 }
@@ -1272,7 +1274,7 @@ function renderMoney(){
   const ks=Object.keys(by).sort((a,b)=>by[b]-by[a]);
   $('#catBars').innerHTML=ks.length?ks.map(k=>`<div class="cat"><div class="row"><span>${CATN[k]||'Other'}</span><span class="amt">${smSum(byL[k])}</span></div><div class="bar"><i style="width:${by[k]/spent*100}%"></i></div></div>`).join(''):'<div class="empty">Add an expense to see where your money goes.</div>';
   try{renderHistory()}catch(err){console.error(err)}
-  $('#expList').innerHTML=mon.length?mon.map(e=>e.id===editExp?expEditHtml(e):`<li class="li exprow"><b class="en">${esc(e.note||CATN[e.cat])}</b><span class="amt">${smE(e)}</span><span class="em small muted">${e.fromPot?'<span class="tag">From pot</span> ':''}${e.auto?`<span class="tag">Apple Pay</span> <select data-catfor="${e.id}" aria-label="Category" style="width:auto;min-height:32px;padding:2px 24px 2px 8px;font-size:13px;display:inline-block;background-position:right 7px center;background-size:11px">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>`:(CATN[e.cat]||'Other')}<span style="white-space:nowrap">· ${short(e.d)}</span></span><span class="ea"><button class="x" data-act="edit-exp" data-id="${e.id}" aria-label="Edit expense" style="font-size:15px">✎</button><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
+  $('#expList').innerHTML=mon.length?mon.map(e=>e.id===editExp?expEditHtml(e):`<li class="li exprow"><b class="en">${esc(e.note||CATN[e.cat])}</b><span class="amt">${smE(e)}</span><span class="em small muted">${e.fromPot?'<span class="tag">From pot</span> ':e.spread?'<span class="tag">Spread</span> ':''}${e.auto?`<span class="tag">Apple Pay</span> <select data-catfor="${e.id}" aria-label="Category" style="width:auto;min-height:32px;padding:2px 24px 2px 8px;font-size:13px;display:inline-block;background-position:right 7px center;background-size:11px">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>`:(CATN[e.cat]||'Other')}<span style="white-space:nowrap">· ${short(e.d)}</span></span><span class="ea"><button class="x" data-act="edit-exp" data-id="${e.id}" aria-label="Edit expense" style="font-size:15px">✎</button><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
   const ps=S.plans.slice().sort((a,b)=>a.d.localeCompare(b.d));
   $('#planList').innerHTML=ps.length?ps.map(p=>{const i=planInfo(p);const full=i.left<=0.004;return `<div class="card${full&&i.dl<0?' done':''}">
     <div class="row"><b>${esc(p.name)}</b><span class="amt">${money(p.amt)}</span></div>
@@ -3322,7 +3324,12 @@ document.addEventListener('click',e=>{
   else if(a==='cat'){expCat=b.dataset.v;renderMoney()}
   else if(a==='del-wt'){removeWith('weights',id,'Weight entry')}
   else if(a==='wt-range'){wtRange=+b.dataset.v;renderWeight()}
-  else if(a==='del-exp'){if(editExp===id)editExp=null;removeWith('expenses',id,'Expense')}
+  else if(a==='del-exp'){if(editExp===id)editExp=null;const ex=S.expenses.find(e=>e.id===id);
+    if(ex&&ex.pay){const d=(S.debts||[]).find(y=>y.id===ex.pay.debt),pi=d?d.pays.findIndex(p=>p.pid===ex.pay.pid):-1,pay=pi>=0?d.pays.splice(pi,1)[0]:null;
+      S.expenses.splice(S.expenses.indexOf(ex),1);S.del=S.del||{};S.del[id]=Date.now();if(d)d.u=Date.now();commit();
+      toast('Repayment deleted'+(d?' · '+d.who+' payment removed too':''),()=>{delete S.del[id];if(!S.expenses.some(e=>e.id===id))S.expenses.push(ex);
+        const d2=(S.debts||[]).find(y=>y.id===ex.pay.debt);if(d2&&pay&&!d2.pays.some(p=>p.pid===pay.pid)){d2.pays.push(pay);d2.pays.sort((a,b)=>a.d.localeCompare(b.d));d2.u=Date.now()}commit()})}
+    else removeWith('expenses',id,'Expense')}
   else if(a==='edit-exp'){editExp=id;renderMoney();setTimeout(()=>{const i=$('#eeAmt');if(i)i.focus()},50)}
   else if(a==='edit-exp-cancel'){editExp=null;renderMoney()}
   else if(a==='del-plan'){removeWith('plans',id,'Planned payment')}
@@ -3364,8 +3371,10 @@ document.addEventListener('click',e=>{
   else if(a==='ev-edit'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;evEdit=id;evOccD=b.dataset.d||e.d;evCat=e.cat;$('#evTitle').value=e.title;$('#evDate').value=evOccD;$('#evRep').checked=e.rep==='w';$('#evTime').value=e.time||'';$('#evEnd').value=e.end||'';$('#evNote').value=e.note||'';fillRem(e.rem||'');renderEvents();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();const ef=$('#evTitle').closest('form')||$('#evTitle');ef.scrollIntoView({block:'start',behavior:'smooth'})}
   else if(a==='ev-ics'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;const l=document.createElement('a');l.href='data:text/calendar;charset=utf-8,'+encodeURIComponent(icsFor(e));l.download=(e.title.replace(/[^a-z0-9]+/gi,'-').slice(0,40)||'event')+'.ics';document.body.appendChild(l);l.click();l.remove()}
   else if(a==='inv-ccy'){S.invCcy=b.dataset.v;commit()}
-  else if(a==='del-pay'){const x=S.debts.find(y=>y.id===id),i=+b.dataset.i;if(!x||!x.pays[i])return;const pay=x.pays.splice(i,1)[0];x.u=Date.now();commit();
-    toast('Payment removed · '+money(pay.amt),()=>{const y=(S.debts||[]).find(z=>z.id===id);if(!y)return;y.pays=y.pays||[];y.pays.push(pay);y.pays.sort((a,b)=>a.d.localeCompare(b.d));y.u=Date.now();commit();toast('Payment restored')})}
+  else if(a==='del-pay'){const x=S.debts.find(y=>y.id===id),i=+b.dataset.i;if(!x||!x.pays[i])return;const pay=x.pays.splice(i,1)[0];x.u=Date.now();
+    const ei=pay.pid?S.expenses.findIndex(e=>e.pay&&e.pay.pid===pay.pid):-1,ex=ei>=0?S.expenses.splice(ei,1)[0]:null;if(ex){S.del=S.del||{};S.del[ex.id]=Date.now()}commit();
+    toast('Payment removed · '+money(pay.amt)+(ex?' (and its expense)':''),()=>{const y=(S.debts||[]).find(z=>z.id===id);if(!y)return;y.pays=y.pays||[];y.pays.push(pay);y.pays.sort((a,b)=>a.d.localeCompare(b.d));y.u=Date.now();
+      if(ex){delete S.del[ex.id];if(!S.expenses.some(e=>e.id===ex.id))S.expenses.push(ex)}commit();toast('Payment restored')})}
   else if(a==='prog-mode'){S.progMode=b.dataset.v;commit()}
   else if(a==='sp-ccy'){S.spCcy=b.dataset.v;commit();if(S.spCcy==='USD')spEnsureFx()}
   else if(a==='inv-refresh'){refreshInv('px')}
@@ -3457,8 +3466,8 @@ document.addEventListener('submit',e=>{
   else if(k==='exp'){
     const amt=num($('#expAmt').value);
     if(!(amt>0)){$('#expMsg').textContent='Enter the amount you spent.';return}
-    const ex={id:newId(),amt:toGBP(amt),cat:expCat,note:$('#expNote').value.trim(),d:$('#expDate').value||today(),t:Date.now()};if($('#expPot').checked)ex.fromPot=true;if(spUSD())ex.usd=r2s(amt);if(fxRate()&&S.invFx&&Date.now()-S.invFx.t<26*3600e3)ex.fx=fxRate();
-    S.expenses.push(ex);$('#expPot').checked=false;
+    const ex={id:newId(),amt:toGBP(amt),cat:expCat,note:$('#expNote').value.trim(),d:$('#expDate').value||today(),t:Date.now()};if($('#expPot').checked)ex.fromPot=true;else if($('#expSpread').checked)ex.spread=true;if(spUSD())ex.usd=r2s(amt);if(fxRate()&&S.invFx&&Date.now()-S.invFx.t<26*3600e3)ex.fx=fxRate();
+    S.expenses.push(ex);$('#expPot').checked=false;$('#expSpread').checked=false;
     $('#expAmt').value='';$('#expNote').value='';$('#expDate').value=today();$('#expMsg').textContent='';
     commit();toast('Expense added');
   }
@@ -3473,7 +3482,11 @@ document.addEventListener('submit',e=>{
     const amt=num(f.querySelector('input').value);if(!(amt>0))return;
     const x=(k==='contrib'?S.plans:S.debts).find(y=>y.id===f.dataset.id);if(!x)return;
     const pdt=k==='pay'&&f.querySelector('input[type=date]')?f.querySelector('input[type=date]').value:'';
-    const P=k==='contrib'?x.contribs:x.pays;P.push({d:/^\d{4}-\d{2}-\d{2}$/.test(pdt)?pdt:today(),amt});if(k==='pay')P.sort((a,b)=>a.d.localeCompare(b.d));x.u=Date.now();
+    const pd2=/^\d{4}-\d{2}-\d{2}$/.test(pdt)?pdt:today(),P=k==='contrib'?x.contribs:x.pays,py={d:pd2,amt};
+    if(k==='pay'&&x.dir==='owe'){ // v5.12.0: paying someone back is spending: book it to the budget, spread over the rest of the period
+      py.pid=newId();py.bud=true;const ex={id:newId(),amt,cat:'debt',note:'Repayment · '+(x.who||'').slice(0,40),d:pd2,t:Date.now(),spread:true,pay:{debt:x.id,pid:py.pid},u:Date.now()};
+      if(fxRate()&&S.invFx&&Date.now()-S.invFx.t<26*3600e3)ex.fx=fxRate();S.expenses.push(ex)}
+    P.push(py);if(k==='pay')P.sort((a,b)=>a.d.localeCompare(b.d));x.u=Date.now();
     commit();toast(k==='contrib'?'Savings added · +10 XP':(debtInfo(x).done?'Settled · +40 XP':'Payment recorded · +10 XP'));
   }
   else if(k==='card'){
