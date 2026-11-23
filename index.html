@@ -129,6 +129,7 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 .skms{flex:none;width:26px;height:26px;min-height:26px;padding:0;border-radius:50%;border:2px solid var(--line);background:none;color:#fff;font-size:14px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s,transform .15s}
 .skms.on{background:var(--good);border-color:var(--good)}.skms:active{transform:scale(.9)}
 .skdone{text-decoration:line-through;opacity:.6}
+#meBudF[hidden]{display:none}
 .skta{flex:1;min-height:48px;resize:none;overflow:auto;line-height:1.4;font:inherit}
 .skms-row>.skgrip,.skgrip{flex:none;width:22px;height:30px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted);opacity:.7;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;margin-right:-4px}
 .skgrip svg{width:10px;height:15px}
@@ -744,7 +745,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.10.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.10.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -971,7 +972,7 @@ const daysIn=m=>{const p=m.split('-').map(Number);return new Date(p[0],p[1],0).g
 function budgetFor(m){const b=S.budgets||{};if(b[m]!=null)return b[m];const ks=Object.keys(b).filter(k=>k<=m).sort();return ks.length?b[ks[ks.length-1]]:S.budget}
 // Budget periods (v5.10.0): money arrives on a pay day; a period runs from one pay day to the day before the next.
 // No pay day set = calendar months (1st to last day), as before. S.payRules=[{from:'YYYY-MM-DD',day}] records each change,
-// so periods before a change keep their old boundaries. A period cut short by a change gets a pro-rated budget.
+// so periods before a change keep their old boundaries.
 // Days 29–31 fall back to the month's last day in short months.
 const nextM=m=>{let [y,mo]=m.split('-').map(Number);mo++;if(mo>12){mo=1;y++}return y+'-'+pad(mo)};
 const prevM=m=>{let [y,mo]=m.split('-').map(Number);mo--;if(mo<1){mo=12;y--}return y+'-'+pad(mo)};
@@ -986,9 +987,12 @@ function periodOf(d,R=payRules()){
   const reg=payOnOrBefore(d,day),nxt=payAfter(d,day);let s=reg<rf?rf:reg,e=addDays(nxt,-1),cut=false;
   const nr=R.find(r=>r.from>d);if(nr&&nr.from<=e){e=addDays(nr.from,-1);cut=true}
   const ps=potStartDate();if(ps&&ps>s&&ps<=d)s=ps;
-  const B0=budgetFor(ym(s)),B=cut?B0*(days(s,e)+1)/days(s,nxt):B0;
+  // each period has its own budget, keyed YYYY-MM when it starts on the 1st, else by its start date (v5.10.1: was by month,
+  // so two periods starting in the same month shared one budget). A period that ends early keeps its full budget:
+  // that money arrived at its start.
+  const key=s.slice(8)==='01'?ym(s):s,B=budgetFor(key);
   const cal=s.slice(8)==='01'&&e===ym(s)+'-'+pad(daysIn(ym(s)));
-  return {s,e,len:days(s,e)+1,B,cal,day,key:s.slice(8)==='01'?ym(s):s}}
+  return {s,e,len:days(s,e)+1,B,cal,day,key,cut}}
 const pLabel=P=>P.cal?monthName(ym(P.s)):short(P.s)+' – '+short(P.e);
 const pWord=P=>P.cal?'month':'period';
 const spentIn=(P,f)=>sum(S.expenses.filter(e=>!e.fromPot&&e.d>=P.s&&e.d<=P.e&&(!f||f(e))),e=>e.amt);
@@ -1012,7 +1016,7 @@ function setPayDay(day){
   day=Math.max(1,Math.min(31,Math.round(day)||1));const t=today();
   let R=payRules();const cur=periodOf(t,R).s;R=R.filter(r=>r.from<cur); // a change made earlier in this same period is replaced, not stacked
   if(payDayAt(t,R)!==day){const base=periodOf(t,R).s,f=payOnOrBefore(t,day);R.push({from:f<base?base:f,day})}
-  S.payRules=R;commit();const P=periodOf(t);toast(P.cal&&day===1?'Budget follows calendar months':'Budget period: '+short(P.s)+' – '+short(P.e))}
+  const B0=periodOf(t).B;S.payRules=R;S.budgets=S.budgets||{};{const k=periodOf(t).key;if(S.budgets[k]==null)S.budgets[k]=B0}commit();const P=periodOf(t);toast(P.cal&&day===1?'Budget follows calendar months':'Budget period: '+short(P.s)+' – '+short(P.e))}
 function potInfo(){
   const months=closedPeriods().reduce((t,P)=>t+periodLeftover(P),0);
   const adj=sum(S.potAdj||[],x=>x.amt);
@@ -1065,7 +1069,8 @@ function renderToday(){if(S.spCcy==='USD')setTimeout(()=>spEnsureFx(),0);
   if(lm&&!(S.monthAck||{})[lm]){
     const lo=periodLeftover(LP),ps=S.plans.filter(p=>planInfo(p).left>0);
     $('#monthEnd').hidden=false;
-    $('#monthEnd').innerHTML=`<b>${LP.cal?monthName(ym(LP.s)):'Your '+short(LP.s)+' – '+short(LP.e)+' budget'} is closed</b><p class="small" style="margin-top:4px">${lo>=0?'You saved <b>'+money(lo)+'</b>':'You went <b>'+money(-lo)+'</b> over budget'}. ${lo>=0?'It\'s been added to':'It\'s been taken from'} your savings pot.</p>
+    $('#monthEnd').innerHTML=`<b>${LP.cal?monthName(ym(LP.s)):'Your '+short(LP.s)+' – '+short(LP.e)+' budget'} is closed</b><p class="small muted" style="margin-top:4px">Budget for it: ${sm(LP.B)} · spent ${sm(spentIn(LP))} · <button class="link" data-act="me-bud" style="padding:0">Wrong budget?</button></p>
+      <form data-form="mebud" data-k="${LP.key}" id="meBudF" hidden class="inline" style="margin-top:6px"><input inputmode="decimal" placeholder="Budget for that period (${spUSD()?'$':'£'})" aria-label="Budget for that period"><button class="ghost" type="submit">Save</button></form><p class="small" style="margin-top:4px">${lo>=0?'You saved <b>'+money(lo)+'</b>':'You went <b>'+money(-lo)+'</b> over budget'}. ${lo>=0?'It\'s been added to':'It\'s been taken from'} your savings pot.</p>
       ${lo>0&&ps.length?`<label for="meSel">Put it towards a planned payment?</label><div class="inline" style="margin-top:4px"><select id="meSel">${ps.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select><button class="ghost" data-act="me-put" data-v="${lm}">Put</button></div>`:''}
       <button class="btn" data-act="me-ok" data-v="${lm}">Keep in pot</button>`;
   }else $('#monthEnd').hidden=true;
@@ -3347,6 +3352,7 @@ document.addEventListener('click',e=>{
   else if(a==='del-hold'){removeWith('holdings',id,'Stock')}
   else if(a==='calc-add'){const sym=b.dataset.sym,q=+b.dataset.qty;S.holdings=S.holdings||[];const h=S.holdings.find(x=>x.sym===sym);if(h)h.qty=q;else S.holdings.push({id:newId(),sym,qty:q,cost:null});commit();toast(sym+' added to holdings')}
   else if(a==='pot-adj'){$('#potForm').hidden=!$('#potForm').hidden}
+  else if(a==='me-bud'){const f=$('#meBudF');if(f){f.hidden=!f.hidden;if(!f.hidden)f.querySelector('input').focus()}}
   else if(a==='me-ok'){S.monthAck=S.monthAck||{};S.monthAck[b.dataset.v]=true;commit();toast('Kept in your savings pot')}
   else if(a==='me-put'){const lm=b.dataset.v,p=S.plans.find(x=>x.id===$('#meSel').value),lo=periodLeftover(periodByKey(lm));if(!p||!(lo>0))return;const amt=Math.min(lo,planInfo(p).left);p.contribs.push({d:today(),amt});S.monthAck=S.monthAck||{};S.monthAck[lm]=true;commit();toast(money(amt)+' put towards '+p.name)}
   else if(a==='pay-setup'){
@@ -3414,7 +3420,7 @@ document.addEventListener('change',e=>{
   if(e.target.id==='lPack'){S.lpack=Object.assign({},S.lpack||{},{[lang]:e.target.value});queue=[];cur=null;sessionDone=0;if(typeof wq!=='undefined'){wq=[];wcur=null;wres=null}commit();renderLang()}
   if(e.target.id==='setName'){S.name=e.target.value.trim()||'Rasul';commit()}
   if(e.target.id==='payDay'){setPayDay(+e.target.value);return}
-  if(e.target.id==='budget'){const n0=num(e.target.value),n=n0>=0?toGBP(n0):n0;if(n>=0){S.budget=n;S.budgets=S.budgets||{};S.budgets[ym(periodOf(today()).s)]=n;commit()}else e.target.value=budgetFor(ym(periodOf(today()).s))}
+  if(e.target.id==='budget'){const n0=num(e.target.value),n=n0>=0?toGBP(n0):n0;if(n>=0){S.budget=n;S.budgets=S.budgets||{};S.budgets[periodOf(today()).key]=n;commit()}else e.target.value=periodOf(today()).B}
 });
 document.addEventListener('submit',e=>{
   const f=e.target,k=f.dataset.form;if(!k)return;e.preventDefault();
@@ -3497,6 +3503,9 @@ document.addEventListener('submit',e=>{
     editExp=null;commit();toast('Expense updated')}
   else if(/^sk/.test(k)&&skForm(k,f)){}
   else if(k==='alert')alForm();
+  else if(k==='mebud'){const n=num(f.querySelector('input').value);if(!(n>=0))return;S.budgets=S.budgets||{};
+    const cur=periodOf(today());if(S.budgets[cur.key]==null)S.budgets[cur.key]=cur.B; // pin the current period first so the correction can't leak into it
+    S.budgets[f.dataset.k]=toGBP(n);commit();toast('Budget for that period updated')}
   else if(k==='mkin'){const amt=num($('#mkInAmt').value);if(!(amt>0)){$('#mkInMsg').textContent='Add the amount.';return}
     S.mk=S.mk||[];S.mk.push({id:newId(),d:$('#mkInD').value||today(),amt:Math.round(amt*100)/100,k:'in',note:$('#mkInNote').value.trim().slice(0,60),u:Date.now()});
     $('#mkInAmt').value='';$('#mkInNote').value='';$('#mkInD').value=today();$('#mkInMsg').textContent='';commit();toast('Added to the fund')}
