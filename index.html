@@ -746,7 +746,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.11.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.11.2 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -987,16 +987,18 @@ function periodOf(d,R=payRules()){
   let rf='0000-01-01',day=1;for(const r of R)if(r.from<=d){rf=r.from;day=r.day}
   const reg=payOnOrBefore(d,day),nxt=payAfter(d,day);let s=reg<rf?rf:reg,e=addDays(nxt,-1),cut=false;
   const nr=R.find(r=>r.from>d);if(nr&&nr.from<=e){e=addDays(nr.from,-1);cut=true}
+  const sx=s; // spending counts from the period's natural start: the first period (budget started mid-month) still includes that month's earlier expenses, as before v5.10
   const ps=potStartDate();if(ps&&ps>s&&ps<=d)s=ps;
   // each period has its own budget, keyed YYYY-MM when it starts on the 1st, else by its start date (v5.10.1: was by month,
   // so two periods starting in the same month shared one budget). A period that ends early keeps its full budget:
   // that money arrived at its start.
   const key=s.slice(8)==='01'?ym(s):s,B=budgetFor(key);
   const cal=s.slice(8)==='01'&&e===ym(s)+'-'+pad(daysIn(ym(s)));
-  return {s,e,len:days(s,e)+1,B,cal,day,key,cut}}
+  return {s,e,sx,len:days(s,e)+1,B,cal,day,key,cut}}
 const pLabel=P=>P.cal?monthName(ym(P.s)):short(P.s)+' – '+short(P.e);
 const pWord=P=>P.cal?'month':'period';
-const spentIn=(P,f)=>sum(S.expenses.filter(e=>!e.fromPot&&e.d>=P.s&&e.d<=P.e&&(!f||f(e))),e=>e.amt);
+const inP=(P,e)=>e.d>=(P.sx||P.s)&&e.d<=P.e;
+const spentIn=(P,f)=>sum(S.expenses.filter(e=>!e.fromPot&&inP(P,e)&&(!f||f(e))),e=>e.amt);
 const monthSpent=()=>spentIn(periodOf(today()));
 function dayInfo(){
   const t=today(),P=periodOf(t),D=P.len,dl=days(t,P.e)+1,B=P.B,a=B/D;
@@ -1018,7 +1020,7 @@ let histOpen=null,histAll=false;
 function renderHistory(){
   const box=$('#histBox');if(!box)return;const L=closedPeriods().slice().reverse();$('#histWrap').hidden=!L.length;if(!L.length){box.innerHTML='';return}
   const show=histAll?L:L.slice(0,6),yr=today().slice(0,4);
-  box.innerHTML=show.map(P=>{const E=S.expenses.filter(e=>e.d>=P.s&&e.d<=P.e),B=E.filter(e=>!e.fromPot),sp=sum(B,e=>e.amt),lo=P.B-sp,open=histOpen===P.key;
+  box.innerHTML=show.map(P=>{const E=S.expenses.filter(e=>inP(P,e)),B=E.filter(e=>!e.fromPot),sp=sum(B,e=>e.amt),lo=P.B-sp,open=histOpen===P.key;
     const lbl=P.cal?monthName(ym(P.s))+(P.s.slice(0,4)!==yr?' '+P.s.slice(0,4):''):pLabel(P)+(P.e.slice(0,4)!==yr?' '+P.e.slice(0,4):'');
     let h=`<div class="card hist${open?' open':''}"><button class="skhead" type="button" data-act="hist-open" data-k="${P.key}" aria-expanded="${open}">
       <span class="row"><b>${esc(lbl)}</b><span class="amt${lo<0?' neg':''}" style="font-size:15px">${lo>=0?'saved '+sm(lo):'over by '+sm(-lo)}</span></span>
@@ -1250,7 +1252,7 @@ function renderMoney(){
   if(S.spCcy==='USD'&&sub==='spend')setTimeout(()=>spEnsureFx(),0);
   const P=periodOf(today()),spent=spentIn(P),pw=pWord(P);
   $('#monLbl').textContent=P.cal?'Spent in '+monthName(ym(P.s)):'Spent since '+short(P.s);
-  $('#monSpent').textContent=smSum(S.expenses.filter(e=>!e.fromPot&&e.d>=P.s&&e.d<=P.e));
+  $('#monSpent').textContent=smSum(S.expenses.filter(e=>!e.fromPot&&inP(P,e)));
   const BB=P.B,left=BB-spent;
   $('#monLeft').textContent=left>=0?sm(left)+' of budget left':sm(-left)+' over budget';
   $('#monBar').style.width=Math.min(100,BB?spent/BB*100:0)+'%';
@@ -1265,7 +1267,7 @@ function renderMoney(){
   {const pd2=payDayAt(today());if(document.activeElement!==$('#payDay'))$('#payDay').value=String(pd2);
    $('#payHint').textContent=P.cal&&pd2===1?'Budget runs by calendar month (1st to last day).':'This period: '+short(P.s)+' – '+short(P.e)+(pd2>28?' (in short months it starts on the last day).':'.');
    $('#expHead').textContent=P.cal?'This month':'This period';}
-  const mon=S.expenses.filter(e=>e.d>=P.s&&e.d<=P.e).sort((a,b)=>b.d.localeCompare(a.d)||(b.t||0)-(a.t||0));
+  const mon=S.expenses.filter(e=>inP(P,e)).sort((a,b)=>b.d.localeCompare(a.d)||(b.t||0)-(a.t||0));
   const by={},byL={};mon.forEach(e=>{by[e.cat]=(by[e.cat]||0)+e.amt;(byL[e.cat]=byL[e.cat]||[]).push(e)});
   const ks=Object.keys(by).sort((a,b)=>by[b]-by[a]);
   $('#catBars').innerHTML=ks.length?ks.map(k=>`<div class="cat"><div class="row"><span>${CATN[k]||'Other'}</span><span class="amt">${smSum(byL[k])}</span></div><div class="bar"><i style="width:${by[k]/spent*100}%"></i></div></div>`).join(''):'<div class="empty">Add an expense to see where your money goes.</div>';
