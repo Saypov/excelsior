@@ -746,7 +746,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.11.3 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.11.4 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -778,7 +778,7 @@ const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const num=v=>{const n=parseFloat(String(v).replace(/[£,\s]/g,''));return isFinite(n)?n:NaN};
 const when=dl=>dl<0?(-dl)+' days overdue':dl===0?'today':dl===1?'tomorrow':'in '+dl+' days';
 
-const CATS=[['food','Food'],['groc','Groceries'],['trans','Transport'],['out','Going out'],['shop','Shopping'],['subs','Subscriptions'],['bills','Bills'],['other','Other']];
+const CATS=[['food','Food'],['groc','Groceries'],['trans','Transport'],['out','Going out'],['shop','Shopping'],['cloth','Clothing'],['subs','Subscriptions'],['bills','Bills'],['other','Other']];
 const CATN=Object.fromEntries(CATS);
 const FEELS=[['easier','Easier'],['same','Same'],['harder','Harder']];
 const EXS=['Pull-ups','Chin-ups','Push-ups','Dips','Muscle-ups','Australian rows','Pike push-ups','Handstand push-ups','Pistol squats','Squats','Lunges','Hanging leg raises','Front lever hold','Back lever hold','Planche lean','Handstand hold','L-sit','Plank'];
@@ -852,7 +852,7 @@ function syncFail(e){
   setSync(c==='unavailable'?'Offline · will sync later':'Not synced · tap ⚙︎');
   const el=$('#syncErr');if(el){el.hidden=false;el.textContent=(SYNC_ERR[c]||'Sync failed.')+' (code: '+c+')'}
 }
-const CAT_RULES=[[/tesco|sainsbury|aldi|lidl|asda|co-?op|morrisons|waitrose|m&s food|iceland|spar|one stop/i,'groc'],[/uber|bolt|trainline|national rail|avanti|west midlands|stagecoach|national express|tfl|shell|bp |esso|parking|nx bus/i,'trans'],[/pret|costa|starbucks|caffe|nero|greggs|mcdonald|kfc|burger|subway|nando|deliveroo|just eat|uber eats|domino|pizza|leon|wasabi|itsu|five guys|restaurant|cafe|kitchen|grill/i,'food'],[/netflix|spotify|apple\.com|icloud|google|youtube|amazon prime|disney|chatgpt|claude|anthropic|gym|puregym/i,'subs'],[/amazon|asos|zara|h&m|primark|uniqlo|nike|adidas|jd sports|argos|currys|boots|superdrug/i,'shop'],[/bar|pub|club|cinema|odeon|cineworld|vue|ticket|student union|kasbah/i,'out']];
+const CAT_RULES=[[/tesco|sainsbury|aldi|lidl|asda|co-?op|morrisons|waitrose|m&s food|iceland|spar|one stop/i,'groc'],[/uber|bolt|trainline|national rail|avanti|west midlands|stagecoach|national express|tfl|shell|bp |esso|parking|nx bus/i,'trans'],[/pret|costa|starbucks|caffe|nero|greggs|mcdonald|kfc|burger|subway|nando|deliveroo|just eat|uber eats|domino|pizza|leon|wasabi|itsu|five guys|restaurant|cafe|kitchen|grill/i,'food'],[/netflix|spotify|apple\.com|icloud|google|youtube|amazon prime|disney|chatgpt|claude|anthropic|gym|puregym/i,'subs'],[/asos|zara|h&m|primark|uniqlo|nike|adidas|jd sports|next |tk ?maxx|river island|mango|new look|footlocker|foot locker|schuh|end\. clothing|end clothing|the north face|levi|pull ?& ?bear|bershka|cos stores/i,'cloth'],[/amazon|argos|currys|boots|superdrug/i,'shop'],[/bar|pub|club|cinema|odeon|cineworld|vue|ticket|student union|kasbah/i,'out']];
 const guessCat=m=>{for(const [r,c] of CAT_RULES)if(r.test(m||''))return c;return 'other'};
 let unsubIn=null,unsubDrop=null,dropOn='';
 function watchDrop(){
