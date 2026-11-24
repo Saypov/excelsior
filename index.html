@@ -747,7 +747,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.12.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.12.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1226,6 +1226,7 @@ function expEditHtml(e){return `<li class="li" style="display:block"><form data-
   <label for="eeCat">Category</label><select id="eeCat">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>
   <label for="eeNote">Note</label><input id="eeNote" value="${esc(e.note||'')}" autocomplete="off">
   <label style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:12px"><input type="checkbox" id="eePot" ${e.fromPot?'checked':''} style="width:22px;min-height:22px;height:22px;flex:none"> Paid from savings pot</label>
+  <label style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:8px"><input type="checkbox" id="eeSpread" ${e.spread?'checked':''} style="width:22px;min-height:22px;height:22px;flex:none"> Spread over the rest of the period</label>
   <p class="msg" id="eeMsg"></p>
   <div class="grid2" style="margin-top:10px"><button class="ghost" type="button" data-act="edit-exp-cancel">Cancel</button><button class="btn" type="submit" style="margin:0">Save</button></div></form></li>`}
 /* Spending currency switch (v5.6.0): everything is stored in GBP; USD is display/entry only, at the Invest GBP/USD rate (S.invFx). */
@@ -3537,7 +3538,7 @@ document.addEventListener('submit',e=>{
   else if(k==='expedit'){const x=S.expenses.find(y=>y.id===f.dataset.id);if(!x){editExp=null;renderMoney();return}
     const amt=parseFloat(String($('#eeAmt').value).replace(',','.').replace(/[^0-9.]/g,'')),d=$('#eeD').value;
     if(!(amt>0)){$('#eeMsg').textContent='Enter an amount above £0.';return}if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){$('#eeMsg').textContent='Pick a date.';return}
-    if(spUSD()){const shown=eUSD(x);if(Math.abs(amt-shown)>0.004){x.usd=r2s(amt);x.amt=r2s(amt/(x.fx||fxRate()))}}else if(Math.abs(amt-x.amt)>0.004){x.amt=Math.round(amt*100)/100;delete x.usd}x.d=d;x.cat=$('#eeCat').value;x.note=$('#eeNote').value.trim().slice(0,60);x.fromPot=$('#eePot').checked||undefined;if(!x.fromPot)delete x.fromPot;x.u=Date.now();
+    if(spUSD()){const shown=eUSD(x);if(Math.abs(amt-shown)>0.004){x.usd=r2s(amt);x.amt=r2s(amt/(x.fx||fxRate()))}}else if(Math.abs(amt-x.amt)>0.004){x.amt=Math.round(amt*100)/100;delete x.usd}x.d=d;x.cat=$('#eeCat').value;x.note=$('#eeNote').value.trim().slice(0,60);x.fromPot=$('#eePot').checked||undefined;if(!x.fromPot)delete x.fromPot;if($('#eeSpread').checked&&!x.fromPot)x.spread=true;else delete x.spread;x.u=Date.now();
     editExp=null;commit();toast('Expense updated')}
   else if(/^sk/.test(k)&&skForm(k,f)){}
   else if(k==='alert')alForm();
