@@ -748,7 +748,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.12.4 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.12.5 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1293,6 +1293,7 @@ function renderMoney(){
     <div class="row small muted" style="margin:2px 0 10px"><span>${short(p.d)} · ${when(i.dl)}</span><span>${money(i.saved)} saved</span></div>
     <div class="bar"><i style="width:${Math.min(100,i.saved/p.amt*100)}%"></i></div>
     <p class="small" style="margin-top:8px">${full?'Fully saved — you\'re covered.':i.dl<0?`<span class="tag hot">Date passed</span> ${money(i.left)} was still unsaved`:`Set aside <b>${money(i.need)}</b> this month · ${money(i.left)} to go`}</p>
+    ${p.contribs.length?`<p class="small muted" style="margin-top:8px">Saved: ${p.contribs.map((c,j)=>`<span style="white-space:nowrap">${money(c.amt)} ${c.d==='1970-01-01'?'already saved':'on '+short(c.d)}<button class="paydel" type="button" data-act="del-contrib" data-id="${p.id}" data-i="${j}" aria-label="Remove this amount">✕</button></span>`).join(', ')}</p>`:''}
     ${full?'':`<form class="inline" data-form="contrib" data-id="${p.id}"><input inputmode="decimal" placeholder="£ amount" aria-label="Amount to add to savings"><button class="ghost" type="submit">Add from pot</button></form>`}
     <div class="acts"><button class="link" data-act="del-plan" data-id="${p.id}">Delete</button></div></div>`}).join(''):'<div class="empty" style="margin-bottom:10px">No planned payments yet. New Year\'s, the May Ball, flights home — add them below.</div>';
   const ds=S.debts.slice().sort((a,b)=>debtInfo(a).done-debtInfo(b).done||(a.due||'9').localeCompare(b.due||'9'));
@@ -3384,6 +3385,8 @@ document.addEventListener('click',e=>{
   else if(a==='ev-edit'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;evEdit=id;evOccD=b.dataset.d||e.d;evCat=e.cat;$('#evTitle').value=e.title;$('#evDate').value=evOccD;$('#evRep').checked=e.rep==='w';$('#evTime').value=e.time||'';$('#evEnd').value=e.end||'';$('#evNote').value=e.note||'';fillRem(e.rem||'');renderEvents();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();const ef=$('#evTitle').closest('form')||$('#evTitle');ef.scrollIntoView({block:'start',behavior:'smooth'})}
   else if(a==='ev-ics'){const e=(S.events||[]).find(x=>x.id===id);if(!e)return;const l=document.createElement('a');l.href='data:text/calendar;charset=utf-8,'+encodeURIComponent(icsFor(e));l.download=(e.title.replace(/[^a-z0-9]+/gi,'-').slice(0,40)||'event')+'.ics';document.body.appendChild(l);l.click();l.remove()}
   else if(a==='inv-ccy'){S.invCcy=b.dataset.v;commit()}
+  else if(a==='del-contrib'){const x=S.plans.find(y=>y.id===id),j=+b.dataset.i;if(!x||!x.contribs[j])return;const c=x.contribs.splice(j,1)[0];x.u=Date.now();commit();
+    toast(money(c.amt)+(c.d==='1970-01-01'?' removed':' returned to the pot'),()=>{const y=(S.plans||[]).find(z=>z.id===id);if(!y)return;y.contribs=y.contribs||[];y.contribs.push(c);y.contribs.sort((a,b)=>a.d.localeCompare(b.d));y.u=Date.now();commit()})}
   else if(a==='del-pay'){const x=S.debts.find(y=>y.id===id),i=+b.dataset.i;if(!x||!x.pays[i])return;const pay=x.pays.splice(i,1)[0];x.u=Date.now();
     const ei=pay.pid?S.expenses.findIndex(e=>e.pay&&e.pay.pid===pay.pid):-1,ex=ei>=0?S.expenses.splice(ei,1)[0]:null;if(ex){S.del=S.del||{};S.del[ex.id]=Date.now()}commit();
     toast('Payment removed · '+money(pay.amt)+(ex?' (and its expense)':''),()=>{const y=(S.debts||[]).find(z=>z.id===id);if(!y)return;y.pays=y.pays||[];y.pays.push(pay);y.pays.sort((a,b)=>a.d.localeCompare(b.d));y.u=Date.now();
