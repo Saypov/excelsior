@@ -76,6 +76,7 @@ main{max-width:600px;margin:0 auto;padding:0 0 calc(env(safe-area-inset-bottom) 
 .hero2 .side b{font:700 clamp(18px,5.2vw,30px)/1.1 Sora,sans-serif;letter-spacing:-.02em;margin:2px 0}
 [data-skin=mono] .hero2 .side b{font-family:Archivo,sans-serif;font-weight:900;font-stretch:125%;font-size:clamp(16px,4.4vw,30px)}
 .band .hero2 .side .muted{color:inherit;opacity:.75}
+[data-tb][hidden]{display:none!important}
 .quick{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 18px 0}
 .card{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px;background:var(--bg)}
 .card.done{opacity:.55}
@@ -291,9 +292,9 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
     <div class="hero2"><div class="big" id="safe">£0</div>
       <div class="side"><span class="small muted" id="monRemLbl">Left this month</span><b class="amt" id="monRem">£0</b><span class="small muted" id="monOf"></span></div></div>
     <p class="small muted" id="safeSub"></p>
-    <div class="row" style="margin-top:20px"><span class="small" style="font-weight:600">Training this week</span><span class="small" id="weekCount"></span></div>
-    <div class="week" id="week"></div>
-    <div class="lvl">
+    <div data-tb="week"><div class="row" style="margin-top:20px"><span class="small" style="font-weight:600">Training this week</span><span class="small" id="weekCount"></span></div>
+    <div class="week" id="week"></div></div>
+    <div class="lvl" data-tb="level">
       <div class="row small"><span><b id="lvlName"></b></span><span id="lvlXp"></span></div>
       <div class="bar" style="margin-top:6px"><i id="lvlBar"></i></div>
     </div>
@@ -304,23 +305,21 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
   <div class="pad" id="payBanner" hidden><div class="card" style="margin:12px 0 0;display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--bad)">
     <span class="small"><b>Apple Pay logging is off</b><br><span class="muted">The payment link is missing. Reconnect it in Settings, then update your Shortcut.</span></span>
     <button class="ghost" data-act="go" data-to="settings">Fix</button></div></div>
-  <div class="pad"><div class="card" id="monthEnd" hidden style="margin:12px 0 0"></div>
-    <div class="card" style="margin:12px 0 0;display:flex;justify-content:space-between;align-items:center;gap:12px" data-act="go" data-to="money">
+  <div class="pad"><div class="card" id="monthEnd" hidden style="margin:12px 0 0"></div></div>
+  <div id="todayBlocks">
+  <div class="pad" data-tb="pot"><div class="card" style="margin:12px 0 0;display:flex;justify-content:space-between;align-items:center;gap:12px" data-act="go" data-to="money">
       <span><span class="small muted">Savings pot</span><br><b class="amt" style="font-size:22px" id="potToday">£0</b><br><span class="small muted" id="potTodaySub"></span></span>
     </div></div>
-  <div class="quick">
+  <div class="quick" data-tb="quick">
     <button class="ghost" data-act="go" data-to="money">+ Expense</button>
     <button class="ghost" data-act="go" data-to="fitness">+ Workout</button>
   </div>
-  <div class="pad"><div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+  <div class="pad" data-tb="study"><div class="card" style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:12px">
     <span><b>Study</b><br><span class="small muted" id="langToday"></span><br><span class="small muted" id="finToday"></span><br><span class="small muted" id="skToday"></span></span>
     <button class="ghost" data-act="go" data-to="lingue">Practise</button>
   </div></div>
-  <div class="pad">
-    <h2>Coming up</h2>
-    <ul class="list" id="upcoming"></ul>
-    <h2>Last workout</h2>
-    <div id="lastWo"></div>
+  <div class="pad" data-tb="upcoming"><h2>Coming up</h2><ul class="list" id="upcoming"></ul></div>
+  <div class="pad" data-tb="lastwo"><h2>Last workout</h2><div id="lastWo"></div></div>
   </div>
 </section>
 
@@ -670,6 +669,9 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <button class="skin ghost" data-act="skin" data-v="terra"><div class="sw-t">£840</div>Terracotta<div class="small muted" style="font-weight:400">Cream, burnt orange, olive</div></button>
     </div>
     <p class="small muted" style="margin-top:8px">Azzurro follows your phone's light or dark mode. The Mono themes stay the same whatever your phone is set to. Each device keeps its own theme.</p>
+    <h2>Today screen</h2>
+    <div class="card" style="padding-top:6px;padding-bottom:6px"><div id="tlList"></div></div>
+    <p class="small muted" style="margin-top:8px">Untick to hide a section, use the arrows to change the order. The money summary always stays at the top, and alerts (like a closed budget) still appear when needed. Synced across your devices.</p>
     <h2>App icon</h2>
     <div class="skins" style="grid-template-columns:repeat(2,minmax(0,1fr))">
       <button class="skin ghost" data-act="icon" data-v="light"><img src="icon.png" alt="" style="width:64px;height:64px;border-radius:15px;display:block;margin-bottom:6px;border:1px solid #0002">Light</button>
@@ -748,7 +750,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.12.5 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.13.0 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1088,7 +1090,16 @@ function evCount(e){if(!e.time)return null;const now=Date.now(),st=evMs(e.d,e.ti
   if(now>=en)return {over:true};if(now>=st)return {cls:'urg',txt:'now'};const dm=st-now;
   if(dm<3600e3)return {cls:dm<30*60000?'urg':'soon',txt:'in '+Math.max(1,Math.ceil(dm/60000))+' min'};
   if(dm<864e5)return {cls:'soon',txt:'in '+Math.floor(dm/3600e3)+' h'};return null}
-function renderToday(){if(S.spCcy==='USD')setTimeout(()=>spEnsureFx(),0);
+// Today screen layout (v5.13.0): S.todayLayout={order:[...], hide:{key:true}}. Band items (week, level) can be hidden, not moved.
+const TL=[['pot','Savings pot'],['quick','+ Expense / + Workout buttons'],['study','Study'],['upcoming','Coming up'],['lastwo','Last workout']],TLB=[['week','Training this week'],['level','Level & XP']];
+function tlOrder(){const o=((S.todayLayout||{}).order||[]).filter(k=>TL.some(t=>t[0]===k));TL.forEach(t=>{if(!o.includes(t[0]))o.push(t[0])});return o}
+function applyTodayLayout(){const box=$('#todayBlocks');if(!box)return;const hide=(S.todayLayout||{}).hide||{};
+  tlOrder().forEach(k=>{const el=box.querySelector(`:scope>[data-tb="${k}"]`);if(el)box.appendChild(el)});
+  document.querySelectorAll('#v-today [data-tb]').forEach(el=>{el.hidden=!!hide[el.dataset.tb]})}
+function renderTodaySettings(){const box=$('#tlList');if(!box)return;const hide=(S.todayLayout||{}).hide||{},o=tlOrder();
+  const row=(k,lbl,mv,i)=>`<div class="li" style="padding:8px 0"><label style="display:flex;align-items:center;gap:10px;flex:1;font-weight:500;margin:0"><input type="checkbox" data-tl="${k}" ${hide[k]?'':'checked'} style="width:22px;min-height:22px;height:22px;flex:none"> ${lbl}</label>${mv?`<span style="display:flex;gap:6px;flex:none"><button class="x" type="button" data-act="tl-mv" data-k="${k}" data-v="-1" aria-label="Move up" ${i===0?'disabled':''}>↑</button><button class="x" type="button" data-act="tl-mv" data-k="${k}" data-v="1" aria-label="Move down" ${i===o.length-1?'disabled':''}>↓</button></span>`:''}</div>`;
+  box.innerHTML=TLB.map(([k,l])=>row(k,l+' <span class="small muted">(top card)</span>',false)).join('')+o.map((k,i)=>row(k,TL.find(t=>t[0]===k)[1],true,i)).join('')}
+function renderToday(){try{applyTodayLayout()}catch(e){}if(S.spCcy==='USD')setTimeout(()=>spEnsureFx(),0);
   const t=today();
   const di=dayInfo(),pi=potInfo(),pw=pWord(di.P);
   const h=new Date().getHours();
@@ -3291,7 +3302,7 @@ function renderVoices(){const box=$('#voiceBox');if(!box)return;if(!('speechSynt
   box.innerHTML=[['fr','French','Bonjour, je m\'appelle Rasul. On va grailler ?'],['it','Italian','Ciao, mi chiamo Rasul. Comunque, andiamo?']].map(([L,n,demo])=>{const main=L==='fr'?'fr-fr':'it-it',vs=goodVoices(L).sort((a,b)=>((a.lang.toLowerCase().replace('_','-')===main?0:1)-(b.lang.toLowerCase().replace('_','-')===main?0:1))||vQ(b)-vQ(a)||a.name.localeCompare(b.name));let cur='';try{cur=localStorage.getItem('excelsior-voice-'+L)||''}catch(e){}
     return `<label for="voice-${L}" style="margin-top:12px">${n} voice</label><div style="display:flex;gap:8px;align-items:center"><select id="voice-${L}" data-voice="${L}" style="flex:1">${'<option value="">Automatic</option>'+vs.map(v=>`<option value="${esc(v.voiceURI||v.name)}" ${(v.voiceURI||v.name)===cur?'selected':''}>${esc(v.name.replace(/\s*\((enhanced|premium|compact)\)/i,''))}${vQL(v)?' · '+vQL(v):''} · ${esc(v.lang)}</option>`).join('')}</select><button type="button" class="spk" style="margin:0;padding:10px 14px" data-act="say" data-t="${esc(demo)}" data-l="${L}" aria-label="Preview">▶</button></div>${vs.length?'':`<p class="small muted">No ${n} voices found on this device.</p>`}`}).join('')+`<p class="small muted" style="margin-top:6px">Downloaded a new voice? Fully close and reopen the app, then pick it here. This choice is per device.</p>`}
 if('speechSynthesis' in window)speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',()=>{if(!(document.activeElement&&document.activeElement.dataset&&document.activeElement.dataset.voice))renderVoices()});
-function renderSettings(){renderVoices();renderPush();
+function renderSettings(){renderVoices();renderPush();try{renderTodaySettings()}catch(e){console.error(e)}
   let sk=S.skin;try{sk=localStorage.getItem('excelsior-skin')||localStorage.getItem('saro-skin')||S.skin;localStorage.setItem('excelsior-skin',sk)}catch(e){}
   applySkin(sk);
   document.querySelectorAll('[data-act=tts]').forEach(b=>b.classList.toggle('on',b.dataset.v===(S.tts===false?'off':'on')));
@@ -3399,6 +3410,7 @@ document.addEventListener('click',e=>{
   else if(a==='del-hold'){removeWith('holdings',id,'Stock')}
   else if(a==='calc-add'){const sym=b.dataset.sym,q=+b.dataset.qty;S.holdings=S.holdings||[];const h=S.holdings.find(x=>x.sym===sym);if(h)h.qty=q;else S.holdings.push({id:newId(),sym,qty:q,cost:null});commit();toast(sym+' added to holdings')}
   else if(a==='pot-adj'){$('#potForm').hidden=!$('#potForm').hidden}
+  else if(a==='tl-mv'){const o=tlOrder(),i=o.indexOf(b.dataset.k),j=i+(+b.dataset.v);if(i<0||j<0||j>=o.length)return;[o[i],o[j]]=[o[j],o[i]];S.todayLayout=Object.assign({},S.todayLayout,{order:o});commit();renderTodaySettings()}
   else if(a==='potadj-open'){potAdjOpen=!potAdjOpen;potAdjEdit=null;renderPotAdj()}
   else if(a==='potadj-edit'){potAdjEdit=id;renderPotAdj()}
   else if(a==='potadj-x'){potAdjEdit=null;renderPotAdj()}
@@ -3474,6 +3486,7 @@ document.addEventListener('change',e=>{
   if(e.target.id==='lPack'){S.lpack=Object.assign({},S.lpack||{},{[lang]:e.target.value});queue=[];cur=null;sessionDone=0;if(typeof wq!=='undefined'){wq=[];wcur=null;wres=null}commit();renderLang()}
   if(e.target.id==='setName'){S.name=e.target.value.trim()||'Rasul';commit()}
   if(e.target.id==='payDay'){setPayDay(+e.target.value);return}
+  if(e.target.dataset&&e.target.dataset.tl){const L=Object.assign({order:tlOrder(),hide:{}},S.todayLayout);L.hide=Object.assign({},L.hide);if(e.target.checked)delete L.hide[e.target.dataset.tl];else L.hide[e.target.dataset.tl]=true;S.todayLayout=L;commit();return}
   if(e.target.id==='budget'){const n0=num(e.target.value),n=n0>=0?toGBP(n0):n0;if(n>=0){S.budget=n;S.budgets=S.budgets||{};S.budgets[periodOf(today()).key]=n;commit()}else e.target.value=periodOf(today()).B}
 });
 document.addEventListener('submit',e=>{
