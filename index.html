@@ -129,7 +129,7 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 .skms{flex:none;width:26px;height:26px;min-height:26px;padding:0;border-radius:50%;border:2px solid var(--line);background:none;color:#fff;font-size:14px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s,transform .15s}
 .skms.on{background:var(--good);border-color:var(--good)}.skms:active{transform:scale(.9)}
 .skdone{text-decoration:line-through;opacity:.6}
-#meBudF[hidden],.histbud[hidden]{display:none}
+#meBudF[hidden],.histbud[hidden],#eeSpreadL[hidden],#expSpreadL[hidden]{display:none!important}
 .skta{flex:1;min-height:48px;resize:none;overflow:auto;line-height:1.4;font:inherit}
 .skms-row>.skgrip,.skgrip{flex:none;width:22px;height:30px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted);opacity:.7;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;margin-right:-4px}
 .skgrip svg{width:10px;height:15px}
@@ -398,7 +398,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <label for="expNote">Note</label>
         <input id="expNote" placeholder="e.g. Tesco, Uber, Pret" autocomplete="off">
         <label style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:12px"><input type="checkbox" id="expPot" style="width:22px;min-height:22px;height:22px;flex:none"> Pay from savings pot (big one-off, not today's budget)</label>
-        <label style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:8px"><input type="checkbox" id="expSpread" style="width:22px;min-height:22px;height:22px;flex:none"> Spread over the rest of the period (lowers every remaining day a little, not just today)</label>
+        <label id="expSpreadL" style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:8px"><input type="checkbox" id="expSpread" style="width:22px;min-height:22px;height:22px;flex:none"> Spread over the rest of the period (lowers every remaining day a little, not just today)</label>
         <p class="msg" id="expMsg"></p>
         <button class="btn" type="submit">Add expense</button>
       </form>
@@ -747,7 +747,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.12.1 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.12.2 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1226,7 +1226,7 @@ function expEditHtml(e){return `<li class="li" style="display:block"><form data-
   <label for="eeCat">Category</label><select id="eeCat">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>
   <label for="eeNote">Note</label><input id="eeNote" value="${esc(e.note||'')}" autocomplete="off">
   <label style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:12px"><input type="checkbox" id="eePot" ${e.fromPot?'checked':''} style="width:22px;min-height:22px;height:22px;flex:none"> Paid from savings pot</label>
-  <label style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:8px"><input type="checkbox" id="eeSpread" ${e.spread?'checked':''} style="width:22px;min-height:22px;height:22px;flex:none"> Spread over the rest of the period</label>
+  <label id="eeSpreadL" ${e.d===today()?'':'hidden '}style="display:flex;align-items:center;gap:10px;font-weight:500;margin-top:8px"><input type="checkbox" id="eeSpread" ${e.spread?'checked':''} style="width:22px;min-height:22px;height:22px;flex:none"> Spread over the rest of the period</label>
   <p class="msg" id="eeMsg"></p>
   <div class="grid2" style="margin-top:10px"><button class="ghost" type="button" data-act="edit-exp-cancel">Cancel</button><button class="btn" type="submit" style="margin:0">Save</button></div></form></li>`}
 /* Spending currency switch (v5.6.0): everything is stored in GBP; USD is display/entry only, at the Invest GBP/USD rate (S.invFx). */
@@ -1275,7 +1275,7 @@ function renderMoney(){
   const ks=Object.keys(by).sort((a,b)=>by[b]-by[a]);
   $('#catBars').innerHTML=ks.length?ks.map(k=>`<div class="cat"><div class="row"><span>${CATN[k]||'Other'}</span><span class="amt">${smSum(byL[k])}</span></div><div class="bar"><i style="width:${by[k]/spent*100}%"></i></div></div>`).join(''):'<div class="empty">Add an expense to see where your money goes.</div>';
   try{renderHistory()}catch(err){console.error(err)}
-  $('#expList').innerHTML=mon.length?mon.map(e=>e.id===editExp?expEditHtml(e):`<li class="li exprow"><b class="en">${esc(e.note||CATN[e.cat])}</b><span class="amt">${smE(e)}</span><span class="em small muted">${e.fromPot?'<span class="tag">From pot</span> ':e.spread?'<span class="tag">Spread</span> ':''}${e.auto?`<span class="tag">Apple Pay</span> <select data-catfor="${e.id}" aria-label="Category" style="width:auto;min-height:32px;padding:2px 24px 2px 8px;font-size:13px;display:inline-block;background-position:right 7px center;background-size:11px">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>`:(CATN[e.cat]||'Other')}<span style="white-space:nowrap">· ${short(e.d)}</span></span><span class="ea"><button class="x" data-act="edit-exp" data-id="${e.id}" aria-label="Edit expense" style="font-size:15px">✎</button><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
+  $('#expList').innerHTML=mon.length?mon.map(e=>e.id===editExp?expEditHtml(e):`<li class="li exprow"><b class="en">${esc(e.note||CATN[e.cat])}</b><span class="amt">${smE(e)}</span><span class="em small muted">${e.fromPot?'<span class="tag">From pot</span> ':e.spread&&e.d===today()?'<span class="tag">Spread</span> ':''}${e.auto?`<span class="tag">Apple Pay</span> <select data-catfor="${e.id}" aria-label="Category" style="width:auto;min-height:32px;padding:2px 24px 2px 8px;font-size:13px;display:inline-block;background-position:right 7px center;background-size:11px">${CATS.map(c=>`<option value="${c[0]}"${c[0]===e.cat?' selected':''}>${c[1]}</option>`).join('')}</select>`:(CATN[e.cat]||'Other')}<span style="white-space:nowrap">· ${short(e.d)}</span></span><span class="ea"><button class="x" data-act="edit-exp" data-id="${e.id}" aria-label="Edit expense" style="font-size:15px">✎</button><button class="x" data-act="del-exp" data-id="${e.id}" aria-label="Delete expense">×</button></span></li>`).join(''):'<li class="empty">No spending logged this month yet.</li>';
   const ps=S.plans.slice().sort((a,b)=>a.d.localeCompare(b.d));
   $('#planList').innerHTML=ps.length?ps.map(p=>{const i=planInfo(p);const full=i.left<=0.004;return `<div class="card${full&&i.dl<0?' done':''}">
     <div class="row"><b>${esc(p.name)}</b><span class="amt">${money(p.amt)}</span></div>
@@ -1367,6 +1367,7 @@ function skDrop(){if(!skDrag)return;const {row,list}=skDrag;skDrag=null;row.clas
   const k=(S.skills||[]).find(x=>x.id===list.dataset.id);if(!k)return;const ids=[...list.querySelectorAll('.skms-row[data-m]')].map(r=>r.dataset.m),old=(k.ms||[]).map(m=>m.id);
   if(ids.join()===old.join())return;const by=Object.fromEntries(k.ms.map(m=>[m.id,m]));k.ms=ids.map(i=>by[i]).filter(Boolean).concat(k.ms.filter(m=>!ids.includes(m.id)));k.u=Date.now();setTimeout(commit,160)}
 document.addEventListener('pointerup',skDrop);
+document.addEventListener('input',e=>{const id=e.target.id;if(id!=='eeD'&&id!=='expDate')return;const L=$(id==='eeD'?'#eeSpreadL':'#expSpreadL');if(!L)return;const on=e.target.value===today();L.hidden=!on;if(!on)L.querySelector('input').checked=false});
 document.addEventListener('input',e=>{const t=e.target;if(t.classList&&t.classList.contains('skta')){t.style.height='auto';t.style.height=Math.min(t.scrollHeight,240)+'px'}});document.addEventListener('pointercancel',skDrop);
 const skWk=d=>{const x=new Date(d+'T12:00:00'),dw=(x.getDay()+6)%7;x.setDate(x.getDate()-dw);return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate())};
 function skInfo(k){
@@ -3467,7 +3468,7 @@ document.addEventListener('submit',e=>{
   else if(k==='exp'){
     const amt=num($('#expAmt').value);
     if(!(amt>0)){$('#expMsg').textContent='Enter the amount you spent.';return}
-    const ex={id:newId(),amt:toGBP(amt),cat:expCat,note:$('#expNote').value.trim(),d:$('#expDate').value||today(),t:Date.now()};if($('#expPot').checked)ex.fromPot=true;else if($('#expSpread').checked)ex.spread=true;if(spUSD())ex.usd=r2s(amt);if(fxRate()&&S.invFx&&Date.now()-S.invFx.t<26*3600e3)ex.fx=fxRate();
+    const ex={id:newId(),amt:toGBP(amt),cat:expCat,note:$('#expNote').value.trim(),d:$('#expDate').value||today(),t:Date.now()};if($('#expPot').checked)ex.fromPot=true;else if($('#expSpread').checked&&ex.d===today())ex.spread=true;if(spUSD())ex.usd=r2s(amt);if(fxRate()&&S.invFx&&Date.now()-S.invFx.t<26*3600e3)ex.fx=fxRate();
     S.expenses.push(ex);$('#expPot').checked=false;$('#expSpread').checked=false;
     $('#expAmt').value='';$('#expNote').value='';$('#expDate').value=today();$('#expMsg').textContent='';
     commit();toast('Expense added');
@@ -3538,7 +3539,7 @@ document.addEventListener('submit',e=>{
   else if(k==='expedit'){const x=S.expenses.find(y=>y.id===f.dataset.id);if(!x){editExp=null;renderMoney();return}
     const amt=parseFloat(String($('#eeAmt').value).replace(',','.').replace(/[^0-9.]/g,'')),d=$('#eeD').value;
     if(!(amt>0)){$('#eeMsg').textContent='Enter an amount above £0.';return}if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){$('#eeMsg').textContent='Pick a date.';return}
-    if(spUSD()){const shown=eUSD(x);if(Math.abs(amt-shown)>0.004){x.usd=r2s(amt);x.amt=r2s(amt/(x.fx||fxRate()))}}else if(Math.abs(amt-x.amt)>0.004){x.amt=Math.round(amt*100)/100;delete x.usd}x.d=d;x.cat=$('#eeCat').value;x.note=$('#eeNote').value.trim().slice(0,60);x.fromPot=$('#eePot').checked||undefined;if(!x.fromPot)delete x.fromPot;if($('#eeSpread').checked&&!x.fromPot)x.spread=true;else delete x.spread;x.u=Date.now();
+    if(spUSD()){const shown=eUSD(x);if(Math.abs(amt-shown)>0.004){x.usd=r2s(amt);x.amt=r2s(amt/(x.fx||fxRate()))}}else if(Math.abs(amt-x.amt)>0.004){x.amt=Math.round(amt*100)/100;delete x.usd}x.d=d;x.cat=$('#eeCat').value;x.note=$('#eeNote').value.trim().slice(0,60);x.fromPot=$('#eePot').checked||undefined;if(!x.fromPot)delete x.fromPot;if($('#eeSpread').checked&&!x.fromPot&&d===today())x.spread=true;else delete x.spread; // spread only does anything on the expense's own dayx.u=Date.now();
     editExp=null;commit();toast('Expense updated')}
   else if(/^sk/.test(k)&&skForm(k,f)){}
   else if(k==='alert')alForm();
