@@ -154,9 +154,9 @@ button{font:600 15px Inter,sans-serif;min-height:44px;border-radius:10px;border:
 .mkt{font-family:Sora,Inter,sans-serif;margin:18px 0 2px;font-size:26px;line-height:1.2}
 .mkt i{font-family:'Great Vibes',Georgia,'Times New Roman',serif;font-style:normal;font-weight:400;font-size:1.3em;line-height:1} /* v5.6.8: Great Vibes (free, has Cyrillic) instead of Blackadder ITC; only on the fund title names */
 #s-mk .li .amt.in{color:var(--good)}
-#mkSetBox summary{gap:8px}#mkSetBox summary::-webkit-details-marker{display:none}#mkSetBox summary svg{width:18px;height:18px;flex:none;transition:transform .3s}
-#mkSetBox[open] summary svg{transform:rotate(60deg)}
-#mkSetBox:not([open]){width:fit-content;margin:4px auto 20px;padding:0 18px;border-radius:999px}
+#mkSetBox summary,.gearbox summary{gap:8px}#mkSetBox summary::-webkit-details-marker,.gearbox summary::-webkit-details-marker{display:none}#mkSetBox summary svg,.gearbox summary svg{width:18px;height:18px;flex:none;transition:transform .3s}
+#mkSetBox[open] summary svg,.gearbox[open] summary svg{transform:rotate(60deg)}
+#mkSetBox:not([open]),.gearbox:not([open]){width:fit-content;margin:4px auto 20px;padding:0 18px;border-radius:999px}
 #mkBarBox .bar{background:var(--line)}
 [data-skin=terra] #mkBarBox .bar>i{background:#65d01e}
 [data-skin] #mkBarBox .bar.hot>i,#mkBarBox .bar.hot>i{background:var(--hot)}
@@ -321,6 +321,10 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
   <div class="pad" data-tb="upcoming"><h2>Coming up</h2><ul class="list" id="upcoming"></ul></div>
   <div class="pad" data-tb="lastwo"><h2>Last workout</h2><div id="lastWo"></div></div>
   </div>
+  <div class="pad"><details class="card gearbox" id="tlBox" style="margin:18px auto 20px"><summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Arrange Today</summary>
+    <div id="tlList" style="margin-top:4px"></div>
+    <p class="small muted" style="margin:8px 0 4px">Untick to hide a section, use the arrows to change the order. The money summary always stays at the top, and alerts (like a closed budget) still appear when needed. Synced across your devices.</p>
+  </details></div>
 </section>
 
 <section class="view" id="v-fitness">
@@ -669,9 +673,6 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
       <button class="skin ghost" data-act="skin" data-v="terra"><div class="sw-t">£840</div>Terracotta<div class="small muted" style="font-weight:400">Cream, burnt orange, olive</div></button>
     </div>
     <p class="small muted" style="margin-top:8px">Azzurro follows your phone's light or dark mode. The Mono themes stay the same whatever your phone is set to. Each device keeps its own theme.</p>
-    <h2>Today screen</h2>
-    <div class="card" style="padding-top:6px;padding-bottom:6px"><div id="tlList"></div></div>
-    <p class="small muted" style="margin-top:8px">Untick to hide a section, use the arrows to change the order. The money summary always stays at the top, and alerts (like a closed budget) still appear when needed. Synced across your devices.</p>
     <h2>App icon</h2>
     <div class="skins" style="grid-template-columns:repeat(2,minmax(0,1fr))">
       <button class="skin ghost" data-act="icon" data-v="light"><img src="icon.png" alt="" style="width:64px;height:64px;border-radius:15px;display:block;margin-bottom:6px;border:1px solid #0002">Light</button>
@@ -750,7 +751,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.13.0 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.13.1 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1099,7 +1100,7 @@ function applyTodayLayout(){const box=$('#todayBlocks');if(!box)return;const hid
 function renderTodaySettings(){const box=$('#tlList');if(!box)return;const hide=(S.todayLayout||{}).hide||{},o=tlOrder();
   const row=(k,lbl,mv,i)=>`<div class="li" style="padding:8px 0"><label style="display:flex;align-items:center;gap:10px;flex:1;font-weight:500;margin:0"><input type="checkbox" data-tl="${k}" ${hide[k]?'':'checked'} style="width:22px;min-height:22px;height:22px;flex:none"> ${lbl}</label>${mv?`<span style="display:flex;gap:6px;flex:none"><button class="x" type="button" data-act="tl-mv" data-k="${k}" data-v="-1" aria-label="Move up" ${i===0?'disabled':''}>↑</button><button class="x" type="button" data-act="tl-mv" data-k="${k}" data-v="1" aria-label="Move down" ${i===o.length-1?'disabled':''}>↓</button></span>`:''}</div>`;
   box.innerHTML=TLB.map(([k,l])=>row(k,l+' <span class="small muted">(top card)</span>',false)).join('')+o.map((k,i)=>row(k,TL.find(t=>t[0]===k)[1],true,i)).join('')}
-function renderToday(){try{applyTodayLayout()}catch(e){}if(S.spCcy==='USD')setTimeout(()=>spEnsureFx(),0);
+function renderToday(){try{applyTodayLayout();renderTodaySettings()}catch(e){}if(S.spCcy==='USD')setTimeout(()=>spEnsureFx(),0);
   const t=today();
   const di=dayInfo(),pi=potInfo(),pw=pWord(di.P);
   const h=new Date().getHours();
@@ -3302,7 +3303,7 @@ function renderVoices(){const box=$('#voiceBox');if(!box)return;if(!('speechSynt
   box.innerHTML=[['fr','French','Bonjour, je m\'appelle Rasul. On va grailler ?'],['it','Italian','Ciao, mi chiamo Rasul. Comunque, andiamo?']].map(([L,n,demo])=>{const main=L==='fr'?'fr-fr':'it-it',vs=goodVoices(L).sort((a,b)=>((a.lang.toLowerCase().replace('_','-')===main?0:1)-(b.lang.toLowerCase().replace('_','-')===main?0:1))||vQ(b)-vQ(a)||a.name.localeCompare(b.name));let cur='';try{cur=localStorage.getItem('excelsior-voice-'+L)||''}catch(e){}
     return `<label for="voice-${L}" style="margin-top:12px">${n} voice</label><div style="display:flex;gap:8px;align-items:center"><select id="voice-${L}" data-voice="${L}" style="flex:1">${'<option value="">Automatic</option>'+vs.map(v=>`<option value="${esc(v.voiceURI||v.name)}" ${(v.voiceURI||v.name)===cur?'selected':''}>${esc(v.name.replace(/\s*\((enhanced|premium|compact)\)/i,''))}${vQL(v)?' · '+vQL(v):''} · ${esc(v.lang)}</option>`).join('')}</select><button type="button" class="spk" style="margin:0;padding:10px 14px" data-act="say" data-t="${esc(demo)}" data-l="${L}" aria-label="Preview">▶</button></div>${vs.length?'':`<p class="small muted">No ${n} voices found on this device.</p>`}`}).join('')+`<p class="small muted" style="margin-top:6px">Downloaded a new voice? Fully close and reopen the app, then pick it here. This choice is per device.</p>`}
 if('speechSynthesis' in window)speechSynthesis.addEventListener&&speechSynthesis.addEventListener('voiceschanged',()=>{if(!(document.activeElement&&document.activeElement.dataset&&document.activeElement.dataset.voice))renderVoices()});
-function renderSettings(){renderVoices();renderPush();try{renderTodaySettings()}catch(e){console.error(e)}
+function renderSettings(){renderVoices();renderPush();
   let sk=S.skin;try{sk=localStorage.getItem('excelsior-skin')||localStorage.getItem('saro-skin')||S.skin;localStorage.setItem('excelsior-skin',sk)}catch(e){}
   applySkin(sk);
   document.querySelectorAll('[data-act=tts]').forEach(b=>b.classList.toggle('on',b.dataset.v===(S.tts===false?'off':'on')));
