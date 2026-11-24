@@ -387,6 +387,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
           <div><label for="potNote">Note</label><input id="potNote" placeholder="e.g. Starting savings" autocomplete="off"></div></div>
           <button class="btn" type="submit">Save adjustment</button>
         </form>
+        <div id="potAdjList"></div>
       </div>
       <form data-form="exp" class="card">
         <div class="grid2">
@@ -747,7 +748,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.12.2 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.12.3 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1035,6 +1036,16 @@ function renderHistory(){
         <h3>Expenses</h3><ul class="list">${E.slice().sort((a,b)=>b.d.localeCompare(a.d)||(b.t||0)-(a.t||0)).map(e=>`<li class="li"><span><b class="en">${esc(e.note||CATN[e.cat]||'Expense')}</b><br><span class="small muted">${short(e.d)} · ${CATN[e.cat]||'Other'}${e.fromPot?' · from pot':''}</span></span><span class="amt">${smE(e)}</span></li>`).join('')||'<p class="small muted">Nothing logged.</p>'}</ul></div>`}
     return h+'</div>'}).join('')+(L.length>6?`<button class="link" type="button" data-act="hist-all" style="width:100%">${histAll?'Show fewer':'Show all '+L.length+' periods'}</button>`:'');
 }
+// Savings pot adjustments list (v5.12.3): edit or delete what was added/taken out by hand.
+let potAdjEdit=null,potAdjOpen=false;
+function renderPotAdj(){const box=$('#potAdjList');if(!box)return;const L=(S.potAdj||[]).slice().sort((a,b)=>(b.d||'').localeCompare(a.d||'')||(b.u||0)-(a.u||0));
+  if(!L.length){box.innerHTML='';return}
+  const sym=spUSD()?'$':'£',val=x=>spUSD()?r2s(x.amt*fxRate()):x.amt;
+  box.innerHTML=`<button class="link" type="button" data-act="potadj-open" style="padding:0;margin-top:10px">${potAdjOpen?'Hide':'Show'} adjustments (${L.length})</button>`+(potAdjOpen?`<ul class="list" style="margin-top:6px">${L.map(x=>x.id===potAdjEdit?
+    `<li class="li" style="display:block"><form data-form="potadjedit" data-id="${x.id}"><div class="grid2"><div><label>Amount (${sym})</label><input name="amt" inputmode="text" value="${val(x)}" autocomplete="off"></div><div><label>Date</label><input type="date" name="d" value="${x.d||today()}" max="${today()}"></div></div>
+      <label>Note</label><input name="note" value="${esc(x.note||'')}" autocomplete="off"><div class="grid2" style="margin-top:10px"><button class="ghost" type="button" data-act="potadj-x">Cancel</button><button class="btn" type="submit" style="margin:0">Save</button></div></form></li>`
+    :`<li class="li"><span><b>${esc(x.note||(x.amt<0?'Taken out':'Added'))}</b><br><span class="small muted">${x.d?short(x.d):''}</span></span><span style="display:flex;align-items:center;gap:6px"><span class="amt${x.amt<0?' neg':''}">${x.amt<0?'−':'+'}${sm(Math.abs(x.amt))}</span>
+      <button class="x" type="button" data-act="potadj-edit" data-id="${x.id}" aria-label="Edit adjustment" style="font-size:15px">✎</button><button class="x" type="button" data-act="del-potadj" data-id="${x.id}" aria-label="Delete adjustment">×</button></span></li>`).join('')}</ul>`:'')}
 function setPayDay(day){
   day=Math.max(1,Math.min(31,Math.round(day)||1));const t=today();
   let R=payRules();const cur=periodOf(t,R).s;R=R.filter(r=>r.from<cur); // a change made earlier in this same period is replaced, not stacked
@@ -1262,7 +1273,7 @@ function renderMoney(){
   $('#monBarW').classList.toggle('hot',left<0);
   {const di=dayInfo(),pi=potInfo();
    $('#monDaily').textContent='Today: '+sm(di.allow)+(di.reduced?' (reduced)':'')+' · saved this '+pw+': '+sm(di.saved)+' · '+di.dl+' day'+(di.dl>1?'s':'')+' left';
-   $('#potBig').textContent=sm(pi.pot+di.saved);
+   $('#potBig').textContent=sm(pi.pot+di.saved);try{renderPotAdj()}catch(err){console.error(err)}
    const bits=[];if(pi.months)bits.push(sm(pi.months)+' from past '+((S.payRules||[]).length?'periods':'months'));if(pi.adj)bits.push(sm(pi.adj)+' adjustments');if(pi.plansOut)bits.push('−'+sm(pi.plansOut)+' to planned payments');if(pi.debts)bits.push((pi.debts<0?'−':'+')+sm(Math.abs(pi.debts))+' repayments');if(pi.big)bits.push('−'+sm(pi.big)+' big one-offs');bits.push(sm(di.saved)+' saved this '+pw);
    $('#potBreak').textContent=bits.join(' · ');}
   if(document.activeElement!==$('#budget'))$('#budget').value=spUSD()?Math.round(BB*fxRate()):BB;
@@ -3385,6 +3396,10 @@ document.addEventListener('click',e=>{
   else if(a==='del-hold'){removeWith('holdings',id,'Stock')}
   else if(a==='calc-add'){const sym=b.dataset.sym,q=+b.dataset.qty;S.holdings=S.holdings||[];const h=S.holdings.find(x=>x.sym===sym);if(h)h.qty=q;else S.holdings.push({id:newId(),sym,qty:q,cost:null});commit();toast(sym+' added to holdings')}
   else if(a==='pot-adj'){$('#potForm').hidden=!$('#potForm').hidden}
+  else if(a==='potadj-open'){potAdjOpen=!potAdjOpen;potAdjEdit=null;renderPotAdj()}
+  else if(a==='potadj-edit'){potAdjEdit=id;renderPotAdj()}
+  else if(a==='potadj-x'){potAdjEdit=null;renderPotAdj()}
+  else if(a==='del-potadj'){if(potAdjEdit===id)potAdjEdit=null;removeWith('potAdj',id,'Adjustment')}
   else if(a==='hist-open'){histOpen=histOpen===b.dataset.k?null:b.dataset.k;renderHistory()}
   else if(a==='hist-bud'){const f=b.closest('.skdet').querySelector('.histbud');if(f){f.hidden=!f.hidden;if(!f.hidden)f.querySelector('input').focus()}}
   else if(a==='hist-all'){histAll=!histAll;renderHistory()}
@@ -3502,7 +3517,7 @@ document.addEventListener('submit',e=>{
   else if(k==='pot'){
     const n=parseFloat(String($('#potAmt').value).replace(/[£,\s]/g,'').replace('−','-'));
     if(!isFinite(n)||!n){toast('Enter an amount, e.g. 250 or -40');return}
-    S.potAdj=S.potAdj||[];S.potAdj.push({id:newId(),amt:toGBP(n),note:$('#potNote').value.trim(),d:today()});
+    S.potAdj=S.potAdj||[];S.potAdj.push({id:newId(),amt:toGBP(n),note:$('#potNote').value.trim(),d:today(),u:Date.now()});
     $('#potAmt').value='';$('#potNote').value='';$('#potForm').hidden=true;commit();toast('Savings pot updated');
   }
   else if(k==='invkey'){
@@ -3543,6 +3558,10 @@ document.addEventListener('submit',e=>{
     editExp=null;commit();toast('Expense updated')}
   else if(/^sk/.test(k)&&skForm(k,f)){}
   else if(k==='alert')alForm();
+  else if(k==='potadjedit'){const x=(S.potAdj||[]).find(y=>y.id===f.dataset.id);if(!x){potAdjEdit=null;renderPotAdj();return}
+    const n=parseFloat(String(f.amt.value).replace(',','.').replace(/[−–]/g,'-').replace(/[^0-9.\-]/g,''));if(!n)return;
+    const shown=spUSD()?r2s(x.amt*fxRate()):x.amt;if(Math.abs(n-shown)>0.004)x.amt=r2s(toGBP(n));
+    const d=f.d.value;if(/^\d{4}-\d{2}-\d{2}$/.test(d)&&d<=today())x.d=d;x.note=f.note.value.trim().slice(0,60);x.u=Date.now();potAdjEdit=null;commit();toast('Adjustment updated')}
   else if(k==='mebud'){const n=num(f.querySelector('input').value);if(!(n>=0))return;S.budgets=S.budgets||{};
     const cur=periodOf(today());if(S.budgets[cur.key]==null)S.budgets[cur.key]=cur.B; // pin the current period first so the correction can't leak into it
     S.budgets[f.dataset.k]=toGBP(n);commit();toast('Budget for that period updated')}
