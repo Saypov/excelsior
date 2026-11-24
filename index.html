@@ -748,7 +748,7 @@ details summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;alig
         <div class="grid2" style="margin-top:8px"><button class="btn" style="margin:0;background:var(--hot);border-color:var(--hot)" data-act="do-import">Replace</button><button class="ghost" data-act="cancel-import">Cancel</button></div>
       </div>
     </div>
-    <p class="small muted" style="margin:16px 0">Excelsior · v5.12.3 · Sarò il migliore</p>
+    <p class="small muted" style="margin:16px 0">Excelsior · v5.12.4 · Sarò il migliore</p>
   </div>
 </section>
 </main>
@@ -1044,7 +1044,7 @@ function renderPotAdj(){const box=$('#potAdjList');if(!box)return;const L=(S.pot
   box.innerHTML=`<button class="link" type="button" data-act="potadj-open" style="padding:0;margin-top:10px">${potAdjOpen?'Hide':'Show'} adjustments (${L.length})</button>`+(potAdjOpen?`<ul class="list" style="margin-top:6px">${L.map(x=>x.id===potAdjEdit?
     `<li class="li" style="display:block"><form data-form="potadjedit" data-id="${x.id}"><div class="grid2"><div><label>Amount (${sym})</label><input name="amt" inputmode="text" value="${val(x)}" autocomplete="off"></div><div><label>Date</label><input type="date" name="d" value="${x.d||today()}" max="${today()}"></div></div>
       <label>Note</label><input name="note" value="${esc(x.note||'')}" autocomplete="off"><div class="grid2" style="margin-top:10px"><button class="ghost" type="button" data-act="potadj-x">Cancel</button><button class="btn" type="submit" style="margin:0">Save</button></div></form></li>`
-    :`<li class="li"><span><b>${esc(x.note||(x.amt<0?'Taken out':'Added'))}</b><br><span class="small muted">${x.d?short(x.d):''}</span></span><span style="display:flex;align-items:center;gap:6px"><span class="amt${x.amt<0?' neg':''}">${x.amt<0?'−':'+'}${sm(Math.abs(x.amt))}</span>
+    :`<li class="li padj"><span style="flex:1;min-width:0;overflow-wrap:anywhere"><b>${esc(x.note||(x.amt<0?'Taken out':'Added'))}</b><br><span class="small muted">${x.d?short(x.d):''}</span></span><span style="display:flex;align-items:center;gap:8px;flex:none"><span class="amt${x.amt<0?' neg':''}">${x.amt<0?'−':'+'}${sm(Math.abs(x.amt))}</span>
       <button class="x" type="button" data-act="potadj-edit" data-id="${x.id}" aria-label="Edit adjustment" style="font-size:15px">✎</button><button class="x" type="button" data-act="del-potadj" data-id="${x.id}" aria-label="Delete adjustment">×</button></span></li>`).join('')}</ul>`:'')}
 function setPayDay(day){
   day=Math.max(1,Math.min(31,Math.round(day)||1));const t=today();
